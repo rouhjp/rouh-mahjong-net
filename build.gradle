@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+group 'jp.rouh'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    implementation group: 'io.netty', name: 'netty-all', version: '4.1.70.Final'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.withType(GroovyCompile)*.groovyOptions*.encoding = 'UTF-8'
