@@ -94,39 +94,6 @@ public final class HandTiles{
     }
 
     /**
-     * 副露(暗槓を含む)が四槓子の成立条件を満たしているか判定します。
-     * <p>この操作は包の判定に用います。
-     * @param openMelds 副露(暗槓を含む)
-     * @return true  四槓子が成立する場合
-     *         false 四槓子が成立しない場合
-     */
-    static boolean fourQuadFulfilled(List<Meld> openMelds){
-        return openMelds.stream().filter(Meld::isQuad).count()==4;
-    }
-
-    /**
-     * 副露(暗槓を含む)が大四喜の成立条件を満たしているか判定します。
-     * <p>この操作は包の判定に用います。
-     * @param openMelds 副露(暗槓を含む)
-     * @return true  大四喜が成立する場合
-     *         false 大四喜が成立しない場合
-     */
-    static boolean fourWindFulfilled(List<Meld> openMelds){
-        return openMelds.stream().filter(Meld::isWind).count()==4;
-    }
-
-    /**
-     * 副露(暗槓を含む)が大三元の成立条件を満たしているか判定します。
-     * <p>この操作は包の判定に用います。
-     * @param openMelds 副露(暗槓を含む)
-     * @return true  大三元が成立する場合
-     *         false 大三元が成立しない場合
-     */
-    static boolean bigThreeFulfilled(List<Meld> openMelds){
-        return openMelds.stream().filter(Meld::isDragon).count()>=3;
-    }
-
-    /**
      * 純手牌と自摸牌から立直宣言可能牌のセットを取得します。
      * @param handTiles 純手牌
      * @param drawnTile 自摸牌

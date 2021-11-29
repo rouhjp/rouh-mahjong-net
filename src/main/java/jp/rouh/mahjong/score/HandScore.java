@@ -1,5 +1,6 @@
 package jp.rouh.mahjong.score;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -50,6 +51,24 @@ public class HandScore implements Comparable<HandScore>{
         this.limit = Limit.of(point, doubles);
         this.handLimit = false;
         this.dealer = dealer;
+    }
+
+    /**
+     * この得点が複数の役満で構成される場合, それぞれの役満の得点に分解します。
+     * <p>この得点が役満(数え役満を除く)でない場合,
+     * 分解不可能として, このオブジェクトの単体リストを返します。
+     * <p>分解された得点オブジェクトの点数の合計値は
+     * もとの得点オブジェクトの点数と一致します。
+     * <p>この操作は, 包の点数計算のために用います。
+     * 例えば, 包の発生した大四喜と, 同時に成立した包の対象外である字一色の手が
+     * ツモ和了となった場合, 大四喜の点数のみ包による責任払いが発生します。
+     * @return 分割した得点オブジェクトのリスト
+     */
+    List<HandScore> disorganize(){
+        if(!handLimit) return List.of(this);
+        return handTypes.stream()
+                .map(handType->HandScore.ofLimit(List.of((LimitHandType)handType), dealer))
+                .toList();
     }
 
     /**
