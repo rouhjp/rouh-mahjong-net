@@ -26,8 +26,13 @@
 | ron | ロン(発声) |
 | tsumo | ツモ(発声) |
 | ready | 立直 |
-| straight | 順子 |
+| sequence | 順子 |
 | triple | 刻子 |
 | quad | 槓子 |
 | self-quad | 暗槓 |
+| round-wind | 場風 |
+| seat-wind | 自風 |
+| concealed | 面前 |
+
+
 
