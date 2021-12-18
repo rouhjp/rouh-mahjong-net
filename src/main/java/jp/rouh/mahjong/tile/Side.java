@@ -1,5 +1,7 @@
 package jp.rouh.mahjong.tile;
 
+import java.util.List;
+
 /**
  * ある方角{@link Wind}に対する相対方位を表すクラス。
  * @author Rouh
@@ -56,16 +58,12 @@ public enum Side {
     }
 
     /**
-     * この相対方位が示す相手から見た自分の相対方位を返します。
-     * @return 反転した相対方位
+     * この相対位置以外の相対位置をリスト形式で返します。
+     * <p>例えば {@code SELF.others()} は, [RIGHT, ACROSS, LEFT]と等価です。
+     * @return 残りの相対位置のリスト
      */
-    public Side fromOpposite() {
-        return switch (this) {
-            case SELF -> SELF;
-            case RIGHT -> LEFT;
-            case ACROSS -> ACROSS;
-            case LEFT -> RIGHT;
-        };
+    public List<Side> others(){
+        return List.of(RIGHT.of(this), ACROSS.of(this), LEFT.of(this));
     }
 
     /**

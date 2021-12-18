@@ -177,11 +177,11 @@ public enum TileBasedHandType implements BasicHandType{
         }
     };
 
-    private final String text;
+    private final String name;
     private final int doubles;
 
-    TileBasedHandType(String text, int doubles){
-        this.text = text;
+    TileBasedHandType(String name, int doubles){
+        this.name = name;
         this.doubles = doubles;
     }
 
@@ -207,8 +207,8 @@ public enum TileBasedHandType implements BasicHandType{
     abstract boolean test(HandFeature feature, WinningContext context);
 
     @Override
-    public String getText(){
-        return text;
+    public String getName(){
+        return name;
     }
 
     @Override

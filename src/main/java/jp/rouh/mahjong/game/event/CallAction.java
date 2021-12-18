@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
- * 他家の打牌に対する行動を表すクラス。
- *
+ * ターン外行動クラス。
+ * <p>副露やロンなど, 相手の打牌時に選択可能な行動を表します。
  * @param type 行動の種別
  * @param arguments 行動に必要な牌
  * @author Rouh
@@ -22,6 +22,20 @@ public record CallAction(CallActionType type, List<Tile> arguments) {
             throw new NoSuchElementException(type+" has no arguments");
         }
         return arguments;
+    }
+
+    /**
+     * この行動の優先順位を取得します。
+     * @return 優先度(0..4 数字が高い方が優先度が高い)
+     */
+    public int priority(){
+        return switch(type){
+            case RON -> 4;
+            case KAN -> 3;
+            case PON -> 2;
+            case CHI -> 1;
+            case PASS -> 0;
+        };
     }
 
     /**

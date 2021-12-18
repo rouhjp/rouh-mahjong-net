@@ -241,7 +241,7 @@ public enum LimitHandType implements HandType{
     }
 
     @Override
-    public String getText(){
+    public String getName(){
         return text;
     }
 

@@ -1,9 +1,13 @@
 package jp.rouh.mahjong.tile;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static java.util.function.Predicate.not;
 import static jp.rouh.mahjong.tile.Tile.*;
 
 /**
@@ -12,18 +16,45 @@ import static jp.rouh.mahjong.tile.Tile.*;
  * @version 1.0
  */
 public final class Tiles{
+    private static final List<Tile> ORPHANS;
+    private static final List<Tile> FULL_SEQUENCE;
+    private static final List<Tile> FULL_RED_SEQUENCE;
+    static{
+        ORPHANS = Stream.of(Tile.values()).filter(Tile::isOrphan).toList();
+        FULL_SEQUENCE = Stream.of(Tile.values()).filter(not(Tile::isPrisedRed)).toList();
+        FULL_RED_SEQUENCE = FULL_SEQUENCE.stream().map(Tiles::toPrisedRedIfExists).toList();
+    }
+
     private Tiles(){
         throw new AssertionError("instantiate utility class");
     }
 
-    private static final List<Tile> ORPHANS = Stream.of(Tile.values()).filter(Tile::isOrphan).toList();
+    public static List<Tile> shuffledTileSet(){
+        return shuffledTileSet(new SecureRandom().generateSeed(20));
+    }
+
+    public static List<Tile> shuffledTileSet(byte[] seed){
+        try{
+            var random = SecureRandom.getInstance("SHA1PRNG");
+            random.setSeed(seed);
+            var tiles = new ArrayList<Tile>();
+            tiles.addAll(FULL_SEQUENCE);
+            tiles.addAll(FULL_SEQUENCE);
+            tiles.addAll(FULL_SEQUENCE);
+            tiles.addAll(FULL_RED_SEQUENCE);
+            Collections.shuffle(tiles, random);
+            return tiles;
+        }catch(NoSuchAlgorithmException e){
+            throw new InternalError(e);
+        }
+    }
 
     /**
      * 么九牌のリストを取得します。
      * @return 么九牌のリスト
      */
     public static List<Tile> orphans(){
-        return ORPHANS;
+        return Stream.of(Tile.values()).filter(Tile::isOrphan).toList();
     }
 
     /**

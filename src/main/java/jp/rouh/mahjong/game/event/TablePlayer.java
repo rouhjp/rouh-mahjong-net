@@ -5,7 +5,6 @@ package jp.rouh.mahjong.game.event;
  * <p>対局中の情報を受け取る{@link TableObserver}インターフェースと,
  * 対局中の入力を受け付ける{@link TableStrategy}インターフェースを
  * 統合したインターフェースです。
- *
  * @author Rouh
  * @version 1.0
  */

@@ -576,10 +576,10 @@ public final class HandTiles{
      * @return チー構成牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<List<Tile>> straightBasesOf(List<Tile> handTiles, Tile discardedTile){
+    public static Set<List<Tile>> sequenceBasesOf(List<Tile> handTiles, Tile discardedTile){
         validateHandTiles(handTiles);
         var tilesOperable = FlexList.copyOf(handTiles);
-        return straightBasesOf(discardedTile).stream()
+        return sequenceBasesOf(discardedTile).stream()
                 .filter(tilesOperable::containsWhole)
                 .filter(base -> {
                     //全手牌喰い替え牌の事前防止
@@ -607,7 +607,7 @@ public final class HandTiles{
      * @param tile 打牌
      * @return 塔子のセット
      */
-    private static Set<List<Tile>> straightBasesOf(Tile tile){
+    private static Set<List<Tile>> sequenceBasesOf(Tile tile){
         if(tile.isHonor()) return emptySet();
         var bases = new HashSet<List<Tile>>();
         if(tile.hasNext()){

@@ -7,8 +7,8 @@ import java.util.NoSuchElementException;
 import static jp.rouh.mahjong.game.event.TurnActionType.*;
 
 /**
- * 摸打中の行動を表すクラス。
- *
+ * ターン内行動クラス。
+ * <p>打牌や立直宣言など, 自身の摸打時に選択可能な行動を表します。
  * @param type 行動の種別
  * @param argument 行動に必要な牌
  * @author Rouh
@@ -51,7 +51,7 @@ public record TurnAction(TurnActionType type, Tile argument) {
      * @return カン宣言
      */
     public static TurnAction ofKan(Tile t) {
-        return new TurnAction(KAN, t);
+        return new TurnAction(TURN_KAN, t);
     }
 
     /**

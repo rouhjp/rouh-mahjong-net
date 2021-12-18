@@ -13,17 +13,17 @@ enum FixedScoreHandType implements HandType{
      */
     RIVER_JACKPOT("流し満貫", Limit.JACKPOT);
 
-    private final String text;
+    private final String name;
     private final Limit limit;
 
-    FixedScoreHandType(String text, Limit limit){
-        this.text = text;
+    FixedScoreHandType(String name, Limit limit){
+        this.name = name;
         this.limit = limit;
     }
 
     @Override
-    public String getText(){
-        return text;
+    public String getName(){
+        return name;
     }
 
     @Override

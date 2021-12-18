@@ -9,7 +9,7 @@ import java.util.List;
  * @author Rouh
  * @version 1.0
  */
-public interface HandScoreCalculator{
+interface HandScoreCalculator{
 
     /**
      * 手牌と和了状況をもとに得点を算出します。

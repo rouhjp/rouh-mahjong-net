@@ -1,5 +1,7 @@
 package jp.rouh.mahjong.score;
 
+import jp.rouh.mahjong.tile.Tile;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -158,6 +160,15 @@ public class HandScore implements Comparable<HandScore>{
         return handTypes.isEmpty();
     }
 
+    /**
+     * 得点を表す文字列を取得します。
+     * @return 得点を表す文字列
+     */
+    public String getScoreExpression(){
+        return (handLimit?"":point+"符 "+doubles+"翻 ")
+                + (limit.isEmpty()?"":limit.getText()+" ")+getScore()+"点";
+    }
+
     @Override
     public int compareTo(HandScore o){
         return getBaseScore() - o.getBaseScore();
@@ -193,5 +204,9 @@ public class HandScore implements Comparable<HandScore>{
      */
     public static HandScore ofRiverJackpot(boolean dealer){
         return new HandScore(FixedScoreHandType.RIVER_JACKPOT, dealer);
+    }
+
+    public static HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningContext context){
+        return StandardHandScoreCalculator.getInstance().calculate(handTiles, openMelds, winningTile, context);
     }
 }

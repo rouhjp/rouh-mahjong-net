@@ -104,11 +104,11 @@ enum EnvironmentBasedHandType implements BasicHandType{
         }
     };
 
-    private final String text;
+    private final String name;
     private final int doubles;
 
-    EnvironmentBasedHandType(String text, int doubles){
-        this.text = text;
+    EnvironmentBasedHandType(String name, int doubles){
+        this.name = name;
         this.doubles = doubles;
     }
 
@@ -131,8 +131,8 @@ enum EnvironmentBasedHandType implements BasicHandType{
     abstract boolean test(WinningContext context);
 
     @Override
-    public String getText(){
-        return text;
+    public String getName(){
+        return name;
     }
 
     @Override

@@ -24,7 +24,7 @@ public enum TurnActionType {
      * カン(加槓/暗槓)を宣言します。
      * <p>どの牌をカンするか指定する必要があります。
      */
-    KAN,
+    TURN_KAN,
 
     /**
      * 立直宣言打牌します。

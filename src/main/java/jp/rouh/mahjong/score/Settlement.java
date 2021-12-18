@@ -2,10 +2,12 @@ package jp.rouh.mahjong.score;
 
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Wind;
-import jp.rouh.util.ItemMap;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * プレイヤー間の支払い額を保持するクラス。
@@ -48,6 +50,9 @@ import java.util.stream.IntStream;
  * 和了手に対する支払い同様に切り上げた額を支払います。
  * 例えば, 1本場300点を包責任者と放銃者の二人が支払う場合,
  * 150点を切り上げた200点をそれぞれが支払います。
+ * <p>ダブロンが発生した場合, 供託を二重に支給してしまうと
+ * 開局時と終局時の得点の合計値が不一致となってしまうため注意が必要です。
+ * 二度目の支払額を算出する際は{@link SettlementContext#getTotalDepositCount()}の値を0にする必要があります。
  * <h2>流局時の決済</h2>
  * <p>流局時はノーテン罰符の支払いが発生します。ノーテン罰符による点数移動は以下の通りです。
  * <ul>
@@ -62,13 +67,17 @@ import java.util.stream.IntStream;
  */
 public class Settlement{
     private final Map<Wind, Integer> payments;
-    private Settlement(Map<Wind, Integer> payments){
+    private final int streakCount;
+    private final int depositCount;
+
+    private Settlement(Map<Wind, Integer> payments, int streak, int deposit){
         this.payments = Map.copyOf(payments);
+        this.streakCount = streak;
+        this.depositCount = deposit;
     }
 
     /**
      * 指定した自風のプレイヤーの支払額を取得します。
-     *
      * <p>プレイヤーが点数を受取る場合は正の値を,
      * プレイヤーが点数を支払う場合は負の値を取得します。
      * @param wind 自風
@@ -79,14 +88,30 @@ public class Settlement{
     }
 
     /**
+     * この支払額に適用された(あるいは保留された)本場数を取得します。
+     * @return 本場数
+     */
+    public int getStreakCount(){
+        return streakCount;
+    }
+
+    /**
+     * この支払額に適用された(あるいは保留された)供託数を取得します。
+     * @return 供託数
+     */
+    public int getDepositCount(){
+        return depositCount;
+    }
+
+    /**
      * 流局時の決済オブジェクトを取得します。
      * @param handReadies 聴牌のプレイヤーの自風リスト
      * @return 決済
      */
-    public static Settlement ofDrawn(List<Wind> handReadies){
+    public static Settlement ofDrawn(List<Wind> handReadies, int streak, int deposit){
         if(handReadies.isEmpty() || handReadies.size()==4){
             //0, 0, 0, 0
-            return new Settlement(new ItemMap<>(Wind.class, 0));
+            return new Settlement(Map.of(Wind.EAST, 0, Wind.SOUTH, 0, Wind.WEST, 0, Wind.NORTH, 0), streak, deposit);
         }else{
             //+3000, -1000, -1000, -1000
             //+1500, +1500, -1500, -1500
@@ -99,7 +124,7 @@ public class Settlement{
                     payments.put(wind, -1*(3000/(4 - handReadies.size())));
                 }
             }
-            return new Settlement(payments);
+            return new Settlement(payments, streak, deposit);
         }
     }
 
@@ -116,7 +141,8 @@ public class Settlement{
     }
 
     private static Settlement of(HandScore handScore, SettlementContext sc, WinningContext wc, LinkedList<Meld> openMelds){
-        var paymentMap = new ItemMap<>(Wind.class, 0);
+        var paymentMap = Stream.of(Wind.values())
+                .collect(Collectors.toMap(Function.identity(), wind->0));
         var suppliers = new HashSet<Wind>();
         var winner = wc.getSeatWind();
         var winningTileSupplier = (Wind)null;
@@ -196,11 +222,11 @@ public class Settlement{
                     //子:子:子=33:33:33
                     //親:子:子=50:25:25
                     if(wc.isDealer()){
-                        for(var side: List.of(Side.LEFT, Side.ACROSS, Side.RIGHT)){
+                        for(var side: Side.SELF.others()){
                             paymentMap.merge(side.of(winner), -1*ceil(score/3), Integer::sum);
                         }
                     }else{
-                        for(var side: List.of(Side.LEFT, Side.ACROSS, Side.RIGHT)){
+                        for(var side: Side.SELF.others()){
                             if(side.of(winner)==Wind.EAST){
                                 paymentMap.merge(side.of(winner), -1*ceil(score/2), Integer::sum);
                             }else{
@@ -217,7 +243,7 @@ public class Settlement{
         paymentMap.merge(winner, depositScore, Integer::sum);
         paymentMap.merge(winner, streakScore, Integer::sum);
         if(suppliers.isEmpty()){
-            for(var side:List.of(Side.LEFT, Side.ACROSS, Side.RIGHT)){
+            for(var side:Side.SELF.others()){
                 paymentMap.merge(side.of(winner), -1*ceil(streakScore/3), Integer::sum);
             }
         }else{
@@ -225,7 +251,7 @@ public class Settlement{
                 paymentMap.merge(supplier, -1*ceil(streakScore/suppliers.size()), Integer::sum);
             }
         }
-        return new Settlement(paymentMap);
+        return new Settlement(paymentMap, sc.getRoundStreakCount(), sc.getRoundStreakCount());
     }
 
     private static int ceil(int score){

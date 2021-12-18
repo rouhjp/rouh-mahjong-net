@@ -69,7 +69,7 @@ enum MeldBasedHandType implements BasicHandType{
     },
 
     /**
-     * 混全帯么九
+     * 混全帯么九(門前)
      */
     HALF_TERMINAL_SETS("混全帯么九", 2){
         @Override
@@ -81,7 +81,7 @@ enum MeldBasedHandType implements BasicHandType{
     },
 
     /**
-     * 混全帯么九
+     * 混全帯么九(食い下がり)
      */
     CALLED_HALF_TERMINAL_SETS("混全帯么九", 1){
         @Override
@@ -93,7 +93,7 @@ enum MeldBasedHandType implements BasicHandType{
     },
 
     /**
-     * 純全帯么九
+     * 純全帯么九(門前)
      */
     FULL_TERMINAL_SETS("純全帯么九", 3){
         @Override
@@ -104,7 +104,7 @@ enum MeldBasedHandType implements BasicHandType{
     },
 
     /**
-     * 純全帯么九
+     * 純全帯么九(食い下がり)
      */
     CALLED_FULL_TERMINAL_SETS("純全帯么九", 2){
         @Override
@@ -215,11 +215,12 @@ enum MeldBasedHandType implements BasicHandType{
         }
     };
 
-    private final String text;
+    private static final List<MeldBasedHandType> CALL_SENSITIVE =
+            List.of(HALF_TERMINAL_SETS, FULL_TERMINAL_SETS, FULL_STRAIGHTS, THREE_COLOR_STRAIGHTS);
+    private final String name;
     private final int doubles;
-
-    MeldBasedHandType(String text, int doubles){
-        this.text = text;
+    MeldBasedHandType(String name, int doubles){
+        this.name = name;
         this.doubles = doubles;
     }
 
@@ -245,8 +246,16 @@ enum MeldBasedHandType implements BasicHandType{
     abstract boolean test(FormattedHand hand, WinningContext context);
 
     @Override
-    public String getText(){
-        return text;
+    public String getName(){
+        return name;
+    }
+
+    @Override
+    public String getUniqueName(){
+        if(CALL_SENSITIVE.contains(this)){
+            return "門前"+ name;
+        }
+        return name;
     }
 
     @Override

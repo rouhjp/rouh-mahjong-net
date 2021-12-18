@@ -21,8 +21,8 @@ public interface TableObserver {
     void gameStarted(List<ProfileData> players);
 
     /**
-     * プレイヤー状態が更新されたことを通知します。
-     * @param players プレイヤー情報
+     * 指定の方向に位置するプレイヤー情報を通知します。
+     * @param players 通知先からみたプレイヤーの相対方位とそのプレイヤーの情報のマップ
      */
     void seatUpdated(Map<Side, PlayerData> players);
 
@@ -44,9 +44,15 @@ public interface TableObserver {
 
     /**
      * 局が和了されたことを通知します。
-     * @param results 結果情報
+     * @param scores 和了結果のリスト
      */
-    void roundSettled(List<ResultData> results);
+    void roundSettled(List<ScoringData> scores);
+
+    /**
+     * 局の精算を通知します。
+     * @param payments 通知先からみたプレイヤーの相対方位とそのプレイヤーの精算情報のマップ
+     */
+    void paymentSettled(Map<Side, PaymentData> payments);
 
     /**
      * サイコロが振られたことを通知します。
@@ -92,8 +98,14 @@ public interface TableObserver {
     void wallTileRevealed(Side side, int column, Tile tile);
 
     /**
+     * プレイヤーのターンが開始したことを通知します。
+     * @param side 通知先から見たプレイヤーの方向
+     */
+    void turnStarted(Side side);
+
+    /**
      * 他家の手牌が更新されたことを通知します。
-     * @param side 通知先から見た対象牌の相対方位
+     * @param side 通知先から見た他家の相対方位
      * @param size 手牌の枚数
      * @param wide 自摸牌がある(摸打中)かどうか
      */
@@ -101,18 +113,18 @@ public interface TableObserver {
 
     /**
      * 自家の手牌が更新されたことを通知します。
-     * @param wideTiles 自摸牌を含む手牌(副露は含まない)
+     * @param allTiles 自摸牌を含む手牌(副露は含まない)
      * @param wide      自摸牌がある(摸打中)かどうか
      */
-    void handUpdated(List<Tile> wideTiles, boolean wide);
+    void handUpdated(List<Tile> allTiles, boolean wide);
 
     /**
      * 手牌が倒されたことを通知します。
      * @param side      通知先から見た手牌を倒したプレイヤーの相対方位
-     * @param wideTiles 自摸牌を含む手牌(副露は含まない)
+     * @param allTiles 自摸牌を含む手牌(副露は含まない)
      * @param wide      自摸牌がある(摸打中)かどうか
      */
-    void handRevealed(Side side, List<Tile> wideTiles, boolean wide);
+    void handRevealed(Side side, List<Tile> allTiles, boolean wide);
 
     /**
      * 牌が河に捨てられたことを通知します。
@@ -132,7 +144,7 @@ public interface TableObserver {
     /**
      * 面子(順子/刻子/大明槓)が追加されたことを通知します。
      * @param side  通知先から見た副露者の相対方位
-     * @param tilt  通知先から見た副露元の相対方位
+     * @param tilt  副露牌が倒された方位
      * @param tiles 構成牌のリスト
      */
     void tiltMeldAdded(Side side, Side tilt, List<Tile> tiles);

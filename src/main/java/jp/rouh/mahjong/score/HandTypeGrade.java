@@ -11,47 +11,52 @@ public enum HandTypeGrade{
      * 定義外
      * <p>流し満貫など
      */
-    UNDEFINED,
+    UNDEFINED(""),
 
     /**
      * 一飜
      */
-    DOUBLES_1,
+    DOUBLES_1("1"),
 
     /**
      * 両飜
      */
-    DOUBLES_2,
+    DOUBLES_2("2"),
 
     /**
      * 三飜
      */
-    DOUBLES_3,
+    DOUBLES_3("3"),
 
     /**
      * 四飜
      */
-    DOUBLES_4,
+    DOUBLES_4("4"),
 
     /**
      * 五飜
      */
-    DOUBLES_5,
+    DOUBLES_5("5"),
 
     /**
      * 六飜
      */
-    DOUBLES_6,
+    DOUBLES_6("6"),
 
     /**
      * シングル役満
      */
-    LIMIT_SINGLE,
+    LIMIT_SINGLE("S"),
 
     /**
      * ダブル役満
      */
-    LIMIT_DOUBLE;
+    LIMIT_DOUBLE("W");
+
+    private final String code;
+    HandTypeGrade(String code){
+        this.code = code;
+    }
 
     /**
      * この等級が役満の等級かどうか検査します。
@@ -60,6 +65,16 @@ public enum HandTypeGrade{
      */
     boolean isLimit(){
         return this==LIMIT_SINGLE || this==LIMIT_DOUBLE;
+    }
+
+    /**
+     * この役の等級を一文字のコードで文字列化します。
+     * <p>通常役であれば飜数を, シングル役満であればS, ダブル役満であればW,
+     * 定義外であればスペースを返します。
+     * @return コード
+     */
+    public String getCode(){
+        return code;
     }
 
     /**

@@ -50,8 +50,8 @@ final class PrisedTileHandTypes{
             }
 
             @Override
-            public String getText(){
-                return "ドラ" + count;
+            public String getName(){
+                return count==1?"ドラ":"ドラ"+count;
             }
         };
     }
@@ -71,8 +71,8 @@ final class PrisedTileHandTypes{
             }
 
             @Override
-            public String getText(){
-                return "赤ドラ" + count;
+            public String getName(){
+                return count==1?"赤ドラ":"赤ドラ"+count;
             }
         };
     }
@@ -92,8 +92,8 @@ final class PrisedTileHandTypes{
             }
 
             @Override
-            public String getText(){
-                return "裏ドラ" + count;
+            public String getName(){
+                return count==1?"裏ドラ":"裏ドラ"+count;
             }
         };
     }

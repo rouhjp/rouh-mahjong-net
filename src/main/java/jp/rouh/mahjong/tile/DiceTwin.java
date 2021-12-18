@@ -21,7 +21,7 @@ public record DiceTwin(int firstValue, int secondValue) {
      * ランダムな値の2個のサイコロ1組を新規に生成します。
      * @return サイコロ1組
      */
-    public static DiceTwin newDices() {
+    public static DiceTwin roll() {
         return new DiceTwin(Dices.rollDice(), Dices.rollDice());
     }
 }

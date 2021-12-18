@@ -1,5 +1,11 @@
 package jp.rouh.mahjong.tile;
 
+import java.util.List;
+import java.util.stream.Stream;
+
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toList;
+
 /**
  * 風(方角)クラス。
  * @author Rouh
@@ -11,24 +17,29 @@ public enum Wind {
     /**
      * 東風
      */
-    EAST,
+    EAST("東"),
 
     /**
      * 南風
      */
-    SOUTH,
+    SOUTH("南"),
 
     /**
      * 西風
      */
-    WEST,
+    WEST("西"),
 
     /**
      * 北風
      */
-    NORTH;
+    NORTH("北");
 
     private static final Wind[] VALUES = values();
+
+    private final String text;
+    Wind(String text){
+        this.text = text;
+    }
 
     /**
      * 東南西北の順に習い、次の方角を返します。
@@ -50,8 +61,18 @@ public enum Wind {
      * {@code NORTH.next()==EAST }
      * @return 次の方角
      */
-    Wind shift(int n) {
+    public Wind shift(int n) {
         return VALUES[(ordinal() + n) % 4];
+    }
+
+    /**
+     * この方角以外の方角をリスト形式で返します。
+     *
+     * <p>例えば {@code SOUTH.others()} は, [EAST, WEST, NORTH]と等価です。
+     * @return 残りの方角のリスト
+     */
+    public List<Wind> others(){
+        return Stream.of(values()).filter(not(this::equals)).toList();
     }
 
     /**
@@ -78,5 +99,13 @@ public enum Wind {
             case WEST -> Tile.WW;
             case NORTH -> Tile.WN;
         };
+    }
+
+    /**
+     * 漢字表記の文字列を取得します。
+     * @return 風の漢字表記
+     */
+    public String getText(){
+        return text;
     }
 }

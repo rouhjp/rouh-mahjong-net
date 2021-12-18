@@ -14,13 +14,20 @@ public interface TableStrategy {
      * @param choices 選択可能な行動のリスト
      * @return 行動
      */
-    TurnAction moveTurn(List<TurnAction> choices);
+    TurnAction selectTurnAction(List<TurnAction> choices);
 
     /**
      * 他家の打牌時の行動の入力を求めます。
      * @param choices 選択可能な行動のリスト
      * @return 行動
      */
-    CallAction moveCall(List<CallAction> choices);
+    CallAction selectCallAction(List<CallAction> choices);
 
+    /**
+     * 次に進むことへの了承を求めます。
+     * <p>処理の終了を以て了承とします。
+     */
+    default void acknowledge(){
+        //pass
+    }
 }

@@ -8,20 +8,21 @@ import java.util.List;
 
 /**
  * 和了時の付帯状況を表すクラス。
- * @param roundWind        場風
- * @param seatWind         和了者の自風
- * @param upperPrisedTiles 表ドラ牌のリスト(ドラ表示牌ではなく, ドラ自体)
- * @param lowerPrisedTiles 裏ドラ牌のリスト(ドラ表示牌ではなく, ドラ自体)
- * @param characteristics  特殊条件のリスト
  */
-public record WinningSituation(Wind roundWind, Wind seatWind, List<Tile> upperPrisedTiles, List<Tile> lowerPrisedTiles,
-                               Collection<WinningCharacteristics> characteristics){
+public class WinningSituation{
+    private final Wind roundWind;
+    private final Wind seatWind;
+    private final List<Tile> upperPrisedTiles;
+    private final List<Tile> lowerPrisedTiles;
+    private final List<WinningCharacteristics> characteristics;
 
-    /**
-     * {@inheritDoc}
-     * @throws IllegalArgumentException 特殊条件のリストに矛盾がある場合
-     */
-    public WinningSituation{
+
+    WinningSituation(Wind round, Wind seat, List<Tile> upper, List<Tile> lower, List<WinningCharacteristics> characteristics){
+        this.roundWind = round;
+        this.seatWind = seat;
+        this.upperPrisedTiles = upper;
+        this.lowerPrisedTiles = lower;
+        this.characteristics = characteristics;
         WinningCharacteristics.validate(characteristics);
     }
 }
