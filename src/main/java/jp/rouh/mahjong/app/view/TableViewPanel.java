@@ -4,6 +4,9 @@ import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
+import jp.rouh.util.SingleThreadTaskExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -14,7 +17,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static jp.rouh.mahjong.app.view.TileLabel.*;
@@ -51,6 +54,17 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
      * 上部レイヤーのZインデックス値
      */
     private static final int GLASS_LAYER = 300;
+
+    private static final Logger LOG = LoggerFactory.getLogger(TableViewPanel.class);
+
+    /**
+     * 順序性を保ちながら描画を行うワーカスレッドのエクゼキュータ。
+     * <p>呼び出し元のスレッド及びEDTをブロックせず与えられた順序で
+     * 遅延描画などを行うことができます。コンポーネントの描画は
+     * さらに{@link SwingUtilities#invokeLater}等を用いて
+     * EDT上で処理させる必要があります。
+     */
+    private final ExecutorService worker = new SingleThreadTaskExecutor();
 
     //access from EDT, single thread access
     private int[] riverNextIndexes;
@@ -90,16 +104,17 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         addMouseListener(new MouseAdapter(){
             @Override
             public void mousePressed(MouseEvent e){
-                acknowledgeSemaphore.release();
-                System.out.println("acknowledged!");
-                acknowledging.set(false);
+                if(acknowledging.get()){
+                    acknowledgeSemaphore.release();
+                    LOG.info("player clicked");
+                    acknowledging.set(false);
+                }
             }
 
         });
     }
 
     private void initialize(){
-        removeAll();
         riverNextIndexes = new int[4];
         riverReadyIndexes = new int[]{-1, -1, -1, -1};
         meldNextIndexes = new int[4];
@@ -115,6 +130,11 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         playerNameLabels = new TableLabel[4];
         playerWindLabels = new TableLabel[4];
         playerScoreLabels = new TableLabel[4];
+    }
+
+    private void clearTable(){
+        initialize();
+        removeAll();
     }
 
     private void putTile(TileLabel label, Point p){
@@ -185,7 +205,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 if(acknowledging.get()){
                     TableViewPanel.this.dispatchEvent(e);
                 }else if(glassLabels[index]==null){
-                    System.out.println("tile pressed: "+t);
                     actionInput = ActionInput.ofIndex(index);
                     actionSemaphore.release();
                 }
@@ -229,6 +248,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
 
     private void putHandTileGlass(int index){
         var label = handTileLabels[Direction.BOTTOM.ordinal()][index];
+        label.clearTranslationCentered();
         var point = label.getBaseLocation();
         var glass = new GlassLabel();
         glass.setBaseLocationCentered(point);
@@ -243,11 +263,14 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 remove(handTileLabels[d.ordinal()][i]);
                 handTileLabels[d.ordinal()][i] = null;
                 if(d==Direction.BOTTOM){
-                    remove(glassLabels[i]);
-                    remove(detectorLabels[i]);
-                    glassLabels[i] = null;
-                    detectorLabels[i] = null;
-
+                    if(glassLabels[i]!=null){
+                        remove(glassLabels[i]);
+                        glassLabels[i] = null;
+                    }
+                    if(detectorLabels[i]!=null){
+                        remove(detectorLabels[i]);
+                        detectorLabels[i] = null;
+                    }
                 }
             }
         }
@@ -515,40 +538,47 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     @Override
     public ActionInput waitForInput(List<ActionInput> choices){
         requireCallOnNonEDT();
-        SwingUtilities.invokeLater(()->{
-            for(int i = 0; i<choices.size(); i++){
-                if(choices.get(i).isOption()){
-                    putOptionButton(choices.get(i), i);
-                }
-            }
-            for(int i = 0; i<14; i++){
-                if(handTileLabels[Direction.BOTTOM.ordinal()][i]!=null){
-                    if(!choices.contains(ActionInput.ofIndex(i))){
-                        putHandTileGlass(i);
+        var future = worker.submit(()->{
+            SwingUtilities.invokeLater(()->{
+                for(int i = 0; i<choices.size(); i++){
+                    if(choices.get(i).isOption()){
+                        putOptionButton(choices.get(i), i);
                     }
                 }
+                for(int i = 0; i<14; i++){
+                    if(handTileLabels[Direction.BOTTOM.ordinal()][i]!=null){
+                        if(!choices.contains(ActionInput.ofIndex(i))){
+                            putHandTileGlass(i);
+                        }
+                    }
+                }
+            });
+            try{
+                actionSemaphore.acquire();
+                SwingUtilities.invokeAndWait(()->{
+                    for(int i = 0; i<14; i++){
+                        if(glassLabels[i]!=null){
+                            remove(glassLabels[i]);
+                            glassLabels[i] = null;
+                        }
+                    }
+                    for(int i = 0; i<5; i++){
+                        if(optionButtons[i]!=null){
+                            remove(optionButtons[i]);
+                            optionButtons[i] = null;
+                        }
+                    }
+                    repaint();
+                });
+                return actionInput;
+            }catch(InterruptedException | InvocationTargetException e){
+                return null;
             }
         });
         try{
-            actionSemaphore.acquire();
-            SwingUtilities.invokeAndWait(()->{
-                for(int i = 0; i<14; i++){
-                    if(glassLabels[i]!=null){
-                        remove(glassLabels[i]);
-                        glassLabels[i] = null;
-                    }
-                }
-                for(int i = 0; i<5; i++){
-                    if(optionButtons[i]!=null){
-                        remove(optionButtons[i]);
-                        optionButtons[i] = null;
-                    }
-                }
-                repaint();
-            });
-            return actionInput;
-        }catch(InterruptedException | InvocationTargetException e){
-            return null;
+            return future.get();
+        }catch(InterruptedException | ExecutionException e){
+            throw new RuntimeException(e);
         }
     }
 
@@ -557,209 +587,312 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         requireCallOnNonEDT();
         try{
             acknowledging.set(true);
+            LOG.info("--acquired--" + Thread.currentThread().getName());
             acknowledgeSemaphore.acquire();
+            LOG.info("--released--" + Thread.currentThread().getName());
         }catch(InterruptedException e){
-            //pass
+            LOG.info("ack interrupted "+e.getMessage());
         }
     }
 
     @Override
     public void gameStarted(List<ProfileData> players){
-        //pass
+        LOG.info("gameStarted "+players);
+    }
+
+    @Override
+    public void temporarySeatUpdated(Map<Side, PlayerTempData> players){
+        LOG.info("temporarySeatUpdated "+players);
+        worker.submit(()->SwingUtilities.invokeLater(()->
+                players.forEach((side, data)->{
+                    var dir = Direction.of(side);
+                    if(playerNameLabels[dir.ordinal()]!=null){
+                        remove(playerNameLabels[dir.ordinal()]);
+                    }
+                    if(playerWindLabels[dir.ordinal()]!=null){
+                        remove(playerWindLabels[dir.ordinal()]);
+                    }
+                    if(playerScoreLabels[dir.ordinal()]!=null){
+                        remove(playerWindLabels[dir.ordinal()]);
+                    }
+                    putPlayerName(dir, data.getName());
+                    putPlayerWind(dir, data.getSeatWind());
+                    putPlayerScore(dir, data.getScore());
+                })
+        ));
     }
 
     @Override
     public void seatUpdated(Map<Side, PlayerData> players){
-        SwingUtilities.invokeLater(()->
-            players.forEach((side, data)->{
-                var dir = Direction.of(side);
-                if(playerNameLabels[dir.ordinal()]!=null){
-                    remove(playerNameLabels[dir.ordinal()]);
-                }
-                if(playerWindLabels[dir.ordinal()]!=null){
-                    remove(playerWindLabels[dir.ordinal()]);
-                }
-                if(playerScoreLabels[dir.ordinal()]!=null){
-                    remove(playerWindLabels[dir.ordinal()]);
-                }
-                putPlayerName(dir, data.getName());
-                putPlayerWind(dir, data.getSeatWind());
-                putPlayerScore(dir, data.getScore());
-                if(data.getOrderWind()==Wind.EAST){
-                    if(initialEastLabel==null){
-                        putInitialEast(dir);
+        LOG.info("seatUpdated " + players);
+        worker.submit(()->SwingUtilities.invokeLater(()->
+                players.forEach((side, data)->{
+                    var dir = Direction.of(side);
+                    if(playerNameLabels[dir.ordinal()]!=null){
+                        remove(playerNameLabels[dir.ordinal()]);
                     }
-                }
-            })
-        );
+                    if(playerWindLabels[dir.ordinal()]!=null){
+                        remove(playerWindLabels[dir.ordinal()]);
+                    }
+                    if(playerScoreLabels[dir.ordinal()]!=null){
+                        remove(playerWindLabels[dir.ordinal()]);
+                    }
+                    putPlayerName(dir, data.getName());
+                    putPlayerWind(dir, data.getSeatWind());
+                    putPlayerScore(dir, data.getScore());
+                    if(data.getInitialSeatWind()==Wind.EAST){
+                        if(initialEastLabel==null){
+                            putInitialEast(dir);
+                        }
+                    }
+                })
+        ));
     }
 
     @Override
     public void roundStarted(Wind wind, int count, int streak, int deposit, boolean last){
-        SwingUtilities.invokeLater(()->{
-            initialize();
+        LOG.info("roundStarted "+wind+" count="+count+" streak="+streak+" deposit="+deposit+" last="+last);
+        worker.submit(()->SwingUtilities.invokeLater(()->{
             putRoundSign(wind, count);
             putStreakSign(streak);
             putDepositSign(deposit);
             if(last){
                 putLastSign();
             }
-        });
+        }));
     }
 
     @Override
     public void roundDrawn(DrawType drawType){
-        SwingUtilities.invokeLater(()->putDrawnMessage(drawType));
-    }
-
-    @Override
-    public void roundSettled(List<ScoringData> scores){
-        try{
-            for(var score: scores){
-                SwingUtilities.invokeAndWait(()->putScoringResultWindow(score));
+        LOG.info("roundDrawn "+drawType);
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->putDrawnMessage(drawType));
                 waitForAcknowledge();
+                SwingUtilities.invokeAndWait(()->{
+                    clearTable();
+                    repaint();
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
             }
-            SwingUtilities.invokeAndWait(()->{
-                remove(resultWindow);
-                resultWindow = null;
-                repaint();
-            });
-        }catch(InterruptedException | InvocationTargetException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void paymentSettled(Map<Side, PaymentData> payments){
-        try{
-            SwingUtilities.invokeAndWait(()->{
-                var paymentsByDirection = new HashMap<Direction, PaymentData>();
-                payments.forEach((side, payment)->paymentsByDirection.put(Direction.of(side), payment));
-                putPaymentResultWindow(paymentsByDirection);
-            });
-            waitForAcknowledge();
-            SwingUtilities.invokeAndWait(()->{
-                remove(resultWindow);
-                resultWindow = null;
-                repaint();
-            });
-        }catch(InterruptedException | InvocationTargetException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void diceRolled(Side side, int dice1, int dice2){
-        SwingUtilities.invokeLater(()->{
-            showDice(Direction.of(side), 0, dice1, 1500);
-            showDice(Direction.of(side), 1, dice2, 1500);
         });
     }
 
     @Override
+    public void roundSettled(List<ScoringData> scores){
+        LOG.info("roundSettled "+scores);
+        worker.submit(()->{
+            try{
+                for(var score: scores){
+                    SwingUtilities.invokeAndWait(()->putScoringResultWindow(score));
+                    waitForAcknowledge();
+                }
+                SwingUtilities.invokeAndWait(()->{
+                    remove(resultWindow);
+                    resultWindow = null;
+                    repaint();
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                LOG.debug("interrupted "+e.getMessage());
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public void paymentSettled(Map<Side, PaymentData> payments){
+        LOG.info("paymentSettled "+payments);
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
+                    var paymentsByDirection = new HashMap<Direction, PaymentData>();
+                    payments.forEach((side, payment)->paymentsByDirection.put(Direction.of(side), payment));
+                    putPaymentResultWindow(paymentsByDirection);
+                });
+                waitForAcknowledge();
+                SwingUtilities.invokeAndWait(()->{
+                    remove(resultWindow);
+                    resultWindow = null;
+                    clearTable();
+                    repaint();
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public void diceRolled(Side side, int dice1, int dice2){
+        LOG.info("diceRolled "+side+" dice1="+dice1+" dice2="+dice2);
+        worker.submit(()->SwingUtilities.invokeLater(()->{
+            showDice(Direction.of(side), 0, dice1, 1500);
+            showDice(Direction.of(side), 1, dice2, 1500);
+        }));
+    }
+
+    @Override
     public void declared(Side side, Declaration declaration){
-        SwingUtilities.invokeLater(()->showPlayerMessage(Direction.of(side), declaration, 2000));
+        LOG.info("declared "+side+" "+declaration);
+        worker.submit(()->SwingUtilities.invokeLater(()->showPlayerMessage(Direction.of(side), declaration, 2000)));
     }
 
     @Override
     public void readyBoneAdded(Side side){
-        SwingUtilities.invokeLater(()->putReadyBone(Direction.of(side)));
+        LOG.info("readyBoneAdded "+side);
+        worker.submit(()->SwingUtilities.invokeLater(()->putReadyBone(Direction.of(side))));
     }
 
     @Override
     public void wallGenerated(){
-        SwingUtilities.invokeLater(()->{
+        LOG.info("wallGenerated");
+        worker.submit(()->{
             var directions = Direction.values();
-            for(int c = 0; c<17; c++){
-                for(int f = 0; f<2; f++){
-                    for(var d:directions){
-                        putWallTile(d, c, f);
+            try{
+                for(int c = 0; c<17; c++){
+                    for(int f = 0; f<2; f++){
+                        for(var d: directions){
+                            int C = c;
+                            int F = f;
+                            TimeUnit.MILLISECONDS.sleep(5);
+                            SwingUtilities.invokeAndWait(()->putWallTile(d, C, F));
+                        }
                     }
                 }
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
             }
         });
     }
 
     @Override
     public void wallTileTaken(Side side, int column, int floor){
-        SwingUtilities.invokeLater(()->removeWallTile(Direction.of(side), column, floor));
+        LOG.info("wallTileTaken " + side + " column=" + column + " floor=" + floor);
+        worker.submit(()->{
+            try{
+                TimeUnit.MILLISECONDS.sleep(40);
+                SwingUtilities.invokeAndWait(()->{
+                    removeWallTile(Direction.of(side), column, floor);
+                    repaint();
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
     public void wallTileRevealed(Side side, int column, Tile tile){
-        SwingUtilities.invokeLater(()->{
-            removeWallTile(Direction.of(side), column, 1);
-            putWallTileFaceUp(Direction.of(side), column, 1, tile);
+        LOG.info("wallTileRevealed "+side+" column="+column+" "+tile);
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
+                    removeWallTile(Direction.of(side), column, 1);
+                    putWallTileFaceUp(Direction.of(side), column, 1, tile);
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
         });
     }
 
     @Override
     public void turnStarted(Side side){
+        LOG.info("turnStarted "+side);
         //pass
     }
 
     @Override
     public void handUpdated(Side side, int size, boolean wide){
-        SwingUtilities.invokeLater(()->{
-            clearHandTiles(Direction.of(side));
-            for(int i = 0; i<size; i++){
-                putHandTileSideStand(Direction.of(side), i, wide && i==(size - 1));
+        LOG.info("handUpdated "+side+" size="+size+" wide="+wide);
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
+                    clearHandTiles(Direction.of(side));
+                    for(int i = 0; i<size; i++){
+                        putHandTileSideStand(Direction.of(side), i, wide && i==(size - 1));
+                    }
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
             }
         });
     }
 
     @Override
     public void handUpdated(List<Tile> allTiles, boolean wide){
+        LOG.info("handUpdated "+allTiles+" wide="+wide);
         //volatile array update
         handTiles = allTiles.toArray(Tile[]::new);
-        SwingUtilities.invokeLater(()->{
-            clearHandTiles(Direction.BOTTOM);
-            for(int i = 0; i<allTiles.size(); i++){
-                putHandTileFrontStand(i, allTiles.get(i), wide && i==(allTiles.size() - 1));
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
+                    clearHandTiles(Direction.BOTTOM);
+                    for(int i = 0; i<allTiles.size(); i++){
+                        putHandTileFrontStand(i, allTiles.get(i), wide && i==(allTiles.size() - 1));
+                    }
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
             }
         });
     }
 
     @Override
     public void handRevealed(Side side, List<Tile> allTiles, boolean wide){
-        SwingUtilities.invokeLater(()->{
-            clearHandTiles(Direction.of(side));
-            for(int i = 0; i<allTiles.size(); i++){
-                putHandTileFaceUp(Direction.of(side), i, allTiles.get(i), wide && i==(allTiles.size() - 1));
-            }
-        });
+        LOG.info("handRevealed "+side+" "+allTiles+" wide="+wide);
+        worker.submit(()->
+            SwingUtilities.invokeLater(()->{
+                clearHandTiles(Direction.of(side));
+                for(int i = 0; i<allTiles.size(); i++){
+                    putHandTileFaceUp(Direction.of(side), i, allTiles.get(i), wide && i==(allTiles.size() - 1));
+                }
+            })
+        );
     }
 
     @Override
     public void riverTileAdded(Side side, Tile tile, boolean tilt){
-        SwingUtilities.invokeLater(()->appendRiverTile(Direction.of(side), tile, tilt));
+        LOG.info("riverTileAdded "+side+" "+tile+" tilt="+tilt);
+        worker.submit(()->{
+           try{
+               SwingUtilities.invokeAndWait(()->appendRiverTile(Direction.of(side), tile, tilt));
+           }catch(InterruptedException | InvocationTargetException e){
+               throw new RuntimeException(e);
+           }
+        });
     }
 
     @Override
     public void riverTileTaken(Side side){
-        SwingUtilities.invokeLater(()->removeLastRiverTile(Direction.of(side)));
+        LOG.info("riverTileTaken "+side);
+        worker.submit(()->SwingUtilities.invokeLater(()->removeLastRiverTile(Direction.of(side))));
     }
 
     @Override
     public void tiltMeldAdded(Side side, Side tilt, List<Tile> tiles){
-        SwingUtilities.invokeLater(()->{
+        LOG.info("tiltMeldAdded "+side+" "+tilt+" "+tiles);
+        worker.submit(()->SwingUtilities.invokeLater(()->{
             var dir = Direction.of(side);
             switch(tilt){
                 case LEFT -> appendTiltMeld(dir, tiles, 0, dir.turnLeft());
                 case ACROSS -> appendTiltMeld(dir, tiles, 1, dir.turnRight());
                 case RIGHT -> appendTiltMeld(dir, tiles, tiles.size() - 1, dir.turnLeft());
             }
-        });
+        }));
     }
 
     @Override
     public void selfQuadAdded(Side side, List<Tile> tiles){
-        SwingUtilities.invokeLater(()->appendSelfQuad(Direction.of(side), tiles));
+        LOG.info("selfQuadAdded "+side+" "+tiles);
+        worker.submit(()->SwingUtilities.invokeLater(()->appendSelfQuad(Direction.of(side), tiles)));
     }
 
     @Override
     public void meldTileAdded(Side side, int index, Tile tile){
-        SwingUtilities.invokeLater(()->addTileToMeld(Direction.of(side), index, tile));
+        LOG.info("meldTileAdded "+side+" index="+index+" "+tile);
+        worker.submit(()->SwingUtilities.invokeLater(()->addTileToMeld(Direction.of(side), index, tile)));
     }
 
     private static class GlassLabel extends TableLabel{

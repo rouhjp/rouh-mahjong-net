@@ -1,6 +1,8 @@
 package jp.rouh.mahjong.score;
 
 import jp.rouh.mahjong.tile.Tile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -13,12 +15,15 @@ import java.util.List;
  */
 public final class StandardHandScoreCalculator implements HandScoreCalculator{
     private static final StandardHandScoreCalculator INSTANCE = new StandardHandScoreCalculator();
+    private static final Logger LOG = LoggerFactory.getLogger(StandardHandScoreCalculator.class);
 
     private StandardHandScoreCalculator(){
     }
 
     @Override
     public HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningContext context){
+        LOG.debug("--start calculating score--");
+        LOG.debug(handTiles+" "+openMelds+" "+winningTile);
         var fullTiles = new ArrayList<>(handTiles);
         var fourteenTiles = new ArrayList<>(handTiles);
         fullTiles.add(winningTile);
@@ -42,6 +47,10 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
             handTypes.add(IrregularFormatHandType.SEVEN_PAIR);
             handTypes.addAll(prisedTileHandTypes);
             handScores.add(HandScore.of(sevenPairPoint, handTypes, context.isDealer()));
+            LOG.debug("case--> Irregular");
+            for(var handType:handTypes){
+                LOG.debug("        "+handType.getUniqueName());
+            }
         }
         var formattedHands = FormattedHands.format(handTiles, openMelds, winningTile, context);
         for(var formattedHand: formattedHands){
@@ -51,10 +60,22 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
             handTypes.addAll(environmentBasedHandTypes);
             handTypes.addAll(tileBasedHandTypes);
             handTypes.addAll(meldBasedHandTypes);
-            handTypes.addAll(prisedTileHandTypes);
+            if(!handTypes.isEmpty()){
+                handTypes.addAll(prisedTileHandTypes);
+            }
             handScores.add(HandScore.of(point, handTypes, context.isDealer()));
+            LOG.debug("case--> "+formattedHand);
+            for(var handType:handTypes){
+                LOG.debug("        "+handType.getUniqueName());
+            }
         }
-        return handScores.stream().max(Comparator.naturalOrder()).orElseThrow();
+        var score = handScores.stream().max(Comparator.naturalOrder()).orElse(HandScore.ofEmpty());
+        LOG.debug("result: "+score.getScoreExpression());
+        for(var handType:score.getHandTypes()){
+            LOG.debug(handType.getUniqueName()+" "+handType.getGrade().getCode());
+        }
+        LOG.debug("--end calculating score--");
+        return score;
     }
 
     /**

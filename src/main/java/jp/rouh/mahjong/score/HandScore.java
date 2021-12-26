@@ -175,6 +175,14 @@ public class HandScore implements Comparable<HandScore>{
     }
 
     /**
+     * 空の得点オブジェクトを生成します。
+     * @return 空の得点
+     */
+    public static HandScore ofEmpty(){
+        return new HandScore(0, List.of(), false);
+    }
+
+    /**
      * 得点オブジェクトを生成します。
      * <p>与えられる役のリストは順序が保持されるため, 呼び出し側で考慮する必要があります。
      * また, 重複がないことやドラのみの役とならないよう呼び出し側が保証する必要があります。
@@ -204,9 +212,5 @@ public class HandScore implements Comparable<HandScore>{
      */
     public static HandScore ofRiverJackpot(boolean dealer){
         return new HandScore(FixedScoreHandType.RIVER_JACKPOT, dealer);
-    }
-
-    public static HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningContext context){
-        return StandardHandScoreCalculator.getInstance().calculate(handTiles, openMelds, winningTile, context);
     }
 }

@@ -59,4 +59,9 @@ class Head implements HandComponent{
         }
         return point;
     }
+
+    @Override
+    public String toString(){
+        return tiles.toString();
+    }
 }

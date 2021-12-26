@@ -14,7 +14,13 @@ import java.util.NoSuchElementException;
  * @author Rouh
  * @version 1.0
  */
-public record CallAction(CallActionType type, List<Tile> arguments) {
+public record CallAction(CallActionType type, List<Tile> arguments){
+
+    static final int RON_PRIORITY = 3;
+
+    static final int PON_KAN_PRIORITY = 2;
+
+    static final int CHI_PRIORITY = 1;
 
     @Override
     public List<Tile> arguments() {
@@ -24,18 +30,30 @@ public record CallAction(CallActionType type, List<Tile> arguments) {
         return arguments;
     }
 
+    public boolean higherPriorityThan(CallAction other){
+        return priority() > other.priority();
+    }
+
     /**
      * この行動の優先順位を取得します。
-     * @return 優先度(0..4 数字が高い方が優先度が高い)
+     * @return 優先度(0..3 数字が高い方が優先度が高い)
      */
     public int priority(){
         return switch(type){
-            case RON -> 4;
-            case KAN -> 3;
-            case PON -> 2;
-            case CHI -> 1;
+            case RON -> RON_PRIORITY;
+            case KAN, PON -> PON_KAN_PRIORITY;
+            case CHI -> CHI_PRIORITY;
             case PASS -> 0;
         };
+    }
+
+    /**
+     * パスかどうか検査します。
+     * @return true パスの場合
+     *         false パスでない場合
+     */
+    boolean isPass(){
+        return type==PASS;
     }
 
     /**

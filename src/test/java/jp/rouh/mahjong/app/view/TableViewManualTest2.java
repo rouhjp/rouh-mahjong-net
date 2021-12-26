@@ -87,10 +87,10 @@ public class TableViewManualTest2{
         score2.setTsumo(false);
         scores.add(score2);
         var payments = new HashMap<Side, PaymentData>();
-        payments.put(RIGHT, new PaymentData(EAST, "guest1", 24000, 21700, 3, 4));
-        payments.put(ACROSS, new PaymentData(SOUTH, "guest2", 26600, 28600, 1, 1));
-        payments.put(LEFT, new PaymentData(WEST, "guest3", 24000, 25300, 4, 2));
-        payments.put(SELF, new PaymentData(NORTH, "you", 24400, 24400, 2, 3));
+//        payments.put(RIGHT, new PaymentData(EAST, "guest1", 24000, 21700, 3, 4));
+//        payments.put(ACROSS, new PaymentData(SOUTH, "guest2", 26600, 28600, 1, 1));
+//        payments.put(LEFT, new PaymentData(WEST, "guest3", 24000, 25300, 4, 2));
+//        payments.put(SELF, new PaymentData(NORTH, "you", 24400, 24400, 2, 3));
         table.roundSettled(scores);
         table.paymentSettled(payments);
 

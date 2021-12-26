@@ -24,6 +24,11 @@ public record TurnAction(TurnActionType type, Tile argument) {
         return argument;
     }
 
+    @Override
+    public String toString(){
+        return type+(argument==null?"":"_"+argument);
+    }
+
     /**
      * ツモ宣言を表すオブジェクトを取得します。
      * <p>このオブジェクトに対して{@link #argument}メソッドを呼んだ場合,
@@ -71,5 +76,4 @@ public record TurnAction(TurnActionType type, Tile argument) {
     public static TurnAction ofDiscard(Tile t) {
         return new TurnAction(DISCARD, t);
     }
-
 }

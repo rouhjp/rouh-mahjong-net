@@ -121,6 +121,7 @@ public interface TableStrategyAdapter extends TableStrategy{
      */
     @Override
     default CallAction selectCallAction(List<CallAction> choices){
+        if(choices.size()==1) return choices.get(0);
         var player = new CallActionSelector(choices);
         var tiles = getShownHandTiles();
         while(true){

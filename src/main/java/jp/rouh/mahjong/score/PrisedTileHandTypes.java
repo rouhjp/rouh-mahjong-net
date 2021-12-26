@@ -21,16 +21,16 @@ final class PrisedTileHandTypes{
     static List<BasicHandType> testAll(HandFeature feature){
         var handTypes = new ArrayList<BasicHandType>();
         int count = feature.getOpenPrisedTileCount();
-        if(count>=0){
+        if(count>0){
             handTypes.add(of(count));
         }
         int redCount = feature.getRedPrisedTileCount();
-        if(redCount>=0){
-            handTypes.add(ofRed(count));
+        if(redCount>0){
+            handTypes.add(ofRed(redCount));
         }
         int hiddenCount = feature.getHiddenPrisedTileCount();
-        if(hiddenCount>=0){
-            handTypes.add(ofHidden(count));
+        if(hiddenCount>0){
+            handTypes.add(ofHidden(hiddenCount));
         }
         return handTypes;
     }
@@ -53,6 +53,11 @@ final class PrisedTileHandTypes{
             public String getName(){
                 return count==1?"ドラ":"ドラ"+count;
             }
+
+            @Override
+            public String toString(){
+                return "PRISED_TILE("+count+")";
+            }
         };
     }
 
@@ -74,6 +79,11 @@ final class PrisedTileHandTypes{
             public String getName(){
                 return count==1?"赤ドラ":"赤ドラ"+count;
             }
+
+            @Override
+            public String toString(){
+                return "RED_PRISED_TILE("+count+")";
+            }
         };
     }
 
@@ -94,6 +104,12 @@ final class PrisedTileHandTypes{
             @Override
             public String getName(){
                 return count==1?"裏ドラ":"裏ドラ"+count;
+            }
+
+
+            @Override
+            public String toString(){
+                return "HIDDEN_PRISED_TILE("+count+")";
             }
         };
     }

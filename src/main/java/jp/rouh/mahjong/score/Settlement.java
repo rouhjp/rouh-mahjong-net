@@ -104,6 +104,21 @@ public class Settlement{
     }
 
     /**
+     * 支払額を合成します。
+     * <p>ダブロン時に一括で支払額を表示する際に使用します。
+     * @param other もう一つの支払額
+     * @return 合成した支払額
+     */
+    public Settlement marge(Settlement other){
+        var payments = new HashMap<Wind, Integer>();
+        for(var wind:Wind.values()){
+            var payment = this.payments.get(wind) + other.payments.get(wind);
+            payments.put(wind, payment);
+        }
+        return new Settlement(payments, streakCount, depositCount);
+    }
+
+    /**
      * 流局時の決済オブジェクトを取得します。
      * @param handReadies 聴牌のプレイヤーの自風リスト
      * @return 決済
@@ -128,31 +143,23 @@ public class Settlement{
         }
     }
 
-    /**
-     * 和了時の決済オブジェクトを取得します。
-     * @param handScore 得点
-     * @param sc 決済状況
-     * @param wc 和了状況
-     * @param openMelds 公開面子(成立順に順序が保たれている必要があります)
-     * @return 決済
-     */
-    public static Settlement of(HandScore handScore, SettlementContext sc, WinningContext wc, List<Meld> openMelds){
-        return of(handScore, sc, wc, new LinkedList<>(openMelds));
+    public static Settlement of(HandScore handScore, List<Meld> openMelds, SettlementContext sc){
+        return of(handScore, new LinkedList<>(openMelds), sc);
     }
 
-    private static Settlement of(HandScore handScore, SettlementContext sc, WinningContext wc, LinkedList<Meld> openMelds){
+    private static Settlement of(HandScore handScore, LinkedList<Meld> openMelds, SettlementContext sc){
+        var seatWind = sc.getSeatWind();
         var paymentMap = Stream.of(Wind.values())
                 .collect(Collectors.toMap(Function.identity(), wind->0));
         var suppliers = new HashSet<Wind>();
-        var winner = wc.getSeatWind();
         var winningTileSupplier = (Wind)null;
-        if(!wc.isTsumo()){
+        if(!sc.isTsumo()){
             //放銃責任
-            winningTileSupplier = sc.getWinningSide().of(winner);
+            winningTileSupplier = sc.getWinningSide().of(seatWind);
             suppliers.add(winningTileSupplier);
-        }else if(wc.isQuadTileDrawWin() && openMelds.getLast().isCallQuad()){
+        }else if(sc.isQuadTileDrawWin() && openMelds.getLast().isCallQuad()){
             //大明槓責任
-            winningTileSupplier = openMelds.getLast().getSourceSide().of(winner);
+            winningTileSupplier = openMelds.getLast().getSourceSide().of(seatWind);
             suppliers.add(winningTileSupplier);
         }
         for(var subHandScore: handScore.disorganize()){
@@ -168,7 +175,7 @@ public class Settlement{
                                     .mapToObj(openMelds::get).filter(Meld::isDragon).findFirst().orElseThrow();
                             //大三元の最後の公開面子が他家からの副露である場合
                             if(lastDragonMeld.isCallQuad()){
-                                completingTileSupplier = lastDragonMeld.getSourceSide().of(winner);
+                                completingTileSupplier = lastDragonMeld.getSourceSide().of(seatWind);
                                 suppliers.add(completingTileSupplier);
                             }
                         }
@@ -179,7 +186,7 @@ public class Settlement{
                             var lastWindMeld = openMelds.getLast();
                             //大四喜の最後の公開面子が他家からの副露である場合
                             if(lastWindMeld.isCallQuad()){
-                                completingTileSupplier = lastWindMeld.getSourceSide().of(winner);
+                                completingTileSupplier = lastWindMeld.getSourceSide().of(seatWind);
                                 suppliers.add(completingTileSupplier);
                             }
                         }
@@ -188,14 +195,14 @@ public class Settlement{
                         var lastQuad = openMelds.getLast();
                         //四槓子の最後の公開面子が他家からの副露である場合
                         if(lastQuad.isCallQuad()){
-                            completingTileSupplier = lastQuad.getSourceSide().of(winner);
+                            completingTileSupplier = lastQuad.getSourceSide().of(seatWind);
                             suppliers.add(completingTileSupplier);
                         }
                     }
                 }
             }
             int score = subHandScore.getScore();
-            paymentMap.merge(winner, score, Integer::sum);
+            paymentMap.merge(seatWind, score, Integer::sum);
             if(completingTileSupplier!=null){
                 if(winningTileSupplier!=null){
                     //ロン 包あり or ツモ 大明槓あり 包あり
@@ -221,16 +228,16 @@ public class Settlement{
                     //ツモ
                     //子:子:子=33:33:33
                     //親:子:子=50:25:25
-                    if(wc.isDealer()){
+                    if(sc.isDealer()){
                         for(var side: Side.SELF.others()){
-                            paymentMap.merge(side.of(winner), -1*ceil(score/3), Integer::sum);
+                            paymentMap.merge(side.of(seatWind), -1*ceil(score/3), Integer::sum);
                         }
                     }else{
                         for(var side: Side.SELF.others()){
-                            if(side.of(winner)==Wind.EAST){
-                                paymentMap.merge(side.of(winner), -1*ceil(score/2), Integer::sum);
+                            if(side.of(seatWind)==Wind.EAST){
+                                paymentMap.merge(side.of(seatWind), -1*ceil(score/2), Integer::sum);
                             }else{
-                                paymentMap.merge(side.of(winner), -1*ceil(score/4), Integer::sum);
+                                paymentMap.merge(side.of(seatWind), -1*ceil(score/4), Integer::sum);
                             }
                         }
                     }
@@ -240,11 +247,11 @@ public class Settlement{
         //供託・詰み符
         int depositScore = sc.getTotalDepositCount()*1000;
         int streakScore = sc.getRoundStreakCount()*300;
-        paymentMap.merge(winner, depositScore, Integer::sum);
-        paymentMap.merge(winner, streakScore, Integer::sum);
+        paymentMap.merge(seatWind, depositScore, Integer::sum);
+        paymentMap.merge(seatWind, streakScore, Integer::sum);
         if(suppliers.isEmpty()){
             for(var side:Side.SELF.others()){
-                paymentMap.merge(side.of(winner), -1*ceil(streakScore/3), Integer::sum);
+                paymentMap.merge(side.of(seatWind), -1*ceil(streakScore/3), Integer::sum);
             }
         }else{
             for(var supplier:suppliers){

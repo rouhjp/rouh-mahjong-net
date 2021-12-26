@@ -44,7 +44,7 @@ class AddQuad implements Meld{
 
     @Override
     public List<Tile> getTilesTruncated(){
-        return formed;
+        return formed.subList(0, 3);
     }
 
     @Override

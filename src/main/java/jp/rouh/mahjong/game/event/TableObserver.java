@@ -24,6 +24,12 @@ public interface TableObserver {
      * 指定の方向に位置するプレイヤー情報を通知します。
      * @param players 通知先からみたプレイヤーの相対方位とそのプレイヤーの情報のマップ
      */
+    void temporarySeatUpdated(Map<Side, PlayerTempData> players);
+
+    /**
+     * 指定の方向に位置するプレイヤー情報を通知します。
+     * @param players 通知先からみたプレイヤーの相対方位とそのプレイヤーの情報のマップ
+     */
     void seatUpdated(Map<Side, PlayerData> players);
 
     /**

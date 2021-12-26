@@ -197,7 +197,7 @@ enum MeldBasedHandType implements BasicHandType{
             return context.isSelfMade()
                     && new FlexList<>(hand.getMelds()).combinationSizeOf(2).stream()
                     .filter(melds -> melds.stream().allMatch(Meld::isSequence)
-                            && melds.stream().map(Meld::getFirst).mapToInt(Tile::tileNumber).count()==1).count()==1;
+                            && melds.get(0).getFirst().equalsIgnoreRed(melds.get(1).getFirst())).count()==1;
         }
     },
 

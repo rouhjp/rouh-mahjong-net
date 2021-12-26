@@ -3,13 +3,12 @@ package jp.rouh.mahjong.game.event;
 import jp.rouh.mahjong.tile.Wind;
 
 /**
- * 対局中のプレイヤー情報DTO。
+ * 場決め時のプレイヤーの一時情報DTO。
  * @author Rouh
  * @version 1.0
  */
-public class PlayerData{
+public class PlayerTempData{
     private final String name;
-    private final Wind initialSeatWind;
     private final Wind seatWind;
     private final int score;
     private final int rank;
@@ -17,24 +16,18 @@ public class PlayerData{
     /**
      * プレイヤー情報DTOのコンストラクタ。
      * @param name 名前
-     * @param seatWind 風
+     * @param tempSeatWind 仮風
      * @param score 持ち点
-     * @param rank ランク
      */
-    public PlayerData(String name, Wind initialWind, Wind seatWind, int score, int rank){
+    public PlayerTempData(String name, Wind tempSeatWind, int score){
         this.name = name;
-        this.initialSeatWind = initialWind;
-        this.seatWind = seatWind;
+        this.seatWind = tempSeatWind;
         this.score = score;
-        this.rank = rank;
+        this.rank = tempSeatWind.ordinal() + 1;
     }
 
     public String getName(){
         return name;
-    }
-
-    public Wind getInitialSeatWind(){
-        return initialSeatWind;
     }
 
     public Wind getSeatWind(){
@@ -51,6 +44,6 @@ public class PlayerData{
 
     @Override
     public String toString(){
-        return "player("+name+" "+ initialSeatWind +" "+seatWind+" "+score+" "+rank+")";
+        return "player("+name+" "+seatWind+" "+score+" "+rank+")";
     }
 }

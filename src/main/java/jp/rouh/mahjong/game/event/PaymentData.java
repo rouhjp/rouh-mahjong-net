@@ -8,19 +8,37 @@ import jp.rouh.mahjong.tile.Wind;
  * @version 1.0
  */
 public class PaymentData {
-    private final Wind wind;
-    private final String name;
-    private final int scoreBefore;
-    private final int scoreAfter;
-    private final int rankBefore;
-    private final int rankAfter;
+    private Wind wind;
+    private String name;
+    private int scoreBefore;
+    private int scoreAfter;
+    private int rankBefore;
+    private int rankAfter;
+    public PaymentData(){
 
-    public PaymentData(Wind wind, String name, int scoreBefore, int scoreAfter, int rankBefore, int rankAfter){
+    }
+
+    public void setWind(Wind wind){
         this.wind = wind;
+    }
+
+    public void setName(String name){
         this.name = name;
+    }
+
+    public void setScoreBefore(int scoreBefore){
         this.scoreBefore = scoreBefore;
+    }
+
+    public void setScoreAfter(int scoreAfter){
         this.scoreAfter = scoreAfter;
+    }
+
+    public void setRankBefore(int rankBefore){
         this.rankBefore = rankBefore;
+    }
+
+    public void setRankAfter(int rankAfter){
         this.rankAfter = rankAfter;
     }
 

@@ -2,6 +2,7 @@ package jp.rouh.mahjong.score;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 整形済み手牌クラス。
@@ -64,5 +65,15 @@ public class FormattedHand{
      */
     Wait getWait(){
         return wait;
+    }
+
+    @Override
+    public String toString(){
+        var meldExpression = melds.stream()
+                .map(meld->meld.isConcealed()?
+                        meld.getTilesSorted().toString():
+                        meld.getTilesSorted().toString().replace("[", "(").replace("]", ")"))
+                .collect(Collectors.joining());
+        return head+meldExpression+" "+wait;
     }
 }

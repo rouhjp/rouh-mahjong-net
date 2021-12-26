@@ -7,7 +7,7 @@ import java.util.List;
  * @author Rouh
  * @version 1.0
  */
-public interface TableStrategy {
+public interface TableStrategy extends TableObserver{
 
     /**
      * 摸打中の行動の入力を求めます。
