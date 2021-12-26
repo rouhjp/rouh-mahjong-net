@@ -46,6 +46,7 @@ public interface TableStrategyAdapter extends TableStrategy{
      */
     @Override
     default TurnAction selectTurnAction(List<TurnAction> choices){
+        if(choices.size()==1) return choices.get(0);
         enum SelectMode{
             DISCARD, READY, QUAD
         }
@@ -85,7 +86,13 @@ public interface TableStrategyAdapter extends TableStrategy{
             }
             var input = waitForInput(inputChoices);
             switch(input){
-                case SELECT_KAN -> mode = SelectMode.QUAD;
+                case SELECT_KAN ->{
+                    mode = SelectMode.QUAD;
+                    var kanAction = player.getSingleOutKanAction();
+                    if(kanAction.isPresent()){
+                        return kanAction.get();
+                    }
+                }
                 case SELECT_READY -> mode = SelectMode.READY;
                 case SELECT_CANCEL -> mode = SelectMode.DISCARD;
                 case SELECT_TSUMO -> {

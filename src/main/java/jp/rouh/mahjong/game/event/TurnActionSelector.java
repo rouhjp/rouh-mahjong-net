@@ -4,6 +4,7 @@ import jp.rouh.mahjong.tile.Tile;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static jp.rouh.mahjong.game.event.TurnActionType.*;
 
@@ -147,7 +148,7 @@ class TurnActionSelector{
      */
     TurnAction getTsumoAction(){
         if(tsumoActionNullable==null){
-            throw new NoSuchElementException();
+            throw new NoSuchElementException("invalid action");
         }
         return tsumoActionNullable;
     }
@@ -160,8 +161,26 @@ class TurnActionSelector{
      */
     TurnAction getNineTilesAction(){
         if(nineTileActionNullable==null){
-            throw new NoSuchElementException();
+            throw new NoSuchElementException("invalid action");
         }
         return nineTileActionNullable;
+    }
+
+    /**
+     * 構成牌を指定してカン宣言を行う選択肢を取得します。
+     * <p>カン宣言が可能かどうか, 事前に{@link #canDeclareKan()} ()}メソッドの
+     * 検査に適合することを確認しておく必要があります。
+     * <p>一度の他家の打牌で複数のカン宣言の可能性があるため,
+     * 構成牌を指定しないと選択肢が一意に定まらない場合があります。
+     * その場合は{@code Optional.empty()}が返されます。
+     * @return 選択肢 一意に選択肢が定まった場合
+     *         空 構成牌を指定しなければ一意に選択肢が定まらない場合
+     * @throws NoSuchElementException カン宣言不可能な場合
+     */
+    Optional<TurnAction> getSingleOutKanAction(){
+        if(kanActions.isEmpty()){
+            throw new NoSuchElementException("invalid action");
+        }
+        return kanActions.size()==1?Optional.of(kanActions.get(0)):Optional.empty();
     }
 }

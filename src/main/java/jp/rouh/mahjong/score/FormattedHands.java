@@ -32,6 +32,14 @@ final class FormattedHands{
         for(var arranged: HandTiles.arrange(handTiles, winningTile)){
             var head = new Head(arranged.get(0));
             var tail = arranged.subList(1, arranged.size());
+            if(head.contains(winningTile)){
+                var handMelds = tail.stream().map(tiles->new HandMeld(tiles, true)).toList();
+                var wait = Wait.SINGLE_HEAD;
+                var melds = new ArrayList<Meld>(4);
+                melds.addAll(handMelds);
+                melds.addAll(openMelds);
+                formattedHands.add(new FormattedHand(head, melds, wait));
+            }
             for(int i = 0; i<tail.size(); i++){
                 if(tail.get(i).contains(winningTile)){
                     int winningMeldIndex = i;
@@ -39,7 +47,7 @@ final class FormattedHands{
                             .mapToObj(index -> new HandMeld(tail.get(index), winningMeldIndex!=index || context.isTsumo()))
                             .toList();
                     var wait = Wait.of(handMelds.get(winningMeldIndex), winningTile);
-                    var melds = new ArrayList<Meld>();
+                    var melds = new ArrayList<Meld>(4);
                     melds.addAll(handMelds);
                     melds.addAll(openMelds);
                     formattedHands.add(new FormattedHand(head, melds, wait));

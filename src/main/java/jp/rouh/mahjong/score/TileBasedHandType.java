@@ -58,7 +58,7 @@ public enum TileBasedHandType implements BasicHandType{
         @Override
         public boolean test(HandFeature feature, WinningContext context){
             return context.isSelfMade()
-                    && feature.getOrphanCount()>0 && feature.getSuitTypeCount()==1;
+                    && feature.getHonorCount()>0 && feature.getSuitTypeCount()==1;
         }
     },
 
@@ -69,7 +69,7 @@ public enum TileBasedHandType implements BasicHandType{
         @Override
         public boolean test(HandFeature feature, WinningContext context){
             return !context.isSelfMade()
-                    && feature.getOrphanCount()>0 && feature.getSuitTypeCount()==1;
+                    && feature.getHonorCount()>0 && feature.getSuitTypeCount()==1;
         }
     },
 
@@ -80,7 +80,7 @@ public enum TileBasedHandType implements BasicHandType{
         @Override
         public boolean test(HandFeature feature, WinningContext context){
             return context.isSelfMade()
-                    && feature.getOrphanCount()==0 && feature.getSuitTypeCount()==1;
+                    && feature.getHonorCount()==0 && feature.getSuitTypeCount()==1;
         }
     },
 
@@ -91,7 +91,7 @@ public enum TileBasedHandType implements BasicHandType{
         @Override
         public boolean test(HandFeature feature, WinningContext context){
             return !context.isSelfMade()
-                    && feature.getOrphanCount()==0 && feature.getSuitTypeCount()==1;
+                    && feature.getHonorCount()==0 && feature.getSuitTypeCount()==1;
         }
     },
 

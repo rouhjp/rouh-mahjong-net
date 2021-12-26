@@ -67,6 +67,7 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
             var turnPlayer = roundPlayers.get(turnWind);
             if(afterQuad){
                 turnPlayer.draw(wall.takeQuadTile());
+                afterCall = false;
             }else if(!afterCall){
                 turnPlayer.draw(wall.takeTile());
             }

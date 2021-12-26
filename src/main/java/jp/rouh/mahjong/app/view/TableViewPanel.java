@@ -135,6 +135,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     private void clearTable(){
         initialize();
         removeAll();
+        handTiles = null;
     }
 
     private void putTile(TileLabel label, Point p){
@@ -497,8 +498,11 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         var text = drawType.getText();
         var point = TableViewPoints.TABLE_CENTER;
         var label = TableTextLabels.ofText(text, 24, 8);
+        label.setOpaque(true);
+        label.setBackground(Color.WHITE);
         label.setBaseLocationCentered(point);
         label.setBorder(new LineBorder(Color.BLACK));
+        setLayer(label, GLASS_LAYER);
         add(label);
     }
 
