@@ -3,6 +3,8 @@ package jp.rouh.mahjong.game;
 import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.score.Settlement;
 import jp.rouh.mahjong.tile.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -11,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static jp.rouh.mahjong.game.event.TurnActionType.*;
 import static jp.rouh.mahjong.game.RoundResultType.*;
@@ -21,6 +24,7 @@ import static jp.rouh.mahjong.game.RoundResultType.*;
  * @version 1.0
  */
 public class Round extends TableMasterAdapter implements RoundAccessor, WallObserver{
+    private static final Logger LOG = LoggerFactory.getLogger(Round.class);
     private final Map<Wind, RoundPlayer> roundPlayers;
     private final RoundID id;
     private final int streak;
@@ -60,6 +64,8 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
      * @throws IllegalStateException プレイヤー数が不正の場合
      */
     RoundResultType start(){
+        LOG.info("round started");
+        seatUpdated();
         roundStarted(id.wind(), id.count(), streak, deposit, last);
         wallGenerated();
         distribute();
@@ -76,8 +82,13 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
                 return resultType;
             }
         }
+        var handReadyPlayers = roundPlayers.values().stream()
+                .filter(RoundPlayer::isHandReady)
+                .map(RoundPlayer::getSeatWind).toList();
+        var settlement = Settlement.ofDrawn(handReadyPlayers, streak, deposit);
         roundDrawn(DrawType.EXHAUSTED);
-        return resultType;
+        payment(settlement);
+        return handReadyPlayers.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
     }
 
     private void distribute(){
@@ -92,8 +103,10 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
     }
 
     private void doTurn(){
+        LOG.info(turnWind+" turn started");
         var turnPlayer = roundPlayers.get(turnWind);
         var turnAction = turnPlayer.selectTurnAction(turnPlayer.getTurnChoices(afterCall, afterQuad));
+        LOG.info(turnWind+" "+turnAction);
         if(turnAction.type()==TSUMO){
             var result = turnPlayer.declareTsumo(afterQuad);
             roundSettled(List.of(result.scoringData()));
@@ -136,9 +149,15 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
     private void doDiscard(Tile discarded){
         var turnPlayer = getPlayerAt(turnWind);
         var actions = mediateCallAction(discarded);
+        for(var action:actions){
+            LOG.info(action.from()+" "+action.get());
+        }
         if(!actions.isEmpty()){
             switch(actions.get(0).get().type()){
-                case RON -> mediateWinnings(actions, discarded, false);
+                case RON -> {
+                    mediateWinnings(actions, discarded, false);
+                    return;
+                }
                 case KAN -> {
                     assert actions.size()==1: "multiple kan declared simultaneously";
                     var callWind = actions.get(0).from();
@@ -181,6 +200,7 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
             turnWind = turnWind.next();
         }
         turnPlayer.discardSettled();
+        seatUpdated();
         if(firstAround){
             firstAroundDiscards.add(discarded);
             if(firstAroundDiscards.size()==4){
@@ -233,6 +253,8 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
             resultType = DRAW_ADVANTAGE_NON_DEALER;
             return;
         }
+        boolean dealerWon = winningActions.stream().anyMatch(sca->sca.from()==Wind.EAST);
+        resultType = dealerWon? DEALER_VICTORY:NON_DEALER_VICTORY;
         var results = new ArrayList<WinningResult>();
         for(var side:new Side[]{Side.RIGHT, Side.ACROSS, Side.LEFT}){
             var winnerWind = side.of(turnWind);
@@ -330,6 +352,12 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
         }catch(InterruptedException | ExecutionException e){
             throw new RuntimeException(e);
         }
+    }
+
+    private void seatUpdated(){
+        var seatMap = Stream.of(Wind.values())
+                .collect(Collectors.toMap(wind->wind, wind->roundPlayers.get(wind).getPlayerData()));
+        seatUpdated(seatMap);
     }
 
     @Override

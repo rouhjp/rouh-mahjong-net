@@ -1,23 +1,17 @@
 package jp.rouh.mahjong.game;
 
-import jp.rouh.mahjong.game.event.CallAction;
-import jp.rouh.mahjong.game.event.Declaration;
-import jp.rouh.mahjong.game.event.ScoringData;
-import jp.rouh.mahjong.game.event.TurnAction;
+import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.score.*;
 import jp.rouh.mahjong.tile.DiceTwin;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class RoundPlayer extends TableStrategyDelegator{
     private final HandScoreCalculator calculator = StandardHandScoreCalculator.getInstance();
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final RoundAccessor round;
     private final TableMaster master;
     private final GamePlayerAccessor gamePlayer;
@@ -245,6 +239,10 @@ public class RoundPlayer extends TableStrategyDelegator{
         return ready;
     }
 
+    boolean isHandReady(){
+        return hand.isHandReady();
+    }
+
     boolean hasQuad(){
         return hand.getOpenMelds().stream().anyMatch(Meld::isQuad);
     }
@@ -349,6 +347,11 @@ public class RoundPlayer extends TableStrategyDelegator{
 
     String getName(){
         return gamePlayer.getName();
+    }
+
+    PlayerData getPlayerData(){
+        var initialSeatWind = gamePlayer.getSeatWindAt(1);
+        return new PlayerData(getName(), initialSeatWind, seatWind, getScore(), getRank());
     }
 
     void applyScore(int score){

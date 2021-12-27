@@ -67,6 +67,6 @@ public class PaymentData {
     }
 
     public int getScoreApplied(){
-        return scoreBefore - scoreAfter;
+        return scoreAfter - scoreBefore;
     }
 }

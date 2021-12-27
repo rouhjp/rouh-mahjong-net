@@ -4,7 +4,7 @@ import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
-import jp.rouh.util.SingleThreadTaskExecutor;
+import jp.rouh.util.Waiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +64,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
      * さらに{@link SwingUtilities#invokeLater}等を用いて
      * EDT上で処理させる必要があります。
      */
-    private final ExecutorService worker = new SingleThreadTaskExecutor();
+    private final ExecutorService worker = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<>());
 
     //access from EDT, single thread access
     private int[] riverNextIndexes;
@@ -88,10 +88,15 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     //access from both EDT, non-EDT
     // volatile array needs to rewrite array itself when updated
     private volatile Tile[] handTiles;
-    private volatile ActionInput actionInput;
-    private final AtomicBoolean acknowledging = new AtomicBoolean(false);
-    private final Semaphore actionSemaphore = new Semaphore(0);
-    private final Semaphore acknowledgeSemaphore = new Semaphore(0);
+
+    private final Waiter<ActionInput> actionInputWaiter = new Waiter<>();
+    private final Waiter<Void> acknowledgeWaiter = new Waiter<>();
+
+
+//    private volatile ActionInput actionInput;
+//    private final AtomicBoolean acknowledging = new AtomicBoolean(false);
+//    private final Semaphore actionSemaphore = new Semaphore(0);
+//    private final Semaphore acknowledgeSemaphore = new Semaphore(0);
 
     /**
      * コンストラクタ。
@@ -104,11 +109,16 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         addMouseListener(new MouseAdapter(){
             @Override
             public void mousePressed(MouseEvent e){
-                if(acknowledging.get()){
-                    acknowledgeSemaphore.release();
-                    LOG.info("player clicked");
-                    acknowledging.set(false);
+                if(acknowledgeWaiter.isWaiting()){
+                    acknowledgeWaiter.arrived(null);
+                    LOG.info("user clicked!");
                 }
+
+//                if(acknowledging.get()){
+//                    acknowledgeSemaphore.release();
+//                    LOG.info("player clicked");
+//                    acknowledging.set(false);
+//                }
             }
 
         });
@@ -203,26 +213,37 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         detector.addMouseListener(new MouseAdapter(){
             @Override
             public void mousePressed(MouseEvent e){
-                if(acknowledging.get()){
+                if(acknowledgeWaiter.isWaiting()){
                     TableViewPanel.this.dispatchEvent(e);
                 }else if(glassLabels[index]==null){
-                    actionInput = ActionInput.ofIndex(index);
-                    actionSemaphore.release();
+                    actionInputWaiter.arrived(ActionInput.ofIndex(index));
                 }
+//                if(acknowledging.get()){
+//                    TableViewPanel.this.dispatchEvent(e);
+//                }else if(glassLabels[index]==null){
+//                    actionInput = ActionInput.ofIndex(index);
+//                    actionSemaphore.release();
+//                }
             }
 
             @Override
             public void mouseEntered(MouseEvent e){
-                if(!acknowledging.get() && glassLabels[index]==null){
+                if(!acknowledgeWaiter.isWaiting() && glassLabels[index]==null){
                     label.setTranslationCentered(0, -2);
                 }
+//                if(!acknowledging.get() && glassLabels[index]==null){
+//                    label.setTranslationCentered(0, -2);
+//                }
             }
 
             @Override
             public void mouseExited(MouseEvent e){
-                if(!acknowledging.get() && glassLabels[index]==null){
+                if(!acknowledgeWaiter.isWaiting() && glassLabels[index]==null){
                     label.clearTranslationCentered();
                 }
+//                if(!acknowledging.get() && glassLabels[index]==null){
+//                    label.clearTranslationCentered();
+//                }
             }
         });
         detectorLabels[index] = detector;
@@ -456,8 +477,11 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
 
             @Override
             public void mousePressed(MouseEvent e){
-                actionInput = choice;
-                actionSemaphore.release();
+                if(actionInputWaiter.isWaiting()){
+                    actionInputWaiter.arrived(choice);
+                }
+//                actionInput = choice;
+//                actionSemaphore.release();
             }
         });
         label.setBorder(new LineBorder(Color.BLACK));
@@ -558,7 +582,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 }
             });
             try{
-                actionSemaphore.acquire();
+                var input = actionInputWaiter.waitForArrival();
+//                actionSemaphore.acquire();
                 SwingUtilities.invokeAndWait(()->{
                     for(int i = 0; i<14; i++){
                         if(glassLabels[i]!=null){
@@ -574,7 +599,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                     }
                     repaint();
                 });
-                return actionInput;
+                return input;
             }catch(InterruptedException | InvocationTargetException e){
                 return null;
             }
@@ -590,9 +615,10 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     public void waitForAcknowledge(){
         requireCallOnNonEDT();
         try{
-            acknowledging.set(true);
             LOG.info("--acquired--" + Thread.currentThread().getName());
-            acknowledgeSemaphore.acquire();
+            acknowledgeWaiter.waitForArrival();
+//            acknowledging.set(true);
+//            acknowledgeSemaphore.acquire();
             LOG.info("--released--" + Thread.currentThread().getName());
         }catch(InterruptedException e){
             LOG.info("ack interrupted "+e.getMessage());

@@ -4,6 +4,8 @@ import jp.rouh.mahjong.game.event.PlayerTempData;
 import jp.rouh.mahjong.tile.DiceTwin;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Wind;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,6 +23,7 @@ import static jp.rouh.mahjong.tile.Wind.*;
  * @version 1.0
  */
 public class Game implements GameAccessor{
+    private static final Logger LOG = LoggerFactory.getLogger(Game.class);
     private final Map<Wind, GamePlayer> gamePlayers;
     private final Wind initDealerOrderWind;
 
@@ -43,8 +46,10 @@ public class Game implements GameAccessor{
         gameStarted();
         while(true){
             boolean last = gameSpan.isLastRound(roundId);
+            LOG.info("--new round--");
             var round = new Round(playerList, roundId, streak, deposit, last);
             var result = round.start();
+            LOG.info("--round finished--");
             if(gameSpan.hasExtended()){
                 if(playerList.stream().anyMatch(player->player.getScore()>=30000)){
                     //サドンデスによる終局

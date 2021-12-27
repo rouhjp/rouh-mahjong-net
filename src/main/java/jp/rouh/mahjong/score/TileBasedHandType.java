@@ -54,7 +54,7 @@ public enum TileBasedHandType implements BasicHandType{
     /**
      * 混一色
      */
-    HALF_SINGLE_COLOR("混一色", 2){
+    HALF_SINGLE_COLOR("混一色", 3){
         @Override
         public boolean test(HandFeature feature, WinningContext context){
             return context.isSelfMade()
@@ -65,7 +65,7 @@ public enum TileBasedHandType implements BasicHandType{
     /**
      * 混一色
      */
-    CALLED_HALF_SINGLE_COLOR("混一色", 1){
+    CALLED_HALF_SINGLE_COLOR("混一色", 2){
         @Override
         public boolean test(HandFeature feature, WinningContext context){
             return !context.isSelfMade()
