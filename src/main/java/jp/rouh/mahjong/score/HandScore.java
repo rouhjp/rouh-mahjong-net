@@ -131,7 +131,7 @@ public class HandScore implements Comparable<HandScore>{
      * @return 空の得点
      */
     public static HandScore ofEmpty(){
-        return new HandScore(0, List.of(), false);
+        return new HandScore(20, List.of(), false);
     }
 
     /**
