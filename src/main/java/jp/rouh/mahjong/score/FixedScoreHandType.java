@@ -40,7 +40,7 @@ enum FixedScoreHandType implements HandType{
      * この役により成立する点数区分を取得します。
      * @return 点数区分
      */
-    Limit getFixedScore(){
+    Limit getFixedLimit(){
         return limit;
     }
 }

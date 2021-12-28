@@ -1,5 +1,7 @@
 package jp.rouh.mahjong.score;
 
+import java.util.NoSuchElementException;
+
 /**
  * 点数区分クラス。
  * @author Rouh
@@ -10,78 +12,80 @@ public enum Limit{
     /**
      * ナシ
      */
-    EMPTY("", false),
+    EMPTY("", 0, false),
 
     /**
      * 満貫
      */
-    JACKPOT("満貫", false),
+    JACKPOT("満貫", 2000, false),
 
     /**
      * 跳満
      */
-    GREATER_JACKPOT("跳満", false),
+    GREATER_JACKPOT("跳満", 3000, false),
 
     /**
      * 倍満
      */
-    DOUBLE_JACKPOT("倍満", false),
+    DOUBLE_JACKPOT("倍満", 4000, false),
 
     /**
      * 三倍満
      */
-    TRIPLE_JACKPOT("三倍満", false),
+    TRIPLE_JACKPOT("三倍満", 6000, false),
 
     /**
      * 数え役満
      */
-    COUNT_LIMIT("役満", false),
+    COUNT_LIMIT("役満", 8000, false),
 
     /**
      * 役満
      */
-    HAND_LIMIT("役満", true),
+    HAND_LIMIT("役満", 8000, true),
 
     /**
      * 二倍役満
      */
-    DOUBLE_HAND_LIMIT("二倍役満", true),
+    DOUBLE_HAND_LIMIT("二倍役満", 16000, true),
 
     /**
      * 三倍役満
      */
-    TRIPLE_HAND_LIMIT("三倍役満", true),
+    TRIPLE_HAND_LIMIT("三倍役満", 24000, true),
 
     /**
      * 四倍役満
      */
-    QUADRUPLE_HAND_LIMIT("四倍役満", true),
+    QUADRUPLE_HAND_LIMIT("四倍役満", 32000, true),
 
     /**
      * 五倍役満
      */
-    QUINTUPLE_HAND_LIMIT("五倍役満", true),
+    QUINTUPLE_HAND_LIMIT("五倍役満", 40000, true),
 
     /**
      * 六倍役満
      */
-    SEXTUPLE_HAND_LIMIT("六倍役満", true),
+    SEXTUPLE_HAND_LIMIT("六倍役満", 48000, true),
 
     /**
      * 七倍役満
      */
-    SEPTUPLE_HAND_LIMIT("七倍役満", true),
+    SEPTUPLE_HAND_LIMIT("七倍役満", 56000, true),
 
     /**
      * 八倍役満
      */
-    OCTUPLE_HAND_LIMIT("八倍役満", true);
+    OCTUPLE_HAND_LIMIT("八倍役満", 64000, true);
 
     private final String text;
+    private final int baseScore;
     private final boolean handLimit;
 
-    Limit(String text, boolean handLimit){
+    Limit(String text, int baseScore, boolean handLimit){
         this.text = text;
+        this.baseScore = baseScore;
         this.handLimit = handLimit;
     }
 
@@ -109,6 +113,18 @@ public enum Limit{
      */
     public boolean isEmpty(){
         return this==EMPTY;
+    }
+
+    /**
+     * 基本点を取得します。
+     * @return 基本点
+     * @throws NoSuchElementException {@code EMPTY}の場合
+     */
+    int getBaseScore(){
+        if(this==EMPTY){
+            throw new NoSuchElementException("can't calculate base score of empty limit");
+        }
+        return baseScore;
     }
 
     /**

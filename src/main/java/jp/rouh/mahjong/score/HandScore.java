@@ -1,8 +1,5 @@
 package jp.rouh.mahjong.score;
 
-import jp.rouh.mahjong.tile.Tile;
-
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,37 +17,30 @@ import java.util.List;
  * @version 1.0
  */
 public class HandScore implements Comparable<HandScore>{
-    private final int point;
-    private final int doubles;
+    private final Score score;
     private final List<HandType> handTypes;
-    private final Limit limit;
     private final boolean handLimit;
     private final boolean dealer;
 
     private HandScore(FixedScoreHandType handType, boolean dealer){
-        this.point = 0;
-        this.doubles = 0;
+        this.score = new Score(handType.getFixedLimit());
         this.handTypes = List.of(handType);
-        this.limit = handType.getFixedScore();
-        this.handLimit = limit.isHandLimit();
+        this.handLimit = score.getLimit().isHandLimit();
         this.dealer = dealer;
     }
 
     private HandScore(List<LimitHandType> handTypes, boolean dealer){
-        this.point = 0;
         int multiplier = handTypes.stream().mapToInt(LimitHandType::getMultiplier).sum();
-        this.doubles = 13*multiplier;
+        this.score = new Score(multiplier);
         this.handTypes = List.copyOf(handTypes);
-        this.limit = Limit.ofMultiplier(multiplier);
         this.handLimit = true;
         this.dealer = dealer;
     }
 
     private HandScore(int point, List<BasicHandType> handTypes, boolean dealer){
-        this.point = point;
-        this.doubles = handTypes.stream().mapToInt(BasicHandType::getDoubles).sum();
+        int doubles = handTypes.stream().mapToInt(BasicHandType::getDoubles).sum();
+        this.score = new Score(point, doubles);
         this.handTypes = List.copyOf(handTypes);
-        this.limit = Limit.of(point, doubles);
         this.handLimit = false;
         this.dealer = dealer;
     }
@@ -74,25 +64,6 @@ public class HandScore implements Comparable<HandScore>{
     }
 
     /**
-     * 符を取得します。
-     * <p>符は10の位で切り上げられた値です。
-     * <p>役満(数え役満を含まない)の場合は0が返されます。
-     * @return 符
-     */
-    public int getPoint(){
-        return point;
-    }
-
-    /**
-     * 飜を取得します。
-     * <p>役満(数え役満を含まない)の場合は倍数に13をかけた値が返されます。
-     * @return 飜
-     */
-    public int getDoubles(){
-        return doubles;
-    }
-
-    /**
      * 基本点を取得します。
      * <p>基本点は, 符*(2^(飜 + 2))で算出される値です。
      * 符が10の位に切り上げられているため, 基本点は10の位までの計算精度を持ちます。
@@ -100,17 +71,7 @@ public class HandScore implements Comparable<HandScore>{
      * @return 基本点
      */
     public int getBaseScore(){
-        int doubles = getDoubles();
-        if(handLimit){
-            return 8000*(doubles/13);
-        }else{
-            if(doubles>=13) return 8000;
-            if(doubles>=11) return 6000;
-            if(doubles>=8) return 4000;
-            if(doubles>=6) return 3000;
-            if(doubles>=5) return 2000;
-            return Math.min(2000, point*(int)Math.pow(2, doubles + 2));
-        }
+        return score.getBaseScore();
     }
 
     /**
@@ -122,16 +83,7 @@ public class HandScore implements Comparable<HandScore>{
      * @return 点数
      */
     public int getScore(){
-        return (int)Math.ceil(((dealer? 6:4)*getBaseScore())/100d)*100;
-    }
-
-    /**
-     * 点数区分を取得します。
-     * @return 点数区分
-     * @see Limit
-     */
-    public Limit getLimit(){
-        return limit;
+        return score.getScore(dealer);
     }
 
     /**
@@ -165,8 +117,8 @@ public class HandScore implements Comparable<HandScore>{
      * @return 得点を表す文字列
      */
     public String getScoreExpression(){
-        return (handLimit?"":point+"符 "+doubles+"翻 ")
-                + (limit.isEmpty()?"":limit.getText()+" ")+getScore()+"点";
+        return (score.hasPointAndDoubles()?score.getPoint()+"符 "+score.getDoubles()+"翻 ":"")
+                + (score.getLimit().isEmpty()?"":score.getLimit().getText()+" ")+getScore()+"点";
     }
 
     @Override
