@@ -11,7 +11,7 @@ import java.util.List;
  * @author Rouh
  * @version 1.0
  */
-public class ScoringData {
+public class HandScoreData{
     private List<Tile> handTiles;
     private Tile winningTile;
     private List<Meld> openMelds;

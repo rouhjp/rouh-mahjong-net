@@ -82,13 +82,28 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
                 return resultType;
             }
         }
-        var handReadyPlayers = roundPlayers.values().stream()
-                .filter(RoundPlayer::isHandReady)
-                .map(RoundPlayer::getSeatWind).toList();
-        var settlement = Settlement.ofDrawn(handReadyPlayers, streak, deposit);
         roundDrawn(DrawType.EXHAUSTED);
-        payment(settlement);
-        return handReadyPlayers.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
+        var orphanRiverWinds = Stream.of(Wind.values())
+                .filter(wind->getPlayerAt(wind).isOrphanRiver()).toList();
+        if(!orphanRiverWinds.isEmpty()){
+            var scores = new ArrayList<RiverScoreData>();
+            var settlement = (Settlement)null;
+            for(var orphanRiverWind:orphanRiverWinds){
+                var result = getPlayerAt(orphanRiverWind).declareOrphanRiver();
+                scores.add(result.getRiverData());
+                settlement = settlement==null? result.getSettlement():settlement.marge(result.getSettlement());
+            }
+            roundSettledByRiver(scores);
+            payment(settlement);
+            return orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
+        }
+        var handReadyWinds = Stream.of(Wind.values())
+                .filter(wind->getPlayerAt(wind).isHandReady()).toList();
+        for(var handReadyWind:handReadyWinds){
+            getPlayerAt(handReadyWind).roundExhausted();
+        }
+        payment(Settlement.ofDrawn(handReadyWinds, streak, deposit));
+        return handReadyWinds.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
     }
 
     private void distribute(){
@@ -109,8 +124,8 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
         LOG.info(turnWind+" "+turnAction);
         if(turnAction.type()==TSUMO){
             var result = turnPlayer.declareTsumo(afterQuad);
-            roundSettled(List.of(result.scoringData()));
-            payment(result.settlement());
+            roundSettled(List.of(result.getHandData()));
+            payment(result.getSettlement());
             resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
             return;
         }
@@ -139,6 +154,7 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
         }
         if(turnAction.type()==READY_DISCARD){
             turnPlayer.declareReady();
+            seatUpdated();
         }
         var discardTile = turnAction.argument();
         turnPlayer.discard(discardTile);
@@ -147,6 +163,7 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
     }
 
     private void doDiscard(Tile discarded){
+        var discarderWind = turnWind;
         var turnPlayer = getPlayerAt(turnWind);
         var actions = mediateCallAction(discarded);
         for(var action:actions){
@@ -194,13 +211,17 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
                     turnWind = callWind;
                 }
             }
+            for(var wind:Wind.values()){
+                getPlayerAt(wind).discardTileSettled(discarderWind, discarded, turnWind);
+            }
         }else{
+            for(var wind:Wind.values()){
+                getPlayerAt(wind).discardTileSettled(discarderWind, discarded, null);
+            }
             afterCall = false;
             afterQuad = false;
             turnWind = turnWind.next();
         }
-        turnPlayer.discardSettled();
-        seatUpdated();
         if(firstAround){
             firstAroundDiscards.add(discarded);
             if(firstAroundDiscards.size()==4){
@@ -267,8 +288,8 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
                 deposit = 0;
             }
         }
-        var scores = results.stream().map(WinningResult::scoringData).toList();
-        var settlement = results.stream().map(WinningResult::settlement).reduce(Settlement::marge).orElseThrow();
+        var scores = results.stream().map(WinningResult::getHandData).toList();
+        var settlement = results.stream().map(WinningResult::getSettlement).reduce(Settlement::marge).orElseThrow();
         roundSettled(scores);
         payment(settlement);
     }

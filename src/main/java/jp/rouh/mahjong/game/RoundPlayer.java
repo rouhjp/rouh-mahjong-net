@@ -8,7 +8,9 @@ import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class RoundPlayer extends TableStrategyDelegator{
     private final HandScoreCalculator calculator = StandardHandScoreCalculator.getInstance();
@@ -17,12 +19,14 @@ public class RoundPlayer extends TableStrategyDelegator{
     private final GamePlayerAccessor gamePlayer;
     private final Wind seatWind;
     private final Hand hand = new Hand();
-    private boolean orphansRiver = true;
+    private final Set<Tile> river = new HashSet<>();
+    private boolean orphanRiver = true;
     private boolean readyPrepared = false;
     private boolean firstAroundReady = false;
     private boolean ready = false;
     private boolean readyAround = false;
-
+    private boolean riverLock = false;
+    private boolean aroundLock = false;
     RoundPlayer(RoundAccessor round, GamePlayerAccessor gamePlayer){
         super(gamePlayer);
         this.round = round;
@@ -60,6 +64,9 @@ public class RoundPlayer extends TableStrategyDelegator{
     void draw(Tile tile){
         hand.draw(tile);
         master.handUpdated(seatWind, hand.getAllTiles(), true);
+        if(aroundLock){
+            aroundLock = false;
+        }
     }
 
     /**
@@ -71,6 +78,13 @@ public class RoundPlayer extends TableStrategyDelegator{
     void discard(Tile tile){
         hand.discard(tile);
         master.handUpdated(seatWind, hand.getAllTiles(), false);
+        river.add(tile);
+        if(orphanRiver && !tile.isOrphan()){
+            orphanRiver = false;
+        }
+        if(!ready){
+            riverLock = river.stream().anyMatch(hand::isCompletedBy);
+        }
     }
 
     /**
@@ -91,18 +105,33 @@ public class RoundPlayer extends TableStrategyDelegator{
     }
 
     void discardTileClaimed(){
-        orphansRiver = false;
+        orphanRiver = false;
     }
 
-    void discardSettled(){
-        if(readyAround){
-            readyAround = false;
+    void discardTileSettled(Wind discarder, Tile discarded, Wind caller){
+        if(discarder==seatWind){
+            if(readyAround){
+                readyAround = false;
+            }
+            if(readyPrepared){
+                readyPrepared = false;
+                ready = true;
+                readyAround = true;
+                if(round.isFirstAround()){
+                    firstAroundReady = true;
+                }
+                master.readyBoneAdded(seatWind);
+            }
+        }else if(caller!=seatWind){
+            if(hand.isCompletedBy(discarded)){
+                aroundLock = true;
+            }
         }
-        if(readyPrepared){
-            readyPrepared = false;
-            ready = true;
-            readyAround = true;
-            master.readyBoneAdded(seatWind);
+    }
+
+    void roundExhausted(){
+        if(isHandReady()){
+            master.handRevealed(seatWind, hand.getAllTiles(), false);
         }
     }
 
@@ -170,6 +199,14 @@ public class RoundPlayer extends TableStrategyDelegator{
         }
     }
 
+    WinningResult declareOrphanRiver(){
+        var score = HandScore.ofRiverJackpot(seatWind==Wind.EAST);
+        var settlementContext = new SettlementData(seatWind, Side.SELF, false, round.getRoundDepositCount(), round.getRoundStreakCount());
+        var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
+        var data = new RiverScoreData(score.getHandTypes().get(0), score.getScoreExpression());
+        return new WinningResult(score, settlement, data);
+    }
+
     WinningResult declareRon(Tile discarded, Wind discarder){
         var context = getWinningContext(false, false, false);
         var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discarded, context);
@@ -177,16 +214,16 @@ public class RoundPlayer extends TableStrategyDelegator{
         master.handRevealed(seatWind, hand.getAllTiles(), false);
         var settlementContext = new SettlementData(seatWind, discarder.from(seatWind), false, round.getRoundDepositCount(), round.getRoundStreakCount());
         var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
-        var scoringData = new ScoringData();
-        scoringData.setHandTiles(hand.getHandTiles());
-        scoringData.setOpenMelds(hand.getOpenMelds());
-        scoringData.setWinningTile(discarded);
-        scoringData.setTsumo(false);
-        scoringData.setUpperIndicators(round.getUpperIndicators());
-        scoringData.setLowerIndicators(ready?round.getLowerIndicators():List.of());
-        scoringData.setHandTypes(score.getHandTypes());
-        scoringData.setScoreExpression(score.getScoreExpression());
-        return new WinningResult(score, settlement, scoringData);
+        var data = new HandScoreData();
+        data.setHandTiles(hand.getHandTiles());
+        data.setOpenMelds(hand.getOpenMelds());
+        data.setWinningTile(discarded);
+        data.setTsumo(false);
+        data.setUpperIndicators(round.getUpperIndicators());
+        data.setLowerIndicators(ready?round.getLowerIndicators():List.of());
+        data.setHandTypes(score.getHandTypes());
+        data.setScoreExpression(score.getScoreExpression());
+        return new WinningResult(score, settlement, data);
     }
 
     WinningResult declareRonByQuad(Tile quadTile, Wind declarer){
@@ -196,16 +233,16 @@ public class RoundPlayer extends TableStrategyDelegator{
         master.handRevealed(seatWind, hand.getAllTiles(), false);
         var settlementContext = new SettlementData(seatWind, declarer.from(seatWind), false, round.getRoundDepositCount(), round.getRoundStreakCount());
         var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
-        var scoringData = new ScoringData();
-        scoringData.setHandTiles(hand.getHandTiles());
-        scoringData.setOpenMelds(hand.getOpenMelds());
-        scoringData.setWinningTile(quadTile);
-        scoringData.setTsumo(false);
-        scoringData.setUpperIndicators(round.getUpperIndicators());
-        scoringData.setLowerIndicators(ready?round.getLowerIndicators():List.of());
-        scoringData.setHandTypes(score.getHandTypes());
-        scoringData.setScoreExpression(score.getScoreExpression());
-        return new WinningResult(score, settlement, scoringData);
+        var data = new HandScoreData();
+        data.setHandTiles(hand.getHandTiles());
+        data.setOpenMelds(hand.getOpenMelds());
+        data.setWinningTile(quadTile);
+        data.setTsumo(false);
+        data.setUpperIndicators(round.getUpperIndicators());
+        data.setLowerIndicators(ready?round.getLowerIndicators():List.of());
+        data.setHandTypes(score.getHandTypes());
+        data.setScoreExpression(score.getScoreExpression());
+        return new WinningResult(score, settlement, data);
     }
 
     void declareNineTiles(){
@@ -219,16 +256,16 @@ public class RoundPlayer extends TableStrategyDelegator{
         master.handRevealed(seatWind, hand.getAllTiles(), true);
         var settlementContext = new SettlementData(seatWind, Side.SELF, afterQuad, round.getRoundDepositCount(), round.getRoundStreakCount());
         var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
-        var scoringData = new ScoringData();
-        scoringData.setHandTiles(hand.getHandTiles());
-        scoringData.setOpenMelds(hand.getOpenMelds());
-        scoringData.setWinningTile(hand.getDrawnTile());
-        scoringData.setTsumo(true);
-        scoringData.setUpperIndicators(round.getUpperIndicators());
-        scoringData.setLowerIndicators(ready?round.getLowerIndicators():List.of());
-        scoringData.setHandTypes(score.getHandTypes());
-        scoringData.setScoreExpression(score.getScoreExpression());
-        return new WinningResult(score, settlement, scoringData);
+        var data = new HandScoreData();
+        data.setHandTiles(hand.getHandTiles());
+        data.setOpenMelds(hand.getOpenMelds());
+        data.setWinningTile(hand.getDrawnTile());
+        data.setTsumo(true);
+        data.setUpperIndicators(round.getUpperIndicators());
+        data.setLowerIndicators(ready?round.getLowerIndicators():List.of());
+        data.setHandTypes(score.getHandTypes());
+        data.setScoreExpression(score.getScoreExpression());
+        return new WinningResult(score, settlement, data);
     }
 
     boolean isConcealed(){
@@ -241,6 +278,10 @@ public class RoundPlayer extends TableStrategyDelegator{
 
     boolean isHandReady(){
         return hand.isHandReady();
+    }
+
+    boolean isOrphanRiver(){
+        return orphanRiver;
     }
 
     boolean hasQuad(){
@@ -295,7 +336,7 @@ public class RoundPlayer extends TableStrategyDelegator{
                 choices.add(CallAction.ofRon());
             }
         }else{
-            if(hand.isCompletedBy(discardedTile)){
+            if(hand.isCompletedBy(discardedTile) && !riverLock && !aroundLock){
                 var context = getWinningContext(false, false, false);
                 var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discardedTile, context);
                 if(!score.isEmpty()){
@@ -305,12 +346,14 @@ public class RoundPlayer extends TableStrategyDelegator{
             if(!hand.getQuadBaseOf(discardedTile).isEmpty()){
                 choices.add(CallAction.ofKan());
             }
-            for(var tripleBase: hand.getTripleBasesOf(discardedTile)){
-                choices.add(CallAction.ofPon(tripleBase.get(0), tripleBase.get(1)));
-            }
-            if(Side.LEFT.of(seatWind)==discarder){
-                for(var sequenceBase: hand.getSequenceBasesOf(discardedTile)){
-                    choices.add(CallAction.ofChi(sequenceBase.get(0), sequenceBase.get(1)));
+            if(!round.isLastTurn()){
+                for(var tripleBase: hand.getTripleBasesOf(discardedTile)){
+                    choices.add(CallAction.ofPon(tripleBase.get(0), tripleBase.get(1)));
+                }
+                if(Side.LEFT.of(seatWind)==discarder){
+                    for(var sequenceBase: hand.getSequenceBasesOf(discardedTile)){
+                        choices.add(CallAction.ofChi(sequenceBase.get(0), sequenceBase.get(1)));
+                    }
                 }
             }
         }
@@ -319,7 +362,7 @@ public class RoundPlayer extends TableStrategyDelegator{
 
     CallAction selectCallActionForSelfQuad(Tile declared){
         if(hand.isThirteenOrphansHandReady()){
-            if(hand.isCompletedBy(declared)){
+            if(hand.isCompletedBy(declared) && !aroundLock && !riverLock){
                 return selectCallAction(List.of(CallAction.ofPass(), CallAction.ofRon()));
             }
         }
@@ -327,7 +370,7 @@ public class RoundPlayer extends TableStrategyDelegator{
     }
 
     CallAction selectCallActionForAddQuad(Tile added){
-        if(hand.isCompletedBy(added)){
+        if(hand.isCompletedBy(added) && !aroundLock && !riverLock){
             return selectCallAction(List.of(CallAction.ofPass(), CallAction.ofRon()));
         }
         return CallAction.ofPass();

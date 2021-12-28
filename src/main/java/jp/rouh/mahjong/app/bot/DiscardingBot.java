@@ -59,7 +59,12 @@ public class DiscardingBot implements TablePlayer{
             }
 
             @Override
-            public void roundSettled(List<ScoringData> scores){
+            public void roundSettled(List<HandScoreData> scores){
+
+            }
+
+            @Override
+            public void roundSettledByRiver(List<RiverScoreData> scores){
 
             }
 

@@ -120,7 +120,7 @@ class CallActionSelector{
     boolean canSelectForChiUnderSelection(Tile selecting, Tile selected){
         return chiActions.stream().anyMatch(a->
                 a.arguments().equals(List.of(selected, selecting)) ||
-                        a.arguments().equals(List.of(selected, selected)));
+                        a.arguments().equals(List.of(selecting, selected)));
     }
 
     /**

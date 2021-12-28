@@ -144,7 +144,7 @@ public class Game implements GameAccessor{
                 .sorted(Comparator.comparing(GamePlayer::getScore).reversed()
                         .thenComparing(player->getInitialSeatWindAt(player.getOrderWind())))
                 .map(GamePlayer::getOrderWind)
-                .toList().indexOf(orderWind);
+                .toList().indexOf(orderWind) + 1;
     }
 
     @Override

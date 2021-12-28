@@ -1,8 +1,6 @@
 package jp.rouh.mahjong.game;
 
 import jp.rouh.mahjong.game.event.*;
-import jp.rouh.mahjong.score.HandScore;
-import jp.rouh.mahjong.score.Settlement;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
@@ -45,6 +43,7 @@ interface TableMaster{
      * @param last    オーラスかどうか
      */
     void roundStarted(Wind wind, int count, int streak, int deposit, boolean last);
+
     /**
      * 局が流局したことを通知します。
      * @param drawType 流局の種類
@@ -55,7 +54,13 @@ interface TableMaster{
      * 局が和了されたことを通知します。
      * @param scores 結果情報
      */
-    void roundSettled(List<ScoringData> scores);
+    void roundSettled(List<HandScoreData> scores);
+
+    /**
+     * 局が流し満貫によって和了されたことを通知します。
+     * @param scores 和了結果のリスト
+     */
+    void roundSettledByRiver(List<RiverScoreData> scores);
 
     /**
      * 局の精算を通知します。

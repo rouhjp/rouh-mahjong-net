@@ -1,8 +1,6 @@
 package jp.rouh.mahjong.game;
 
 import jp.rouh.mahjong.game.event.*;
-import jp.rouh.mahjong.score.HandScore;
-import jp.rouh.mahjong.score.Settlement;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
@@ -54,8 +52,13 @@ abstract class TableStrategyDelegator implements TableStrategy{
     }
 
     @Override
-    public void roundSettled(List<ScoringData> scores){
+    public void roundSettled(List<HandScoreData> scores){
         strategy.roundSettled(scores);
+    }
+
+    @Override
+    public void roundSettledByRiver(List<RiverScoreData> scores){
+        strategy.roundSettledByRiver(scores);
     }
 
     @Override

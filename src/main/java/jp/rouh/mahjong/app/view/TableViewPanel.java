@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static jp.rouh.mahjong.app.view.TileLabel.*;
 
@@ -92,12 +91,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     private final Waiter<ActionInput> actionInputWaiter = new Waiter<>();
     private final Waiter<Void> acknowledgeWaiter = new Waiter<>();
 
-
-//    private volatile ActionInput actionInput;
-//    private final AtomicBoolean acknowledging = new AtomicBoolean(false);
-//    private final Semaphore actionSemaphore = new Semaphore(0);
-//    private final Semaphore acknowledgeSemaphore = new Semaphore(0);
-
     /**
      * コンストラクタ。
      */
@@ -113,12 +106,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                     acknowledgeWaiter.arrived(null);
                     LOG.info("user clicked!");
                 }
-
-//                if(acknowledging.get()){
-//                    acknowledgeSemaphore.release();
-//                    LOG.info("player clicked");
-//                    acknowledging.set(false);
-//                }
             }
 
         });
@@ -216,14 +203,10 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 if(acknowledgeWaiter.isWaiting()){
                     TableViewPanel.this.dispatchEvent(e);
                 }else if(glassLabels[index]==null){
-                    actionInputWaiter.arrived(ActionInput.ofIndex(index));
+                    if(actionInputWaiter.isWaiting()){
+                        actionInputWaiter.arrived(ActionInput.ofIndex(index));
+                    }
                 }
-//                if(acknowledging.get()){
-//                    TableViewPanel.this.dispatchEvent(e);
-//                }else if(glassLabels[index]==null){
-//                    actionInput = ActionInput.ofIndex(index);
-//                    actionSemaphore.release();
-//                }
             }
 
             @Override
@@ -231,9 +214,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 if(!acknowledgeWaiter.isWaiting() && glassLabels[index]==null){
                     label.setTranslationCentered(0, -2);
                 }
-//                if(!acknowledging.get() && glassLabels[index]==null){
-//                    label.setTranslationCentered(0, -2);
-//                }
             }
 
             @Override
@@ -241,9 +221,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 if(!acknowledgeWaiter.isWaiting() && glassLabels[index]==null){
                     label.clearTranslationCentered();
                 }
-//                if(!acknowledging.get() && glassLabels[index]==null){
-//                    label.clearTranslationCentered();
-//                }
             }
         });
         detectorLabels[index] = detector;
@@ -480,8 +457,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 if(actionInputWaiter.isWaiting()){
                     actionInputWaiter.arrived(choice);
                 }
-//                actionInput = choice;
-//                actionSemaphore.release();
             }
         });
         label.setBorder(new LineBorder(Color.BLACK));
@@ -547,7 +522,12 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         resultWindow.displayPayments(payments);
     }
 
-    private void putScoringResultWindow(ScoringData data){
+    private void putScoringResultWindow(HandScoreData data){
+        putResultWindow();
+        resultWindow.displayScore(data);
+    }
+
+    private void putScoringResultWindow(RiverScoreData data){
         putResultWindow();
         resultWindow.displayScore(data);
     }
@@ -617,8 +597,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         try{
             LOG.info("--acquired--" + Thread.currentThread().getName());
             acknowledgeWaiter.waitForArrival();
-//            acknowledging.set(true);
-//            acknowledgeSemaphore.acquire();
             LOG.info("--released--" + Thread.currentThread().getName());
         }catch(InterruptedException e){
             LOG.info("ack interrupted "+e.getMessage());
@@ -710,7 +688,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     }
 
     @Override
-    public void roundSettled(List<ScoringData> scores){
+    public void roundSettled(List<HandScoreData> scores){
         LOG.info("roundSettled "+scores);
         worker.submit(()->{
             try{
@@ -727,6 +705,27 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 LOG.debug("interrupted "+e.getMessage());
                 throw new RuntimeException(e);
             }
+        });
+    }
+
+    @Override
+    public void roundSettledByRiver(List<RiverScoreData> scores){
+        LOG.info("roundSettledByRiver "+scores);
+        worker.submit(()->{
+           try{
+               for(var score:scores){
+                   SwingUtilities.invokeAndWait(()->putScoringResultWindow(score));
+                   waitForAcknowledge();
+               }
+               SwingUtilities.invokeAndWait(()->{
+                   remove(resultWindow);
+                   resultWindow = null;
+                   repaint();
+               });
+           }catch(InterruptedException | InvocationTargetException e){
+               LOG.debug("interrupted " + e.getMessage());
+               throw new RuntimeException(e);
+           }
         });
     }
 

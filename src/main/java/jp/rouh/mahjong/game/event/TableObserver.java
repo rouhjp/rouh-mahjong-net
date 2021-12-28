@@ -52,7 +52,13 @@ public interface TableObserver {
      * 局が和了されたことを通知します。
      * @param scores 和了結果のリスト
      */
-    void roundSettled(List<ScoringData> scores);
+    void roundSettled(List<HandScoreData> scores);
+
+    /**
+     * 局が流し満貫によって和了されたことを通知します。
+     * @param scores 和了結果のリスト
+     */
+    void roundSettledByRiver(List<RiverScoreData> scores);
 
     /**
      * 局の精算を通知します。

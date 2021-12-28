@@ -1,7 +1,8 @@
 package jp.rouh.mahjong.app.view;
 
 import jp.rouh.mahjong.game.event.PaymentData;
-import jp.rouh.mahjong.game.event.ScoringData;
+import jp.rouh.mahjong.game.event.HandScoreData;
+import jp.rouh.mahjong.game.event.RiverScoreData;
 import jp.rouh.mahjong.score.HandType;
 import jp.rouh.mahjong.score.Meld;
 import jp.rouh.mahjong.tile.Tile;
@@ -50,7 +51,7 @@ class ResultViewPanel extends TablePanel{
      * 和了得点画面を描画します。
      * @param data 和了得点DTO
      */
-    void displayScore(ScoringData data){
+    void displayScore(HandScoreData data){
         removeAll();
         var handTiles = data.getHandTiles();
         var winningTile = data.getWinningTile();
@@ -62,7 +63,21 @@ class ResultViewPanel extends TablePanel{
         displayHand(handTiles, winningTile, openMelds, tsumo);
         displayIndicators(upperIndicators, lowerIndicators);
         displayHandTypes(handTypes);
-        var expression = data.getScoreExpression();
+        displayExpression(data.getScoreExpression());
+    }
+
+    /**
+     * 流し満願用の和了得点画面を描画します。
+     * @param data 和了得点DTO
+     */
+    void displayScore(RiverScoreData data){
+        removeAll();
+        displayIndicators(List.of(), List.of());
+        displayHandTypes(List.of(data.getHandType()));
+        displayExpression(data.getScoreExpression());
+    }
+
+    private void displayExpression(String expression){
         var label = TableTextLabels.ofText(expression, 60, 6);
         label.setBorder(new LineBorder(Color.BLACK));
         label.setBaseLocation(18, 58);
