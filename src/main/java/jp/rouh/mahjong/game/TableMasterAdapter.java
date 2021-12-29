@@ -14,20 +14,20 @@ import java.util.Map;
  * @author Rouh
  * @version 1.0
  */
-abstract class TableMasterAdapter implements TableMaster{
+interface TableMasterAdapter extends TableMaster{
 
     @Override
-    public abstract TableObserver getPlayerAt(Wind wind);
+    TableObserver getPlayerAt(Wind wind);
 
     @Override
-    public void gameStarted(List<ProfileData> players){
+    default void gameStarted(List<ProfileData> players){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).gameStarted(players);
         }
     }
 
     @Override
-    public void seatUpdated(Map<Wind, PlayerData> players){
+    default void seatUpdated(Map<Wind, PlayerData> players){
         for(var eachWind:Wind.values()){
             var map = new HashMap<Side, PlayerData>();
             for(var side:Side.values()){
@@ -38,35 +38,35 @@ abstract class TableMasterAdapter implements TableMaster{
     }
 
     @Override
-    public void roundStarted(Wind wind, int count, int streak, int deposit, boolean last){
+    default void roundStarted(Wind wind, int count, int streak, int deposit, boolean last){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).roundStarted(wind, count, streak, deposit, last);
         }
     }
 
     @Override
-    public void roundDrawn(DrawType drawType){
+    default void roundDrawn(DrawType drawType){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).roundDrawn(drawType);
         }
     }
 
     @Override
-    public void roundSettled(List<HandScoreData> scores){
+    default void roundSettled(List<HandScoreData> scores){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).roundSettled(scores);
         }
     }
 
     @Override
-    public void roundSettledByRiver(List<RiverScoreData> scores){
+    default void roundSettledByRiver(List<RiverScoreData> scores){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).roundSettledByRiver(scores);
         }
     }
 
     @Override
-    public void paymentSettled(Map<Wind, PaymentData> payments){
+    default void paymentSettled(Map<Wind, PaymentData> payments){
         for(var eachWind:Wind.values()){
             var map = new HashMap<Side, PaymentData>();
             for(var side:Side.values()){
@@ -77,49 +77,49 @@ abstract class TableMasterAdapter implements TableMaster{
     }
 
     @Override
-    public void diceRolled(Wind wind, int dice1, int dice2){
+    default void diceRolled(Wind wind, int dice1, int dice2){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).diceRolled(wind.from(eachWind), dice1, dice2);
         }
     }
 
     @Override
-    public void declared(Wind wind, Declaration declaration){
+    default void declared(Wind wind, Declaration declaration){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).declared(wind.from(eachWind), declaration);
         }
     }
 
     @Override
-    public void readyBoneAdded(Wind wind){
+    default void readyBoneAdded(Wind wind){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).readyBoneAdded(wind.from(eachWind));
         }
     }
 
     @Override
-    public void wallGenerated(){
+    default void wallGenerated(){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).wallGenerated();
         }
     }
 
     @Override
-    public void wallTileTaken(Wind wind, int column, int floor){
+    default void wallTileTaken(Wind wind, int column, int floor){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).wallTileTaken(wind.from(eachWind), column, floor);
         }
     }
 
     @Override
-    public void wallTileRevealed(Wind wind, int column, Tile tile){
+    default void wallTileRevealed(Wind wind, int column, Tile tile){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).wallTileRevealed(wind.from(eachWind), column, tile);
         }
     }
 
     @Override
-    public void handUpdated(Wind wind, List<Tile> wideTiles, boolean wide){
+    default void handUpdated(Wind wind, List<Tile> wideTiles, boolean wide){
         getPlayerAt(wind).handUpdated(wideTiles, wide);
         for(var eachWind:wind.others()){
             getPlayerAt(eachWind).handUpdated(wind.from(eachWind), wideTiles.size(), wide);
@@ -127,42 +127,42 @@ abstract class TableMasterAdapter implements TableMaster{
     }
 
     @Override
-    public void handRevealed(Wind wind, List<Tile> wideTiles, boolean wide){
+    default void handRevealed(Wind wind, List<Tile> wideTiles, boolean wide){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).handRevealed(wind.from(eachWind), wideTiles, wide);
         }
     }
 
     @Override
-    public void riverTileAdded(Wind wind, Tile tile, boolean tilt){
+    default void riverTileAdded(Wind wind, Tile tile, boolean tilt){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).riverTileAdded(wind.from(eachWind), tile, tilt);
         }
     }
 
     @Override
-    public void riverTileTaken(Wind wind){
+    default void riverTileTaken(Wind wind){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).riverTileTaken(wind.from(eachWind));
         }
     }
 
     @Override
-    public void tiltMeldAdded(Wind wind, Side tilt, List<Tile> tiles){
+    default void tiltMeldAdded(Wind wind, Side tilt, List<Tile> tiles){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).tiltMeldAdded(wind.from(eachWind), tilt, tiles);
         }
     }
 
     @Override
-    public void selfQuadAdded(Wind wind, List<Tile> tiles){
+    default void selfQuadAdded(Wind wind, List<Tile> tiles){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).selfQuadAdded(wind.from(eachWind), tiles);
         }
     }
 
     @Override
-    public void meldTileAdded(Wind wind, int index, Tile tile){
+    default void meldTileAdded(Wind wind, int index, Tile tile){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).meldTileAdded(wind.from(eachWind), index, tile);
         }

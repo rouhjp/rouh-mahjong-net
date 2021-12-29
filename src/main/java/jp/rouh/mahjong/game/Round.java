@@ -23,7 +23,7 @@ import static jp.rouh.mahjong.game.RoundResultType.*;
  * @author Rouh
  * @version 1.0
  */
-public class Round extends TableMasterAdapter implements RoundAccessor, WallObserver{
+public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     private static final Logger LOG = LoggerFactory.getLogger(Round.class);
     private final Map<Wind, RoundPlayer> roundPlayers;
     private final WallGenerator wallGenerator;
@@ -148,11 +148,8 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
             var self = turnPlayer.declareKan(targetTile);
             var callActions = mediateCallActionForQuad(targetTile, self);
             if(!callActions.isEmpty()){
-                var actions = mediateCallActionForQuad(targetTile, self);
-                if(!actions.isEmpty()){
-                    mediateWinnings(actions, targetTile, true);
-                    return;
-                }
+                mediateWinnings(callActions, targetTile, true);
+                return;
             }
             if(self){
                 wall.revealIndicatorImmediately();
@@ -320,7 +317,7 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
             for(var future: futures){
                 var action = future.get();
                 if(action.get().type()!=CallActionType.PASS){
-                    actions.add(future.get());
+                    actions.add(action);
                 }
             }
             return actions;
