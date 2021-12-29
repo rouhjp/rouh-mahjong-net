@@ -8,7 +8,7 @@ import jp.rouh.mahjong.tile.Wind;
  * @author Rouh
  * @version 1.0
  */
-public interface GamePlayerAccessor extends TableStrategy{
+interface GamePlayerAccessor extends TableStrategy{
 
     /**
      * ゲームプレイヤーの名前を取得します。

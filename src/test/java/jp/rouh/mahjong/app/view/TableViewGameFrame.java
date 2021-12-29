@@ -1,8 +1,7 @@
 package jp.rouh.mahjong.app.view;
 
-import jp.rouh.mahjong.app.bot.DiscardingBot;
-import jp.rouh.mahjong.game.Game;
-import jp.rouh.mahjong.game.Player;
+import jp.rouh.mahjong.game.GameTable;
+import jp.rouh.mahjong.game.event.TableStrategyMock;
 
 import javax.swing.*;
 import java.awt.*;
@@ -43,12 +42,12 @@ public class TableViewGameFrame{
         var executor = Executors.newSingleThreadExecutor();
         executor.submit(()->{
             try{
-                new Game(
-                        new Player("けもみみ", table),
-                        new DiscardingBot("guest1"),
-                        new DiscardingBot("guest1"),
-                        new DiscardingBot("guest1")
-                ).start();
+                var table = new GameTable();
+                table.addPlayer("けもみみ", this.table);
+                table.addPlayer("guest1", TableStrategyMock.DISCARD);
+                table.addPlayer("guest2", TableStrategyMock.DISCARD);
+                table.addPlayer("guest3", TableStrategyMock.DISCARD);
+                table.start();
             }catch(Exception e){
                 e.printStackTrace();
             }

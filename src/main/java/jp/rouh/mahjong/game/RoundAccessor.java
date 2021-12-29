@@ -4,7 +4,6 @@ import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 局への参照を規定するインターフェース。
@@ -116,7 +115,7 @@ interface RoundAccessor{
     default List<Tile> getUpperPrisedTiles(){
         return getUpperIndicators().stream()
                 .map(Tile::indicates)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -127,6 +126,6 @@ interface RoundAccessor{
     default List<Tile> getLowerPrisedTiles(){
         return getLowerIndicators().stream()
                 .map(Tile::indicates)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

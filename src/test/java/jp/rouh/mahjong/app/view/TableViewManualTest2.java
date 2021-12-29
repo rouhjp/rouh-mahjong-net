@@ -2,7 +2,7 @@ package jp.rouh.mahjong.app.view;
 
 import jp.rouh.mahjong.game.event.PaymentData;
 import jp.rouh.mahjong.game.event.PlayerData;
-import jp.rouh.mahjong.game.event.ScoringData;
+import jp.rouh.mahjong.game.event.HandScoreData;
 import jp.rouh.mahjong.score.HandType;
 import jp.rouh.mahjong.score.Meld;
 import jp.rouh.mahjong.tile.Side;
@@ -58,8 +58,8 @@ public class TableViewManualTest2{
                 .flatMap(t->Stream.of(t, t, t)).sorted()
                 .forEach(t->Stream.of(Side.values()).forEach(side->table.riverTileAdded(side, t, false)));
 
-        var scores = new ArrayList<ScoringData>();
-        var score1 = new ScoringData();
+        var scores = new ArrayList<HandScoreData>();
+        var score1 = new HandScoreData();
         score1.setHandTiles(List.of(M7, M8, M9, P2, P2, S1, S2));
         score1.setWinningTile(S3);
         score1.setOpenMelds(List.of(
@@ -74,7 +74,7 @@ public class TableViewManualTest2{
         score1.setLowerIndicators(List.of());
         score1.setTsumo(false);
         scores.add(score1);
-        var score2 = new ScoringData();
+        var score2 = new HandScoreData();
         score2.setHandTiles(List.of(M4, M5, M6, P6, P7, P8, S3, S3, S4, S4, S7, S8, S9));
         score2.setWinningTile(S3);
         score2.setOpenMelds(List.of());

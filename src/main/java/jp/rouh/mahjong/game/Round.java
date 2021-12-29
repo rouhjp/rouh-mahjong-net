@@ -26,12 +26,12 @@ import static jp.rouh.mahjong.game.RoundResultType.*;
 public class Round extends TableMasterAdapter implements RoundAccessor, WallObserver{
     private static final Logger LOG = LoggerFactory.getLogger(Round.class);
     private final Map<Wind, RoundPlayer> roundPlayers;
+    private final WallGenerator wallGenerator;
     private final RoundID id;
     private final int streak;
-    private final Wall wall;
     private final boolean last;
     private int deposit;
-
+    private Wall wall;
     private Wind turnWind = Wind.EAST;
     private boolean afterCall = false;
     private boolean afterQuad = false;
@@ -41,33 +41,42 @@ public class Round extends TableMasterAdapter implements RoundAccessor, WallObse
 
     /**
      * 局のコンストラクタ。
-     * @param id 局ID
-     * @param streak 本場数
-     * @param deposit 供託数
-     * @param gamePlayers 対局プレイヤーのマップ
+     * @param params 局パラメータ
+     * @param gamePlayers プレイヤー
      */
-    Round(List<? extends GamePlayerAccessor> gamePlayers, RoundID id, int streak, int deposit, boolean last){
-        this.id = id;
-        this.streak = streak;
-        this.deposit = deposit;
-        this.last = last;
+    Round(RoundParameter params, List<? extends GamePlayerAccessor> gamePlayers){
+        this(params, gamePlayers, (d1, d2)->new ArrayWall(Tiles.shuffledTileSet().toArray(new Tile[0]), d1 + d2));
+    }
+
+    /**
+     * 局のコンストラクタ。
+     * @param params 局パラメータ
+     * @param gamePlayers プレイヤー
+     * @param wallGenerator 牌山生成関数
+     */
+    Round(RoundParameter params, List<? extends GamePlayerAccessor> gamePlayers, WallGenerator wallGenerator){
+        this.id = params.getRoundId();
+        this.streak = params.getStreakCount();
+        this.deposit = params.getDepositCount();
+        this.last = params.isLast();
+        this.wallGenerator = wallGenerator;
         this.roundPlayers = gamePlayers.stream()
                 .map(gamePlayer->new RoundPlayer(this, gamePlayer))
                 .collect(Collectors.toMap(RoundPlayer::getSeatWind, Function.identity()));
-        this.wall = new ArrayWall(Tiles.shuffledTileSet().toArray(new Tile[0]), DiceTwin.roll().sumValue());
-        wall.addObserver(this);
-        wall.revealIndicatorImmediately();
     }
 
     /**
      * 局を開始します。
      * @throws IllegalStateException プレイヤー数が不正の場合
      */
-    RoundResultType start(){
+    public RoundResultType start(int dice1, int dice2){
         LOG.info("round started");
         seatUpdated();
         roundStarted(id.wind(), id.count(), streak, deposit, last);
+        wall = wallGenerator.generate(dice1, dice2);
         wallGenerated();
+        wall.addObserver(this);
+        wall.revealIndicatorImmediately();
         distribute();
         while(wall.hasDrawableTile()){
             var turnPlayer = roundPlayers.get(turnWind);

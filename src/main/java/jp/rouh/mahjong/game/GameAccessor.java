@@ -1,26 +1,24 @@
 package jp.rouh.mahjong.game;
 
-import jp.rouh.mahjong.tile.Wind;
-
 /**
- * ゲーム(対局)の情報へアクセスするためのインターフェース。
+ * 対局の情報へアクセスするためのインターフェース。
  * @author Rouh
  * @version 1.0
  */
-public interface GameAccessor{
+interface GameAccessor{
 
     /**
-     * 指定された席順のプレイヤーのランクを取得します。
-     * @param orderWind 席順
-     * @return ランク(1..4)
+     * 対局開始時の持ち点を取得します。
+     * @return 対局開始時の持ち点
      */
-    int getRankOf(Wind orderWind);
+    int getDefaultScore();
 
     /**
-     * 指定された席順のプレイヤーの東一局の自風を取得します。
-     * @param orderWind 席順
-     * @return 東一局の自風
+     * 指定されたプレイヤーの順位を取得します。
+     * <p>プレイヤーの順位はプレイヤーの持ち点で決定されます。
+     * 同点のプレイヤーがいる場合は, 起家から見て上家側が優先的に順位付けされます。
+     * @param player 対象プレイヤー
+     * @return 対象プレイヤーの順位(1..4)
      */
-    Wind getInitialSeatWindAt(Wind orderWind);
-
+    int getRankOf(GamePlayer player);
 }

@@ -625,7 +625,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                     }
                     putPlayerName(dir, data.getName());
                     putPlayerWind(dir, data.getSeatWind());
-                    putPlayerScore(dir, data.getScore());
                 })
         ));
     }

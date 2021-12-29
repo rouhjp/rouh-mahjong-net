@@ -1,6 +1,5 @@
-package jp.rouh.mahjong.game;
+package jp.rouh.mahjong.game.event;
 
-import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
@@ -14,17 +13,16 @@ import java.util.Map;
  * @author Rouh
  * @version 1.0
  */
-abstract class TableStrategyDelegator implements TableStrategy{
+public abstract class TableStrategyDelegator implements TableStrategy{
     private final TableStrategy strategy;
 
     /**
      * アダプタクラスのコンストラクタ。
      * @param strategy 委譲先オブジェクト
      */
-    TableStrategyDelegator(TableStrategy strategy){
+    public TableStrategyDelegator(TableStrategy strategy){
         this.strategy = strategy;
     }
-
 
     @Override
     public void gameStarted(List<ProfileData> players){
