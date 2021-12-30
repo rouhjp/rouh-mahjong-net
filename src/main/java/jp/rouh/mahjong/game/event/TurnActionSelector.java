@@ -181,6 +181,12 @@ class TurnActionSelector{
         if(kanActions.isEmpty()){
             throw new NoSuchElementException("invalid action");
         }
-        return kanActions.size()==1?Optional.of(kanActions.get(0)):Optional.empty();
+        if(kanActions.size()==1){
+            return Optional.of(kanActions.get(0));
+        }
+        if(kanActions.size()==2 && kanActions.get(0).argument().equalsIgnoreRed(kanActions.get(1).argument())){
+            return Optional.of(kanActions.get(0));
+        }
+        return Optional.empty();
     }
 }
