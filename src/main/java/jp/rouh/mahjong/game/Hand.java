@@ -82,6 +82,7 @@ class Hand{
         requireOutOfTurn();
         remove(baseTiles);
         openMelds.add(Meld.ofCallSequence(baseTiles, claimedTile));
+        undiscardableTiles = HandTiles.waitingTilesOf(baseTiles);
         return openMelds.size() - 1;
     }
 
@@ -89,6 +90,7 @@ class Hand{
         requireOutOfTurn();
         remove(baseTiles);
         openMelds.add(Meld.ofCallTriple(baseTiles, claimedTile, source));
+        undiscardableTiles = HandTiles.waitingTilesOf(baseTiles);
         return openMelds.size() - 1;
     }
 
