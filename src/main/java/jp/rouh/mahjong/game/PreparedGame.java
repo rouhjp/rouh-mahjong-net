@@ -3,6 +3,8 @@ package jp.rouh.mahjong.game;
 import jp.rouh.mahjong.tile.DiceTwin;
 import jp.rouh.mahjong.tile.Wind;
 import jp.rouh.util.FlexMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
@@ -16,7 +18,12 @@ import static jp.rouh.mahjong.tile.Wind.EAST;
  * @version 1.0
  */
 public class PreparedGame implements GameAccessor{
+    private static final Logger LOG = LoggerFactory.getLogger(PreparedGame.class);
     private static final int DEFAULT_SCORE = 25000;
+    private static final int RETURN_SCORE = 30000;
+    private static final int BIG_RANK_SCORE = 20000;
+    private static final int SMALL_RANK_SCORE = 10000;
+
     private final Map<Wind, GamePlayer> gamePlayers;
     private final GameSpan span;
 
@@ -35,7 +42,8 @@ public class PreparedGame implements GameAccessor{
         int streak = 0;
         int deposit = 0;
         var playerList = List.copyOf(gamePlayers.values());
-        while(true){
+        boolean finished = false;
+        while(!finished){
             boolean last = span.isLastRound(roundId);
             var params = new RoundParameter(roundId, streak, deposit, last);
             var round = new Round(params, playerList);
@@ -44,7 +52,7 @@ public class PreparedGame implements GameAccessor{
             if(span.hasExtended()){
                 if(playerList.stream().anyMatch(player->player.getScore()>=30000)){
                     //サドンデスによる終局
-                    break;
+                    finished = true;
                 }
             }
             if(last){
@@ -55,23 +63,45 @@ public class PreparedGame implements GameAccessor{
                             .findAny().orElseThrow();
                     if(dealer.getRank()==1 && dealer.getScore()>=30000){
                         //オーラス和了止めにより終局
-                        break;
+                        finished = true;
                     }
                 }else{
                     if(playerList.stream().allMatch(player->player.getScore()<30000)){
                         span.extend();
                     }else{
                         //流局による終局
-                        break;
+                        finished = true;
                     }
                 }
             }else if(playerList.stream().anyMatch(player->player.getScore()<0)){
                 //飛びによる終局
-                break;
+                finished = true;
             }
             roundId = result.isDealerAdvantage()? roundId:roundId.next();
             streak = result.isNonDealerVictory()? 0:streak + 1;
-            deposit += result.isDrawn()? round.getReadyCount():0;
+            deposit = result.isDrawn()? (deposit + round.getReadyCount()):0;
+
+            int sum = 0;
+            for(var wind:Wind.values()){
+                int score = gamePlayers.get(wind).getScore();
+                LOG.info(gamePlayers.get(wind).getName()+" "+score);
+                sum += score;
+            }
+            sum += deposit*1000;
+            LOG.info("deposit="+deposit*1000);
+            if(sum!=100000){
+                throw new IllegalStateException("invalid score sum");
+            }
+
+        }
+        var playerRanking = gamePlayers.values().stream()
+                .sorted(Comparator.comparing(GamePlayer::getRank)).toList();
+        if(deposit>0){
+            playerRanking.get(0).applyScore(deposit*1000);
+        }
+        var resultScores = playerRanking.stream().map(GamePlayer::getResultScoreData).toList();
+        for(var wind:Wind.values()){
+            gamePlayers.get(wind).gameSettled(resultScores);
         }
     }
 
@@ -81,10 +111,26 @@ public class PreparedGame implements GameAccessor{
     }
 
     @Override
+    public int getReturnScore(){
+        return RETURN_SCORE;
+    }
+
+    @Override
     public int getRankOf(GamePlayer player){
         return gamePlayers.values().stream()
                 .sorted(Comparator.comparing(GamePlayer::getScore).reversed()
                         .thenComparing(GamePlayer::getInitialSeatWind))
                 .toList().indexOf(player) + 1;
+    }
+
+    @Override
+    public int getRankScore(int rank){
+        return switch(rank){
+            case 1-> BIG_RANK_SCORE;
+            case 2-> SMALL_RANK_SCORE;
+            case 3-> -1*SMALL_RANK_SCORE;
+            case 4-> -1*BIG_RANK_SCORE;
+            default-> throw new IllegalArgumentException("invalid rank "+rank);
+        };
     }
 }

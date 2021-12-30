@@ -100,7 +100,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             for(var orphanRiverWind:orphanRiverWinds){
                 var result = getPlayerAt(orphanRiverWind).declareOrphanRiver();
                 scores.add(result.getRiverData());
-                settlement = settlement==null? result.getSettlement():settlement.marge(result.getSettlement());
+                settlement = settlement==null? result.getSettlement():settlement.merge(result.getSettlement());
             }
             roundSettledByRiver(scores);
             payment(settlement);
@@ -160,6 +160,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         }
         if(turnAction.type()==READY_DISCARD){
             turnPlayer.declareReady();
+            deposit++;
             seatUpdated();
         }
         var discardTile = turnAction.argument();
@@ -253,6 +254,10 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     }
 
     private void payment(Settlement settlement){
+        LOG.info("--------------------");
+        LOG.info(settlement.toString());
+        LOG.info("deposit="+deposit);
+        LOG.info("--------------------");
         var payments = new HashMap<Wind, PaymentData>();
         for(var wind:Wind.values()){
             payments.put(wind, new PaymentData());
@@ -295,7 +300,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             }
         }
         var scores = results.stream().map(WinningResult::getHandData).toList();
-        var settlement = results.stream().map(WinningResult::getSettlement).reduce(Settlement::marge).orElseThrow();
+        var settlement = results.stream().map(WinningResult::getSettlement).reduce(Settlement::merge).orElseThrow();
         roundSettled(scores);
         payment(settlement);
     }

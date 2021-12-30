@@ -21,6 +21,12 @@ public interface TableObserver {
     void gameStarted(List<ProfileData> players);
 
     /**
+     * 対局が終了したことを通知します。
+     * @param scores スコアのリスト
+     */
+    void gameSettled(List<GameScoreData> scores);
+
+    /**
      * 指定の方向に位置するプレイヤー情報を通知します。
      * @param players 通知先からみたプレイヤーの相対方位とそのプレイヤーの情報のマップ
      */

@@ -17,7 +17,7 @@ final class TableViewPoints{
     /**
      * 結果表示画面の中心座標
      */
-    static final Point RESULT_CENTER = new Point(ResultViewPanel.PANEL_WIDTH/2, ResultViewPanel.PANEL_HEIGHT/2);
+    static final Point RESULT_CENTER = new Point(RoundResultViewPanel.PANEL_WIDTH/2, RoundResultViewPanel.PANEL_HEIGHT/2);
 
     private TableViewPoints(){
         throw new AssertionError("instantiate utility class");

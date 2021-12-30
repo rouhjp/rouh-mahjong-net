@@ -82,7 +82,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     private TableLabel[] playerWindLabels;
     private TableLabel[] playerScoreLabels;
     private TableLabel initialEastLabel;
-    private ResultViewPanel resultWindow;
+    private RoundResultViewPanel roundResultWindow;
+    private GameResultViewPanel gameResultWindow;
 
     //access from both EDT, non-EDT
     // volatile array needs to rewrite array itself when updated
@@ -505,31 +506,44 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         add(label);
     }
 
-    private void putResultWindow(){
-        if(resultWindow==null){
-            resultWindow = new ResultViewPanel();
-            resultWindow.setBaseLocationCentered(TableViewPoints.TABLE_CENTER);
-            setLayer(resultWindow, GLASS_LAYER);
-            add(resultWindow);
+    private void putRoundResultWindow(){
+        if(roundResultWindow==null){
+            roundResultWindow = new RoundResultViewPanel();
+            roundResultWindow.setBaseLocationCentered(TableViewPoints.TABLE_CENTER);
+            setLayer(roundResultWindow, GLASS_LAYER);
+            add(roundResultWindow);
         }else{
-            resultWindow.removeAll();
-            resultWindow.repaint();
+            roundResultWindow.removeAll();
+            roundResultWindow.repaint();
         }
     }
 
     private void putPaymentResultWindow(Map<Direction, PaymentData> payments){
-        putResultWindow();
-        resultWindow.displayPayments(payments);
+        putRoundResultWindow();
+        roundResultWindow.displayPayments(payments);
     }
 
     private void putScoringResultWindow(HandScoreData data){
-        putResultWindow();
-        resultWindow.displayScore(data);
+        putRoundResultWindow();
+        roundResultWindow.displayScore(data);
     }
 
     private void putScoringResultWindow(RiverScoreData data){
-        putResultWindow();
-        resultWindow.displayScore(data);
+        putRoundResultWindow();
+        roundResultWindow.displayScore(data);
+    }
+
+    private void putGameResultWindow(List<GameScoreData> scores){
+        if(gameResultWindow==null){
+            gameResultWindow = new GameResultViewPanel();
+            gameResultWindow.setBaseLocationCentered(TableViewPoints.TABLE_CENTER);
+            setLayer(gameResultWindow, GLASS_LAYER);
+            add(gameResultWindow);
+            gameResultWindow.displayPlayerRank(scores);
+        }else{
+            gameResultWindow.removeAll();
+            gameResultWindow.repaint();
+        }
     }
 
     private void requireCallOnNonEDT(){
@@ -609,6 +623,12 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     }
 
     @Override
+    public void gameSettled(List<GameScoreData> scores){
+        LOG.info("gameSettled "+scores);
+        worker.submit(()->SwingUtilities.invokeLater(()->putGameResultWindow(scores)));
+    }
+
+    @Override
     public void temporarySeatUpdated(Map<Side, PlayerTempData> players){
         LOG.info("temporarySeatUpdated "+players);
         worker.submit(()->SwingUtilities.invokeLater(()->
@@ -621,7 +641,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                         remove(playerWindLabels[dir.ordinal()]);
                     }
                     if(playerScoreLabels[dir.ordinal()]!=null){
-                        remove(playerWindLabels[dir.ordinal()]);
+                        remove(playerScoreLabels[dir.ordinal()]);
                     }
                     putPlayerName(dir, data.getName());
                     putPlayerWind(dir, data.getSeatWind());
@@ -632,8 +652,9 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     @Override
     public void seatUpdated(Map<Side, PlayerData> players){
         LOG.info("seatUpdated " + players);
-        worker.submit(()->SwingUtilities.invokeLater(()->
-                players.forEach((side, data)->{
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->players.forEach((side, data)->{
                     var dir = Direction.of(side);
                     if(playerNameLabels[dir.ordinal()]!=null){
                         remove(playerNameLabels[dir.ordinal()]);
@@ -642,7 +663,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                         remove(playerWindLabels[dir.ordinal()]);
                     }
                     if(playerScoreLabels[dir.ordinal()]!=null){
-                        remove(playerWindLabels[dir.ordinal()]);
+                        remove(playerScoreLabels[dir.ordinal()]);
                     }
                     putPlayerName(dir, data.getName());
                     putPlayerWind(dir, data.getSeatWind());
@@ -652,8 +673,11 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                             putInitialEast(dir);
                         }
                     }
-                })
-        ));
+                }));
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
@@ -696,8 +720,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                     waitForAcknowledge();
                 }
                 SwingUtilities.invokeAndWait(()->{
-                    remove(resultWindow);
-                    resultWindow = null;
+                    remove(roundResultWindow);
+                    roundResultWindow = null;
                     repaint();
                 });
             }catch(InterruptedException | InvocationTargetException e){
@@ -717,8 +741,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                    waitForAcknowledge();
                }
                SwingUtilities.invokeAndWait(()->{
-                   remove(resultWindow);
-                   resultWindow = null;
+                   remove(roundResultWindow);
+                   roundResultWindow = null;
                    repaint();
                });
            }catch(InterruptedException | InvocationTargetException e){
@@ -740,8 +764,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 });
                 waitForAcknowledge();
                 SwingUtilities.invokeAndWait(()->{
-                    remove(resultWindow);
-                    resultWindow = null;
+                    remove(roundResultWindow);
+                    roundResultWindow = null;
                     clearTable();
                     repaint();
                 });

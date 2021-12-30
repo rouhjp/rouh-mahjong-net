@@ -30,6 +30,11 @@ public abstract class TableStrategyDelegator implements TableStrategy{
     }
 
     @Override
+    public void gameSettled(List<GameScoreData> scores){
+        strategy.gameSettled(scores);
+    }
+
+    @Override
     public void temporarySeatUpdated(Map<Side, PlayerTempData> players){
         strategy.temporarySeatUpdated(players);
     }

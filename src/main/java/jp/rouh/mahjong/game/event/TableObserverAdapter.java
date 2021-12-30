@@ -15,6 +15,11 @@ public interface TableObserverAdapter extends TableObserver{
     }
 
     @Override
+    default void gameSettled(List<GameScoreData> scores){
+
+    }
+
+    @Override
     default void temporarySeatUpdated(Map<Side, PlayerTempData> players){
 
     }

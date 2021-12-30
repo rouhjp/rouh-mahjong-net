@@ -22,7 +22,7 @@ import static jp.rouh.mahjong.app.view.TileLabel.TILE_WIDTH;
  * @author Rouh
  * @version 1.0
  */
-class ResultViewPanel extends TablePanel{
+class RoundResultViewPanel extends TablePanel{
 
     /**
      * パネル幅の基本サイズ。
@@ -39,7 +39,7 @@ class ResultViewPanel extends TablePanel{
     /**
      * コンストラクタ。
      */
-    ResultViewPanel(){
+    RoundResultViewPanel(){
         setLayout(null);
         setBaseSize(PANEL_WIDTH, PANEL_HEIGHT);
         setBorder(new LineBorder(Color.BLACK));

@@ -96,6 +96,7 @@ public class RoundPlayer extends TableStrategyDelegator{
         if(!ready && gamePlayer.getScore()<1000){
             throw new IllegalStateException("declare ready without enough score");
         }
+        gamePlayer.applyScore(-1000);
         readyPrepared = true;
         master.declared(seatWind, Declaration.READY);
     }

@@ -66,14 +66,16 @@ import java.util.stream.Stream;
  * @version 1.0
  */
 public class Settlement{
+    private static final int STREAK_SCORE = 300;
+    private static final int DEPOSIT_SCORE = 1000;
     private final Map<Wind, Integer> payments;
-    private final int streakCount;
-    private final int depositCount;
+    private final int streakScore;
+    private final int depositScore;
 
-    private Settlement(Map<Wind, Integer> payments, int streak, int deposit){
+    private Settlement(Map<Wind, Integer> payments, int streakScore, int depositScore){
         this.payments = Map.copyOf(payments);
-        this.streakCount = streak;
-        this.depositCount = deposit;
+        this.streakScore = streakScore;
+        this.depositScore = depositScore;
     }
 
     /**
@@ -88,19 +90,24 @@ public class Settlement{
     }
 
     /**
-     * この支払額に適用された(あるいは保留された)本場数を取得します。
+     * この支払額に適用された(あるいは保留された)積み符点数を取得します。
      * @return 本場数
      */
-    public int getStreakCount(){
-        return streakCount;
+    public int getStreakScore(){
+        return streakScore;
     }
 
     /**
-     * この支払額に適用された(あるいは保留された)供託数を取得します。
+     * この支払額に適用された(あるいは保留された)供託点数を取得します。
      * @return 供託数
      */
-    public int getDepositCount(){
-        return depositCount;
+    public int getDepositScore(){
+        return depositScore;
+    }
+
+    @Override
+    public String toString(){
+        return "Settlement["+payments+" deposit="+ depositScore +" streak="+ streakScore +"]";
     }
 
     /**
@@ -109,13 +116,13 @@ public class Settlement{
      * @param other もう一つの支払額
      * @return 合成した支払額
      */
-    public Settlement marge(Settlement other){
+    public Settlement merge(Settlement other){
         var payments = new HashMap<Wind, Integer>();
         for(var wind:Wind.values()){
             var payment = this.payments.get(wind) + other.payments.get(wind);
             payments.put(wind, payment);
         }
-        return new Settlement(payments, streakCount, depositCount);
+        return new Settlement(payments, streakScore*STREAK_SCORE, depositScore*DEPOSIT_SCORE);
     }
 
     /**
@@ -202,7 +209,6 @@ public class Settlement{
                 }
             }
             int score = subHandScore.getScore();
-            paymentMap.merge(seatWind, score, Integer::sum);
             if(completingTileSupplier!=null){
                 if(winningTileSupplier!=null){
                     //ロン 包あり or ツモ 大明槓あり 包あり
@@ -210,20 +216,24 @@ public class Settlement{
                     //包・放銃者:他:他=100:0:0
                     if(winningTileSupplier==completingTileSupplier){
                         paymentMap.merge(winningTileSupplier, -score, Integer::sum);
+                        paymentMap.merge(seatWind, score, Integer::sum);
                     }else{
                         paymentMap.merge(winningTileSupplier, -1*ceil(score/2), Integer::sum);
                         paymentMap.merge(completingTileSupplier, -1*ceil(score/2), Integer::sum);
+                        paymentMap.merge(seatWind, ceil(score/2)*2, Integer::sum);
                     }
                 }else{
                     //ツモ 包あり
                     //包:他:他=100:0:0
                     paymentMap.merge(completingTileSupplier, -score, Integer::sum);
+                    paymentMap.merge(seatWind, score, Integer::sum);
                 }
             }else{
                 if(winningTileSupplier!=null){
                     //ロン or 大明槓あり
                     //放銃者:他:他=100:0:0
                     paymentMap.merge(winningTileSupplier, -score, Integer::sum);
+                    paymentMap.merge(seatWind, score, Integer::sum);
                 }else{
                     //ツモ
                     //子:子:子=33:33:33
@@ -231,13 +241,17 @@ public class Settlement{
                     if(sc.isDealer()){
                         for(var side: Side.SELF.others()){
                             paymentMap.merge(side.of(seatWind), -1*ceil(score/3), Integer::sum);
+                            paymentMap.merge(seatWind, ceil(score/3), Integer::sum);
                         }
                     }else{
                         for(var side: Side.SELF.others()){
                             if(side.of(seatWind)==Wind.EAST){
                                 paymentMap.merge(side.of(seatWind), -1*ceil(score/2), Integer::sum);
+                                paymentMap.merge(seatWind, ceil(score/2), Integer::sum);
+
                             }else{
                                 paymentMap.merge(side.of(seatWind), -1*ceil(score/4), Integer::sum);
+                                paymentMap.merge(seatWind, ceil(score/4), Integer::sum);
                             }
                         }
                     }
@@ -245,20 +259,21 @@ public class Settlement{
             }
         }
         //供託・詰み符
-        int depositScore = sc.getTotalDepositCount()*1000;
-        int streakScore = sc.getRoundStreakCount()*300;
+        int depositScore = sc.getTotalDepositCount()*DEPOSIT_SCORE;
+        int streakScore = sc.getRoundStreakCount()*STREAK_SCORE;
         paymentMap.merge(seatWind, depositScore, Integer::sum);
-        paymentMap.merge(seatWind, streakScore, Integer::sum);
         if(suppliers.isEmpty()){
             for(var side:Side.SELF.others()){
                 paymentMap.merge(side.of(seatWind), -1*ceil(streakScore/3), Integer::sum);
+                paymentMap.merge(seatWind, ceil(streakScore/3), Integer::sum);
             }
         }else{
             for(var supplier:suppliers){
                 paymentMap.merge(supplier, -1*ceil(streakScore/suppliers.size()), Integer::sum);
+                paymentMap.merge(seatWind, ceil(streakScore/suppliers.size()), Integer::sum);
             }
         }
-        return new Settlement(paymentMap, sc.getRoundStreakCount(), sc.getRoundStreakCount());
+        return new Settlement(paymentMap, streakScore, depositScore);
     }
 
     private static int ceil(int score){

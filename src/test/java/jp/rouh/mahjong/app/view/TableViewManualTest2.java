@@ -1,5 +1,6 @@
 package jp.rouh.mahjong.app.view;
 
+import jp.rouh.mahjong.game.event.GameScoreData;
 import jp.rouh.mahjong.game.event.PaymentData;
 import jp.rouh.mahjong.game.event.PlayerData;
 import jp.rouh.mahjong.game.event.HandScoreData;
@@ -93,6 +94,15 @@ public class TableViewManualTest2{
 //        payments.put(SELF, new PaymentData(NORTH, "you", 24400, 24400, 2, 3));
         table.roundSettled(scores);
         table.paymentSettled(payments);
+
+        var list = List.of(
+                new GameScoreData("けもみみ", 48000, 38),
+                new GameScoreData("guest1", 31600, 11.6),
+                new GameScoreData("guest2", 21900, -8.1),
+                new GameScoreData("guest3", -1500, -41.5)
+        );
+        table.gameSettled(list);
+
 
     }
 

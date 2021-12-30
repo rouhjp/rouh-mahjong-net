@@ -1,5 +1,6 @@
 package jp.rouh.mahjong.game;
 
+import jp.rouh.mahjong.game.event.GameScoreData;
 import jp.rouh.mahjong.game.event.TableStrategyDelegator;
 import jp.rouh.mahjong.tile.Wind;
 
@@ -33,7 +34,11 @@ class GamePlayer extends TableStrategyDelegator implements GamePlayerAccessor{
         return name;
     }
 
-    public Wind getInitialSeatWind(){
+    /**
+     * ゲーム開始時の自風
+     * @return 自風
+     */
+    Wind getInitialSeatWind(){
         return initialSeatWind;
     }
 
@@ -55,5 +60,21 @@ class GamePlayer extends TableStrategyDelegator implements GamePlayerAccessor{
     @Override
     public void applyScore(int score){
         this.score += score;
+    }
+
+    /**
+     * ゲームポイントを取得します。
+     * @return ゲームポイント
+     */
+    double getResultPoint(){
+        int rank = getRank();
+        int rankScore = game.getRankScore(rank);
+        int topScore = rank==1?game.getTopScore():0;
+        int resultScore = score + rankScore + topScore - game.getReturnScore();
+        return resultScore/1000d;
+    }
+
+    GameScoreData getResultScoreData(){
+        return new GameScoreData(name, score, getResultPoint());
     }
 }
