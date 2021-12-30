@@ -73,6 +73,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         LOG.info("round started");
         seatUpdated();
         roundStarted(id.wind(), id.count(), streak, deposit, last);
+        diceRolled(Wind.EAST, dice1, dice2);
         wall = wallGenerator.generate(dice1, dice2);
         wallGenerated();
         wall.addObserver(this);
@@ -140,6 +141,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         }
         if(turnAction.type()==NINE_TILES){
             turnPlayer.declareNineTiles();
+            roundDrawn(DrawType.NINE_TILES_DECLARED);
             resultType = turnWind==Wind.EAST? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
             return;
         }

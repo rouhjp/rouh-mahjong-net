@@ -484,6 +484,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         var label = new TableLabel();
         label.setBaseSize(4, 4);
         label.setBaseLocationCentered(point);
+        label.setBorder(new LineBorder(Color.BLACK));
         label.setImageIconLater(()->TableImageManager.getInstance().getDiceImage(value));
         add(label);
         var fadeOutTimer = new Timer(duration, e->{
@@ -778,10 +779,17 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     @Override
     public void diceRolled(Side side, int dice1, int dice2){
         LOG.info("diceRolled "+side+" dice1="+dice1+" dice2="+dice2);
-        worker.submit(()->SwingUtilities.invokeLater(()->{
-            showDice(Direction.of(side), 0, dice1, 1500);
-            showDice(Direction.of(side), 1, dice2, 1500);
-        }));
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
+                    showDice(Direction.of(side), 0, dice1, 1500);
+                    showDice(Direction.of(side), 1, dice2, 1500);
+                });
+                TimeUnit.MILLISECONDS.sleep(500);
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
