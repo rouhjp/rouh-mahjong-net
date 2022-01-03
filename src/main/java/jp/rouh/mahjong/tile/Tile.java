@@ -422,7 +422,14 @@ public enum Tile implements Comparable<Tile> {
      * @return 次の牌
      */
     public Tile indicates() {
-        return SEQUENCE[(tileNumber + 1) % 34];
+        return switch(this){
+            case M9 -> M1;
+            case P9 -> P1;
+            case S9 -> S1;
+            case DR -> DW;
+            case WN -> WE;
+            default -> SEQUENCE[(tileNumber + 1) % 34];
+        };
     }
 
     /**
