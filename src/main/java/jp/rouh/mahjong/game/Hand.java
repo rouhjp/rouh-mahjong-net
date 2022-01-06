@@ -21,6 +21,9 @@ class Hand{
     // cached when tile claimed, disposed when tile discarded
     private Set<Tile> undiscardableTiles;
 
+    // cached when first time #canReadyQuad invoked
+    private Set<Tile> readyQuadTiles;
+
     private boolean isInTurn(){
         return (handTiles.size() + (drawnTile!=null?1:0) + openMelds.size()*3)==14;
     }
@@ -179,9 +182,12 @@ class Hand{
         return quadTiles;
     }
 
-    Set<Tile> getReadyQuadTiles(){
+    boolean canReadyQuad(){
         requireInTurn();
-        return HandTiles.readyQuadTilesOf(handTiles);
+        if(readyQuadTiles==null){
+            readyQuadTiles = HandTiles.readyQuadTilesOf(handTiles);
+        }
+        return readyQuadTiles.contains(drawnTile);
     }
 
     Set<List<Tile>> getQuadBaseOf(Tile claimableTile){
