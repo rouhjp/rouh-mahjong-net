@@ -3,41 +3,40 @@ package jp.rouh.mahjong.game;
 import jp.rouh.mahjong.game.event.HandScoreData;
 import jp.rouh.mahjong.game.event.RiverScoreData;
 import jp.rouh.mahjong.score.HandScore;
-import jp.rouh.mahjong.score.Settlement;
+import jp.rouh.mahjong.score.WinningContext;
 
-public class WinningResult{
+class WinningResult{
     private final HandScore handScore;
-    private final Settlement settlement;
-    private final HandScoreData handData;
-    private final RiverScoreData riverData;
+    private final WinningContext context;
 
-    WinningResult(HandScore handScore, Settlement settlement, HandScoreData data){
+    WinningResult(HandScore handScore, WinningContext context){
         this.handScore = handScore;
-        this.settlement = settlement;
-        this.handData = data;
-        this.riverData = null;
+        this.context = context;
     }
 
-    WinningResult(HandScore handScore, Settlement settlement, RiverScoreData data){
-        this.handScore = handScore;
-        this.settlement = settlement;
-        this.handData = null;
-        this.riverData = data;
-    }
-
-    public HandScore getHandScore(){
+    HandScore getHandScore(){
         return handScore;
     }
 
-    public Settlement getSettlement(){
-        return settlement;
+    WinningContext getWinningContext(){
+        return context;
     }
 
-    public HandScoreData getHandData(){
-        return handData;
+    HandScoreData getHandScoreData(){
+        return new HandScoreData.Builder()
+                .withHandTiles(context.getHandTiles())
+                .withWinningTile(context.getWinningTile())
+                .withOpenMelds(context.getOpenMelds())
+                .withTsumo(context.isTsumo())
+                .withUpperIndicators(context.getUpperIndicators())
+                .withLowerIndicators(context.getLowerIndicators())
+                .withHandTypes(handScore.getHandTypes())
+                .withScoreExpression(handScore.getScoreExpression())
+                .build();
     }
 
-    public RiverScoreData getRiverData(){
-        return riverData;
+    RiverScoreData getRiverScoreData(){
+        return new RiverScoreData(handScore.getHandTypes().get(0), handScore.getScoreExpression());
     }
+
 }

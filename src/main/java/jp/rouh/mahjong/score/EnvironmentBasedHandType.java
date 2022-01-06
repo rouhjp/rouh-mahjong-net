@@ -29,8 +29,8 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     READY("立直", 1){
         @Override
-        boolean test(WinningContext context){
-            return context.isReady();
+        boolean test(ScoringContext context){
+            return context.isReady() && !context.isFirstAroundReady();
         }
     },
 
@@ -39,7 +39,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     DOUBLE_READY("両立直", 2){
         @Override
-        boolean test(WinningContext context){
+        boolean test(ScoringContext context){
             return context.isFirstAroundReady();
         }
     },
@@ -49,7 +49,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     ONE_SHOT("一発", 1){
         @Override
-        boolean test(WinningContext context){
+        boolean test(ScoringContext context){
             return context.isReadyAroundWin();
         }
     },
@@ -59,7 +59,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     SELF_PICK("門前清自摸和", 1){
         @Override
-        boolean test(WinningContext context){
+        boolean test(ScoringContext context){
             return context.isSelfMade() && context.isTsumo();
         }
     },
@@ -69,7 +69,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     LAST_TILE_DRAW("海底摸月", 1){
         @Override
-        boolean test(WinningContext context){
+        boolean test(ScoringContext context){
             return context.isLastTileDrawWin();
         }
     },
@@ -79,7 +79,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     LAST_TILE_GRAB("河底撈魚", 1){
         @Override
-        boolean test(WinningContext context){
+        boolean test(ScoringContext context){
             return context.isLastTileGrabWin();
         }
     },
@@ -89,7 +89,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     QUAD_DRAW("嶺上開花", 1){
         @Override
-        boolean test(WinningContext context){
+        boolean test(ScoringContext context){
             return context.isQuadTileDrawWin();
         }
     },
@@ -99,7 +99,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      */
     QUAD_GRAB("槍槓", 1){
         @Override
-        boolean test(WinningContext context){
+        boolean test(ScoringContext context){
             return context.isQuadTileGrabWin();
         }
     };
@@ -117,7 +117,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      * @param context 和了状況
      * @return 通常役のリスト
      */
-    static List<BasicHandType> testAll(WinningContext context){
+    static List<BasicHandType> testAll(ScoringContext context){
         return Stream.of(values()).filter(handType -> handType.test(context))
                 .collect(Collectors.<BasicHandType>toList());
     }
@@ -128,7 +128,7 @@ enum EnvironmentBasedHandType implements BasicHandType{
      * @return true 役が成立する場合
      *         false 役が成立しない場合
      */
-    abstract boolean test(WinningContext context);
+    abstract boolean test(ScoringContext context);
 
     @Override
     public String getName(){

@@ -97,7 +97,7 @@ class ArrayWall implements Wall{
 
     @Override
     public void revealIndicatorsIfPresent(){
-        while(revealCount<quadCount)
+        while(revealCount - 1<quadCount)
             revealIndicatorImmediately();
     }
 

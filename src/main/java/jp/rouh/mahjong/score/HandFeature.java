@@ -42,7 +42,7 @@ class HandFeature{
      * @param context       勝利状況
      * @throws IllegalArgumentException 手牌の枚数が不正の場合
      */
-    HandFeature(List<Tile> fullTiles, List<Tile> fourteenTiles, Tile winningTile, WinningContext context){
+    HandFeature(List<Tile> fullTiles, List<Tile> fourteenTiles, Tile winningTile, ScoringContext context){
         if(fullTiles.size()<14 || fullTiles.size()>18){
             throw new IllegalArgumentException("invalid full tiles length: " + fullTiles);
         }

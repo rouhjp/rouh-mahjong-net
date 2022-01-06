@@ -21,6 +21,6 @@ public interface HandScoreCalculator{
      * @return 得点
      * @throws IllegalArgumentException 手牌が完成形でない場合
      */
-    HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningContext context);
+    HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context);
 
 }

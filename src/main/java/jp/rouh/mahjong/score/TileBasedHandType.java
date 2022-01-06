@@ -29,10 +29,11 @@ import java.util.stream.Stream;
  *   <li>
  *     <h2>刻子単体で成立するため, いずれの面子構成でも成立する役</h2>
  *     <ul>
- *       <li></li>
- *       <li></li>
- *       <li></li>
- *       <li></li>
+ *       <li>飜牌 白</li>
+ *       <li>飜牌 發</li>
+ *       <li>飜牌 中</li>
+ *       <li>自風牌</li>
+ *       <li>場風牌</li>
  *     </ul>
  *   </li>
  * </ol>
@@ -46,7 +47,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     NO_ORPHANS("断么九", 1){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getOrphanCount()==0;
         }
     },
@@ -56,7 +57,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     HALF_SINGLE_COLOR("混一色", 3){
         @Override
-        public boolean test(HandFeature feature, WinningContext context){
+        public boolean test(HandFeature feature, ScoringContext context){
             return context.isSelfMade()
                     && feature.getHonorCount()>0 && feature.getSuitTypeCount()==1;
         }
@@ -67,7 +68,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     CALLED_HALF_SINGLE_COLOR("混一色", 2){
         @Override
-        public boolean test(HandFeature feature, WinningContext context){
+        public boolean test(HandFeature feature, ScoringContext context){
             return !context.isSelfMade()
                     && feature.getHonorCount()>0 && feature.getSuitTypeCount()==1;
         }
@@ -78,7 +79,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     FULL_SINGLE_COLOR("清一色", 6){
         @Override
-        public boolean test(HandFeature feature, WinningContext context){
+        public boolean test(HandFeature feature, ScoringContext context){
             return context.isSelfMade()
                     && feature.getHonorCount()==0 && feature.getSuitTypeCount()==1;
         }
@@ -89,7 +90,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     CALLED_FULL_SINGLE_COLOR("清一色", 5){
         @Override
-        public boolean test(HandFeature feature, WinningContext context){
+        public boolean test(HandFeature feature, ScoringContext context){
             return !context.isSelfMade()
                     && feature.getHonorCount()==0 && feature.getSuitTypeCount()==1;
         }
@@ -100,7 +101,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     THREE_QUADS("三槓子", 2){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getQuadCount()==3;
         }
     },
@@ -110,7 +111,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     SMALL_THREE("小三元", 2){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getDragonCount()==8;
         }
     },
@@ -120,7 +121,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     HALF_TERMINALS("混老頭", 2){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getHonorCount()>0
                     && feature.getOrphanCount()==14
                     && feature.getTileDistinctCount()<=7;
@@ -132,7 +133,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     DRAGON_WHITE("飜牌 白", 1){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getDragonWhiteCount()==3;
         }
     },
@@ -142,7 +143,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     DRAGON_GREEN("飜牌 發", 1){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getDragonGreenCount()==3;
         }
     },
@@ -152,7 +153,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     DRAGON_RED("飜牌 中", 1){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getDragonRedCount()==3;
         }
     },
@@ -162,7 +163,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     SEAT_WIND("自風牌", 1){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getSeatWindCount()==3;
         }
     },
@@ -172,7 +173,7 @@ public enum TileBasedHandType implements BasicHandType{
      */
     ROUND_WIND("場風牌", 1){
         @Override
-        boolean test(HandFeature feature, WinningContext context){
+        boolean test(HandFeature feature, ScoringContext context){
             return feature.getRoundWindCount()==3;
         }
     };
@@ -191,7 +192,7 @@ public enum TileBasedHandType implements BasicHandType{
      * @param context 和了状況
      * @return 通常役のリスト
      */
-    static List<BasicHandType> testAll(HandFeature feature, WinningContext context){
+    static List<BasicHandType> testAll(HandFeature feature, ScoringContext context){
         return Stream.of(values())
                 .filter(handType -> handType.test(feature, context))
                 .collect(Collectors.<BasicHandType>toList());
@@ -204,7 +205,7 @@ public enum TileBasedHandType implements BasicHandType{
      * @return true この役が与えられた和了状況で成立する場合
      *         false この役が与えられた和了状況で成立しない場合
      */
-    abstract boolean test(HandFeature feature, WinningContext context);
+    abstract boolean test(HandFeature feature, ScoringContext context);
 
     @Override
     public String getName(){

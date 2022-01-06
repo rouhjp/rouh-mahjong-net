@@ -27,7 +27,7 @@ final class FormattedHands{
      * @param context     和了状況
      * @return 整形済み手牌のセット
      */
-    static Set<FormattedHand> format(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningContext context){
+    static Set<FormattedHand> format(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context){
         var formattedHands = new HashSet<FormattedHand>();
         for(var arranged: HandTiles.arrange(handTiles, winningTile)){
             var head = new Head(arranged.get(0));
@@ -63,7 +63,7 @@ final class FormattedHands{
      * @param context 和了状況
      * @return 符
      */
-    static int calculatePointOf(FormattedHand hand, WinningContext context){
+    static int calculatePointOf(FormattedHand hand, ScoringContext context){
         int waitPoint = hand.getWait().getWaitPoint();
         int headPoint = hand.getHead().getHeadPoint(context.getSeatWind(), context.getRoundWind());
         int meldPoint = hand.getMelds().stream().mapToInt(Meld::getMeldPoint).sum();

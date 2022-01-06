@@ -1,7 +1,7 @@
 package jp.rouh.mahjong.game;
 
 import jp.rouh.mahjong.game.event.*;
-import jp.rouh.mahjong.score.Settlement;
+import jp.rouh.mahjong.score.PaymentTable;
 import jp.rouh.mahjong.tile.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +29,8 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     private final WallGenerator wallGenerator;
     private final RoundID id;
     private final int streak;
+    private final int deposit;
     private final boolean last;
-    private int deposit;
     private Wall wall;
     private Wind turnWind = Wind.EAST;
     private boolean afterCall = false;
@@ -96,15 +96,17 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         var orphanRiverWinds = Stream.of(Wind.values())
                 .filter(wind->getPlayerAt(wind).isOrphanRiver()).toList();
         if(!orphanRiverWinds.isEmpty()){
-            var scores = new ArrayList<RiverScoreData>();
-            var settlement = (Settlement)null;
+            var paymentTable = new PaymentTable();
+            var riverScoreDataList = new ArrayList<RiverScoreData>();
+            boolean secondary = false;
             for(var orphanRiverWind:orphanRiverWinds){
-                var result = getPlayerAt(orphanRiverWind).declareOrphanRiver();
-                scores.add(result.getRiverData());
-                settlement = settlement==null? result.getSettlement():settlement.merge(result.getSettlement());
+                var result = getPlayerAt(orphanRiverWind).declareOrphanRiver(secondary);
+                secondary = true;
+                riverScoreDataList.add(result.getRiverScoreData());
+                paymentTable.apply(result.getHandScore(), result.getWinningContext());
             }
-            roundSettledByRiver(scores);
-            payment(settlement);
+            roundSettledByRiver(riverScoreDataList);
+            applyPayment(paymentTable);
             return orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
         }
         var handReadyWinds = Stream.of(Wind.values())
@@ -112,7 +114,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         for(var handReadyWind:handReadyWinds){
             getPlayerAt(handReadyWind).roundExhausted();
         }
-        payment(Settlement.ofDrawn(handReadyWinds, streak, deposit));
+        applyPayment(PaymentTable.ofDrawn(handReadyWinds));
         return handReadyWinds.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
     }
 
@@ -134,8 +136,10 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         LOG.info(turnWind+" "+turnAction);
         if(turnAction.type()==TSUMO){
             var result = turnPlayer.declareTsumo(afterQuad);
-            roundSettled(List.of(result.getHandData()));
-            payment(result.getSettlement());
+            var paymentTable = new PaymentTable();
+            paymentTable.apply(result.getHandScore(), result.getWinningContext());
+            roundSettled(List.of(result.getHandScoreData()));
+            applyPayment(paymentTable);
             resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
             return;
         }
@@ -162,7 +166,6 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         }
         if(turnAction.type()==READY_DISCARD){
             turnPlayer.declareReady();
-            deposit++;
             seatUpdated();
         }
         var discardTile = turnAction.argument();
@@ -255,30 +258,29 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         wall.revealIndicatorsIfPresent();
     }
 
-    private void payment(Settlement settlement){
-        LOG.info("--------------------");
-        LOG.info(settlement.toString());
-        LOG.info("deposit="+deposit);
-        LOG.info("--------------------");
-        var payments = new HashMap<Wind, PaymentData>();
+    private void applyPayment(PaymentTable table){
+        LOG.info("payment: "+table);
+        var dataMap = new HashMap<Wind, PaymentData>();
         for(var wind:Wind.values()){
-            payments.put(wind, new PaymentData());
-            payments.get(wind).setName(getPlayerAt(wind).getName());
-            payments.get(wind).setWind(wind);
-            payments.get(wind).setScoreBefore(getPlayerAt(wind).getScore());
-            payments.get(wind).setRankBefore(getPlayerAt(wind).getRank());
+            dataMap.put(wind, new PaymentData());
+            dataMap.get(wind).setName(getPlayerAt(wind).getName());
+            dataMap.get(wind).setWind(wind);
+            dataMap.get(wind).setScoreBefore(getPlayerAt(wind).getScore());
+            dataMap.get(wind).setRankBefore(getPlayerAt(wind).getRank());
         }
         for(var wind:Wind.values()){
-            getPlayerAt(wind).applyScore(settlement.getIncomeOf(wind));
+            getPlayerAt(wind).applyScore(table.paymentOf(wind));
         }
         for(var wind:Wind.values()){
-            payments.get(wind).setScoreAfter(getPlayerAt(wind).getScore());
-            payments.get(wind).setRankAfter(getPlayerAt(wind).getRank());
+            dataMap.get(wind).setScoreAfter(getPlayerAt(wind).getScore());
+            dataMap.get(wind).setRankAfter(getPlayerAt(wind).getRank());
         }
-        paymentSettled(payments);
+        paymentSettled(dataMap);
     }
 
     private void mediateWinnings(List<SignedCallAction> winningActions, Tile winningTile, boolean quadGrab){
+        LOG.info("winnings: "+winningActions.stream().map(SignedCallAction::from).toList());
+        LOG.info("deposit="+deposit);
         if(winningActions.size()==3){
             for(var winningAction:winningActions){
                 declared(winningAction.from(), Declaration.RON);
@@ -289,22 +291,23 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         }
         boolean dealerWon = winningActions.stream().anyMatch(sca->sca.from()==Wind.EAST);
         resultType = dealerWon? DEALER_VICTORY:NON_DEALER_VICTORY;
-        var results = new ArrayList<WinningResult>();
+        var paymentTable = new PaymentTable();
+        var handScoreDataList = new ArrayList<HandScoreData>();
+        boolean secondary = false;
         for(var side:new Side[]{Side.RIGHT, Side.ACROSS, Side.LEFT}){
             var winnerWind = side.of(turnWind);
             if(winningActions.stream().anyMatch(action->action.from()==winnerWind)){
                 var winner = getPlayerAt(winnerWind);
                 var result = quadGrab?
-                        winner.declareRonByQuad(winningTile, turnWind):
-                        winner.declareRon(winningTile, turnWind);
-                results.add(result);
-                deposit = 0;
+                        winner.declareRonByQuad(winningTile, turnWind, secondary):
+                        winner.declareRon(winningTile, turnWind, secondary);
+                secondary = true;
+                paymentTable.apply(result.getHandScore(), result.getWinningContext());
+                handScoreDataList.add(result.getHandScoreData());
             }
         }
-        var scores = results.stream().map(WinningResult::getHandData).toList();
-        var settlement = results.stream().map(WinningResult::getSettlement).reduce(Settlement::merge).orElseThrow();
-        roundSettled(scores);
-        payment(settlement);
+        roundSettled(handScoreDataList);
+        applyPayment(paymentTable);
     }
 
     private List<SignedCallAction> mediateCallActionForQuad(Tile target, boolean self){
@@ -403,6 +406,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     public int getRoundCount(){
         return id.count();
     }
+
 
     @Override
     public int getRoundStreakCount(){

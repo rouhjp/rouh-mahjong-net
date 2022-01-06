@@ -21,7 +21,7 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
     }
 
     @Override
-    public HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningContext context){
+    public HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context){
         LOG.debug("--start calculating score--");
         LOG.debug(handTiles+" "+openMelds+" "+winningTile);
         var fullTiles = new ArrayList<>(handTiles);

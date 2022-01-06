@@ -37,7 +37,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     ALL_TRIPLES("対々和", 2){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return hand.getMelds().stream().noneMatch(Meld::isSequence);
         }
     },
@@ -47,7 +47,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     THREE_CONCEALED_TRIPLES("三暗刻", 2){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return hand.getMelds().stream()
                     .filter(Meld::isConcealed)
                     .filter(not(Meld::isSequence))
@@ -60,7 +60,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     NO_POINT("平和", 1){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && hand.getHead().getHeadPoint(context.getSeatWind(), context.getRoundWind())
                     + hand.getMelds().stream().mapToInt(Meld::getMeldPoint).sum()
@@ -73,7 +73,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     HALF_TERMINAL_SETS("混全帯么九", 2){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
                     && hand.getComponents().stream().anyMatch(HandComponent::isHonor);
@@ -85,7 +85,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_HALF_TERMINAL_SETS("混全帯么九", 1){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
                     && hand.getComponents().stream().anyMatch(HandComponent::isHonor);
@@ -97,7 +97,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     FULL_TERMINAL_SETS("純全帯么九", 3){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && hand.getMelds().stream().allMatch(Meld::isTerminal);
         }
@@ -108,7 +108,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_FULL_TERMINAL_SETS("純全帯么九", 2){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
                     && hand.getMelds().stream().allMatch(Meld::isTerminal);
         }
@@ -119,7 +119,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     FULL_STRAIGHTS("一気通貫", 2){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
                     .stream().anyMatch(melds -> melds.stream().map(Meld::getTileType).distinct().count()==1
@@ -133,7 +133,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_FULL_STRAIGHTS("一気通貫", 1){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
                     && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
                     .stream().anyMatch(melds -> melds.stream().map(Meld::getTileType).distinct().count()==1
@@ -147,7 +147,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     THREE_COLOR_STRAIGHTS("三色同順", 2){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
                     .stream().anyMatch(melds ->
@@ -162,7 +162,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_THREE_COLOR_STRAIGHTS("三色同順", 1){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
                     && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
                     .stream().anyMatch(melds ->
@@ -177,7 +177,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     THREE_COLOR_TRIPLES("三色同刻", 2){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return new FlexList<>(hand.getMelds()).combinationSizeOf(3)
                     .stream().anyMatch(melds ->
                             melds.stream().noneMatch(Meld::isSequence)
@@ -193,7 +193,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     DUAL_STRAIGHTS("一盃口", 1){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && new FlexList<>(hand.getMelds()).combinationSizeOf(2).stream()
                     .filter(melds -> melds.stream().allMatch(Meld::isSequence)
@@ -206,7 +206,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     DOUBLE_DUAL_STRAIGHTS("二盃口", 3){
         @Override
-        boolean test(FormattedHand hand, WinningContext context){
+        boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && hand.getMelds().stream().allMatch(Meld::isSequence)
                     && hand.getMelds().stream().map(Meld::getFirst)
@@ -230,7 +230,7 @@ enum MeldBasedHandType implements BasicHandType{
      * @param context 和了状況
      * @return 通常役のリスト
      */
-    static List<BasicHandType> testAll(FormattedHand hand, WinningContext context){
+    static List<BasicHandType> testAll(FormattedHand hand, ScoringContext context){
         return Stream.of(values())
                 .filter(handType -> handType.test(hand, context))
                 .collect(Collectors.<BasicHandType>toList());
@@ -243,7 +243,7 @@ enum MeldBasedHandType implements BasicHandType{
      * @return true 役が成立する場合
      *         false 役が成立しない場合
      */
-    abstract boolean test(FormattedHand hand, WinningContext context);
+    abstract boolean test(FormattedHand hand, ScoringContext context);
 
     @Override
     public String getName(){

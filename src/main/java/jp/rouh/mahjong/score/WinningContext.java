@@ -1,132 +1,191 @@
 package jp.rouh.mahjong.score;
 
+import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
 
 import java.util.List;
 
 /**
- * 点数計算に必要な和了状況を取得するインターフェース。
+ * 得点計算等に必要な和了時の情報をまとめたクラス。
+ * <p>このクラスは{@link ScoringContext}及び{@link PaymentContext}の実装です。
  * @author Rouh
  * @version 1.0
  */
-public interface WinningContext{
+public class WinningContext implements ScoringContext, PaymentContext{
+    private final Wind roundWind;
+    private final Wind seatWind;
+    private final Side winningSide;
+    private final boolean dealer;
+    private final boolean tsumo;
+    private final boolean selfMade;
+    private final boolean ready;
+    private final boolean firstAroundReady;
+    private final boolean firstAroundWin;
+    private final boolean readyAroundWin;
+    private final boolean lastTileGrabWin;
+    private final boolean lastTileDrawWin;
+    private final boolean quadTileGrabWin;
+    private final boolean quadTileDrawWin;
+    private final Tile winningTile;
+    private final List<Tile> handTiles;
+    private final List<Meld> openMelds;
+    private final List<Tile> upperIndicators;
+    private final List<Tile> lowerIndicators;
+    private final List<Tile> upperPrisedTiles;
+    private final List<Tile> lowerPrisedTiles;
+    private final int depositCount;
+    private final int streakCount;
 
     /**
-     * 場風を取得します。
-     * @return 場風
+     * コンストラクタ。
+     * @param round 局の情報へのアクセッサ
+     * @param player 和了プレイヤー情報へのアクセッサ
+     * @param turnWind 放銃者の自風(ツモであれば和了者の自風)
+     * @param quadGrab 槍槓かどうか
+     * @param afterQuad 嶺上ツモ後かどうか
+     * @param secondary ダブロン時の副次的なロンであるかどうか
      */
-    Wind getRoundWind();
-
-    /**
-     * 和了者の自風を取得します。
-     * @return 自風
-     */
-    Wind getSeatWind();
-
-    /**
-     * 和了プレイヤーが親かどうか検査します。
-     * @return true 和了プレイヤーが親の場合
-     *         false 和了プレイヤーが子の場合
-     */
-    default boolean isDealer(){
-        return getSeatWind()==Wind.EAST;
+    public WinningContext(WinningRoundAccessor round,
+                          WinningPlayerAccessor player,
+                          Wind turnWind,
+                          Tile winningTile,
+                          boolean quadGrab,
+                          boolean afterQuad,
+                          boolean secondary){
+        this.roundWind = round.getRoundWind();
+        this.seatWind = player.getSeatWind();
+        this.winningSide = turnWind.from(seatWind);
+        this.dealer = seatWind==Wind.EAST;
+        this.tsumo = winningSide==Side.SELF;
+        this.selfMade = player.getCallCount()==0;
+        this.ready = player.isReady();
+        this.firstAroundReady = player.isFirstAroundReady();
+        this.firstAroundWin = round.isFirstAround();
+        this.readyAroundWin = player.isReadyAround();
+        this.lastTileGrabWin = round.isLastTurn() && !tsumo;
+        this.lastTileDrawWin = round.isLastTurn() && tsumo;
+        this.quadTileGrabWin = quadGrab;
+        this.quadTileDrawWin = afterQuad;
+        this.winningTile = winningTile;
+        this.handTiles = List.copyOf(player.getHandTiles());
+        this.upperIndicators = List.copyOf(round.getUpperIndicators());
+        this.lowerIndicators  =List.copyOf(round.getLowerIndicators());
+        this.upperPrisedTiles = List.copyOf(round.getUpperPrisedTiles());
+        this.lowerPrisedTiles = List.copyOf(round.getLowerPrisedTiles());
+        this.depositCount = secondary?0:round.getTotalDepositCount();
+        this.streakCount = round.getRoundStreakCount();
+        this.openMelds = List.copyOf(player.getOpenMelds());
     }
 
-    /**
-     * ツモ和了かどうか検査します。
-     * @return true 壁牌ツモ和了の場合
-     *         true 嶺上牌ツモ和了の場合
-     *         false 打牌ロン和了の場合
-     *         false 槍槓ロン和了の場合
-     */
-    boolean isTsumo();
+    @Override
+    public Wind getRoundWind(){
+        return roundWind;
+    }
 
-    /**
-     * 門前和了かどうか検査します。
-     * <p>ロン和了であっても副露(暗槓を含まない)がなければ門前となります。
-     * @return true 門前の場合
-     *         false 門前でない場合
-     */
-    boolean isSelfMade();
+    @Override
+    public Wind getSeatWind(){
+        return seatWind;
+    }
 
-    /**
-     * 和了プレイヤーが立直していたかどうか検査します。
-     * @return true 立直の場合
-     *         false 立直でない場合
-     */
-    boolean isReady();
+    @Override
+    public boolean isDealer(){
+        return dealer;
+    }
 
-    /**
-     * 和了プレイヤーが鳴きを挟まない一巡目で立直(両立直)していたかどうか検査します。
-     * <p>この検査に適合する場合{@link #isReady()}は必ず適合します。
-     * @return true 鳴きを挟まない一巡目での立直の場合
-     *         false 鳴きを挟まない一巡目での立直でない場合
-     */
-    boolean isFirstAroundReady();
+    @Override
+    public boolean isTsumo(){
+        return tsumo;
+    }
 
-    /**
-     * この和了が鳴きを挟まない一巡目の和了(天和/地和)であるか検査します。
-     * @return true 鳴きを挟まない一巡目の場合
-     *         false 鳴きを挟まない一巡目でない場合
-     */
-    boolean isFirstAroundWin();
+    @Override
+    public boolean isSelfMade(){
+        return selfMade;
+    }
 
-    /**
-     * この和了が鳴きを挟まない立直後一巡目かどうか検査します。
-     * <p>この検査に適合する場合{@link #isTsumo()}は必ず適合します。
-     * @return true 鳴きを挟まない立直後一巡目の場合
-     *         false 鳴きを挟まない立直後一巡目の場合
-     */
-    boolean isReadyAroundWin();
+    @Override
+    public boolean isReady(){
+        return ready;
+    }
 
-    /**
-     * 和了牌が河底牌(河底撈魚)かどうか検査します。
-     * <p>この検査に適合する場合{@link #isTsumo()}は必ず不適合になります。
-     * @return true 河底牌での和了の場合
-     *         false 河底牌での和了でない場合
-     */
-    boolean isLastTileGrabWin();
+    @Override
+    public boolean isFirstAroundReady(){
+        return firstAroundReady;
+    }
 
-    /**
-     * 和了牌が海底牌(海底摸月)かどうか検査します。
-     * <p>海底牌は壁牌の最終ツモ牌であり, 嶺上牌は海底牌にはなり得ません。
-     * このため最終摸打でのツモが必ずしも海底牌でのツモになるとは限りません。
-     * <p>この検査に適合する場合{@link #isTsumo()}は必ず適合します。
-     * @return true 海底牌での和了の場合
-     *         false 海底牌での和了でない場合
-     */
-    boolean isLastTileDrawWin();
+    @Override
+    public boolean isFirstAroundWin(){
+        return firstAroundWin;
+    }
 
-    /**
-     * 和了牌が他家の槓子構成牌(槍槓)かどうか検査します。
-     * <p>この検査に適合する場合{@link #isTsumo()}は必ず不適合になります。
-     * @return true 他家の槓子構成牌での和了の場合
-     *         false 他家の槓子構成牌での和了でない場合
-     */
-    boolean isQuadTileGrabWin();
+    @Override
+    public boolean isReadyAroundWin(){
+        return readyAroundWin;
+    }
 
-    /**
-     * 和了牌が嶺上牌(嶺上開花)かどうか検査します。
-     * <p>この検査に適合する場合{@link #isTsumo()}は必ず適合します。
-     * @return true 嶺上牌での和了の場合
-     *         false 嶺上牌での和了でない場合
-     */
-    boolean isQuadTileDrawWin();
+    @Override
+    public boolean isLastTileGrabWin(){
+        return lastTileGrabWin;
+    }
 
-    /**
-     * ドラのリストを取得します。
-     * 裏ドラを含みません。裏ドラは{@link #getLowerPrisedTiles}にて取得します。
-     * ドラ表示牌ではなく, ドラ自体であることに注意が必要です。
-     * @return ドラのリスト
-     */
-    List<Tile> getUpperPrisedTiles();
+    @Override
+    public boolean isLastTileDrawWin(){
+        return lastTileDrawWin;
+    }
 
-    /**
-     * 裏ドラのリストを取得します。
-     * ドラ表示牌ではなく, ドラ自体であることに注意が必要です。
-     * @return 裏ドラのリスト
-     */
-    List<Tile> getLowerPrisedTiles();
+    @Override
+    public boolean isQuadTileGrabWin(){
+        return quadTileGrabWin;
+    }
 
+    @Override
+    public boolean isQuadTileDrawWin(){
+        return quadTileDrawWin;
+    }
+
+    public Tile getWinningTile(){
+        return winningTile;
+    }
+
+    public List<Tile> getHandTiles(){
+        return handTiles;
+    }
+
+    public List<Tile> getUpperIndicators(){
+        return upperIndicators;
+    }
+
+    public List<Tile> getLowerIndicators(){
+        return lowerIndicators;
+    }
+
+    @Override
+    public List<Tile> getUpperPrisedTiles(){
+        return upperPrisedTiles;
+    }
+
+    @Override
+    public List<Tile> getLowerPrisedTiles(){
+        return lowerPrisedTiles;
+    }
+
+    @Override
+    public Side getWinningSide(){
+        return winningSide;
+    }
+
+    @Override
+    public int getTotalDepositCount(){
+        return depositCount;
+    }
+
+    @Override
+    public int getRoundStreakCount(){
+        return streakCount;
+    }
+
+    @Override
+    public List<Meld> getOpenMelds(){
+        return openMelds;
+    }
 }

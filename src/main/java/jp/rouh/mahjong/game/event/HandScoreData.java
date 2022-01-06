@@ -12,45 +12,87 @@ import java.util.List;
  * @version 1.0
  */
 public class HandScoreData{
-    private List<Tile> handTiles;
-    private Tile winningTile;
-    private List<Meld> openMelds;
-    private List<Tile> upperIndicators;
-    private List<Tile> lowerIndicators;
-    private List<HandType> handTypes;
-    private String scoreExpression;
-    private boolean tsumo;
+    private final List<Tile> handTiles;
+    private final Tile winningTile;
+    private final List<Meld> openMelds;
+    private final List<Tile> upperIndicators;
+    private final List<Tile> lowerIndicators;
+    private final List<HandType> handTypes;
+    private final String scoreExpression;
+    private final boolean tsumo;
 
-    public void setHandTiles(List<Tile> handTiles){
-        this.handTiles = handTiles;
+    private HandScoreData(Builder builder){
+        this.handTiles = builder.handTiles;
+        this.winningTile = builder.winningTile;
+        this.openMelds = builder.openMelds;
+        this.upperIndicators = builder.upperIndicators;
+        this.lowerIndicators = builder.lowerIndicators;
+        this.handTypes = builder.handTypes;
+        this.scoreExpression = builder.scoreExpression;
+        this.tsumo = builder.tsumo;
     }
 
-    public void setWinningTile(Tile winningTile){
-        this.winningTile = winningTile;
-    }
+    public static class Builder{
+        private List<Tile> handTiles;
+        private Tile winningTile;
+        private List<Meld> openMelds;
+        private List<Tile> upperIndicators;
+        private List<Tile> lowerIndicators;
+        private List<HandType> handTypes;
+        private String scoreExpression;
+        private boolean tsumo;
 
-    public void setOpenMelds(List<Meld> openMelds){
-        this.openMelds = openMelds;
-    }
+        public Builder withHandTiles(List<Tile> handTiles){
+            this.handTiles = handTiles;
+            return this;
+        }
 
-    public void setUpperIndicators(List<Tile> upperIndicators){
-        this.upperIndicators = upperIndicators;
-    }
+        public Builder withWinningTile(Tile winningTile){
+            this.winningTile = winningTile;
+            return this;
+        }
 
-    public void setLowerIndicators(List<Tile> lowerIndicators){
-        this.lowerIndicators = lowerIndicators;
-    }
+        public Builder withOpenMelds(List<Meld> openMelds){
+            this.openMelds = openMelds;
+            return this;
+        }
 
-    public void setHandTypes(List<HandType> handTypes){
-        this.handTypes = handTypes;
-    }
+        public Builder withUpperIndicators(List<Tile> upperIndicators){
+            this.upperIndicators = upperIndicators;
+            return this;
+        }
 
-    public void setScoreExpression(String scoreExpression){
-        this.scoreExpression = scoreExpression;
-    }
+        public Builder withLowerIndicators(List<Tile> lowerIndicators){
+            this.lowerIndicators = lowerIndicators;
+            return this;
+        }
 
-    public void setTsumo(boolean tsumo){
-        this.tsumo = tsumo;
+        public Builder withHandTypes(List<HandType> handTypes){
+            this.handTypes = handTypes;
+            return this;
+        }
+
+        public Builder withScoreExpression(String scoreExpression){
+            this.scoreExpression = scoreExpression;
+            return this;
+        }
+
+        public Builder withTsumo(boolean tsumo){
+            this.tsumo = tsumo;
+            return this;
+        }
+
+        public HandScoreData build(){
+            if(handTiles==null) throw new IllegalStateException("handTiles is null");
+            if(winningTile==null) throw new IllegalStateException("winningTile is null");
+            if(openMelds==null) throw new IllegalStateException("openMelds is null");
+            if(upperIndicators==null) throw new IllegalStateException("upperIndicators is null");
+            if(lowerIndicators==null) throw new IllegalStateException("lowerIndicators is null");
+            if(handTypes==null) throw new IllegalStateException("handTypes is null");
+            if(scoreExpression==null) throw new IllegalStateException("scoreExpression is null");
+            return new HandScoreData(this);
+        }
+
     }
 
     public List<Tile> getHandTiles(){

@@ -22,7 +22,7 @@ public enum IrregularFormatHandType implements BasicHandType{
      */
     SEVEN_PAIR("七対子", 2){
         @Override
-        boolean test(List<Tile> handTiles, Tile winningTile, WinningContext context){
+        boolean test(List<Tile> handTiles, Tile winningTile, ScoringContext context){
             return context.isSelfMade() && HandTiles.isSevenPairs(handTiles, winningTile);
         }
     };
@@ -42,7 +42,7 @@ public enum IrregularFormatHandType implements BasicHandType{
      * @param context     和了状況
      * @return 通常役のリスト
      */
-    abstract boolean test(List<Tile> handTiles, Tile winningTile, WinningContext context);
+    abstract boolean test(List<Tile> handTiles, Tile winningTile, ScoringContext context);
 
     @Override
     public int getDoubles(){

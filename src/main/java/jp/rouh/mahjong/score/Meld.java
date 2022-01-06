@@ -48,6 +48,19 @@ public interface Meld extends HandComponent{
     Side getSourceSide();
 
     /**
+     * 副露元の相対方位を返します。
+     * <p>副露されたものでない場合, {@code Side.SELF}を返します。
+     * 暗槓もしくは加槓の場合は, {@code Side.SELF}を返します。
+     * @return 副露元の相対位置
+     */
+    default Side getDirectSourceSide(){
+        if(isAddQuad()){
+            return Side.SELF;
+        }
+        return getSourceSide();
+    }
+
+    /**
      * この面子が順子であるか検査します。
      * @return true 順子の場合
      *         false 順子でない場合

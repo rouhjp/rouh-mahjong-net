@@ -2,7 +2,6 @@ package jp.rouh.mahjong.game;
 
 import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.score.*;
-import jp.rouh.mahjong.tile.DiceTwin;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Wind;
@@ -12,7 +11,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class RoundPlayer extends TableStrategyDelegator{
+import static java.util.function.Predicate.not;
+
+public class RoundPlayer extends TableStrategyDelegator implements WinningPlayerAccessor{
     private final HandScoreCalculator calculator = StandardHandScoreCalculator.getInstance();
     private final RoundAccessor round;
     private final TableMaster master;
@@ -33,17 +34,6 @@ public class RoundPlayer extends TableStrategyDelegator{
         this.master = round.getMaster();
         this.gamePlayer = gamePlayer;
         this.seatWind = gamePlayer.getSeatWindAt(round.getRoundCount());
-    }
-
-    /**
-     * 2つのサイコロを振り, その結果を取得します。
-     * <p>結果は参加者に通知されます。
-     * @return サイコロの出目
-     */
-    DiceTwin rollDices(){
-        var dices = DiceTwin.roll();
-        master.diceRolled(seatWind, dices.firstValue(), dices.secondValue());
-        return dices;
     }
 
     void distributed(Tile tile){
@@ -200,50 +190,26 @@ public class RoundPlayer extends TableStrategyDelegator{
         }
     }
 
-    WinningResult declareOrphanRiver(){
+    WinningResult declareOrphanRiver(boolean secondary){
         var score = HandScore.ofRiverJackpot(seatWind==Wind.EAST);
-        var settlementContext = new SettlementData(seatWind, Side.SELF, false, round.getRoundDepositCount(), round.getRoundStreakCount());
-        var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
-        var data = new RiverScoreData(score.getHandTypes().get(0), score.getScoreExpression());
-        return new WinningResult(score, settlement, data);
+        var context = new WinningContext(round, this, seatWind, null, false, false, secondary);
+        return new WinningResult(score, context);
     }
 
-    WinningResult declareRon(Tile discarded, Wind discarder){
-        var context = getWinningContext(false, false, false);
+    WinningResult declareRon(Tile discarded, Wind discarder, boolean secondary){
+        var context = new WinningContext(round, this, discarder, discarded, false, false, secondary);
         var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discarded, context);
         master.declared(seatWind, Declaration.RON);
         master.handRevealed(seatWind, hand.getAllTiles(), false);
-        var settlementContext = new SettlementData(seatWind, discarder.from(seatWind), false, round.getRoundDepositCount(), round.getRoundStreakCount());
-        var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
-        var data = new HandScoreData();
-        data.setHandTiles(hand.getHandTiles());
-        data.setOpenMelds(hand.getOpenMelds());
-        data.setWinningTile(discarded);
-        data.setTsumo(false);
-        data.setUpperIndicators(round.getUpperIndicators());
-        data.setLowerIndicators(ready?round.getLowerIndicators():List.of());
-        data.setHandTypes(score.getHandTypes());
-        data.setScoreExpression(score.getScoreExpression());
-        return new WinningResult(score, settlement, data);
+        return new WinningResult(score, context);
     }
 
-    WinningResult declareRonByQuad(Tile quadTile, Wind declarer){
-        var context = getWinningContext(false, false, true);
+    WinningResult declareRonByQuad(Tile quadTile, Wind declarer, boolean secondary){
+        var context = new WinningContext(round, this, declarer, quadTile, true, false, secondary);
         var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), quadTile, context);
         master.declared(seatWind, Declaration.RON);
         master.handRevealed(seatWind, hand.getAllTiles(), false);
-        var settlementContext = new SettlementData(seatWind, declarer.from(seatWind), false, round.getRoundDepositCount(), round.getRoundStreakCount());
-        var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
-        var data = new HandScoreData();
-        data.setHandTiles(hand.getHandTiles());
-        data.setOpenMelds(hand.getOpenMelds());
-        data.setWinningTile(quadTile);
-        data.setTsumo(false);
-        data.setUpperIndicators(round.getUpperIndicators());
-        data.setLowerIndicators(ready?round.getLowerIndicators():List.of());
-        data.setHandTypes(score.getHandTypes());
-        data.setScoreExpression(score.getScoreExpression());
-        return new WinningResult(score, settlement, data);
+        return new WinningResult(score, context);
     }
 
     void declareNineTiles(){
@@ -251,30 +217,11 @@ public class RoundPlayer extends TableStrategyDelegator{
     }
 
     WinningResult declareTsumo(boolean afterQuad){
-        var winningContext = getWinningContext(true, afterQuad, false);
-        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), winningContext);
+        var context = new WinningContext(round, this, seatWind, hand.getDrawnTile(), false, afterQuad, false);
+        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), context);
         master.declared(seatWind, Declaration.TSUMO);
         master.handRevealed(seatWind, hand.getAllTiles(), true);
-        var settlementContext = new SettlementData(seatWind, Side.SELF, afterQuad, round.getRoundDepositCount(), round.getRoundStreakCount());
-        var settlement = Settlement.of(score, hand.getOpenMelds(), settlementContext);
-        var data = new HandScoreData();
-        data.setHandTiles(hand.getHandTiles());
-        data.setOpenMelds(hand.getOpenMelds());
-        data.setWinningTile(hand.getDrawnTile());
-        data.setTsumo(true);
-        data.setUpperIndicators(round.getUpperIndicators());
-        data.setLowerIndicators(ready?round.getLowerIndicators():List.of());
-        data.setHandTypes(score.getHandTypes());
-        data.setScoreExpression(score.getScoreExpression());
-        return new WinningResult(score, settlement, data);
-    }
-
-    boolean isConcealed(){
-        return hand.getOpenMelds().stream().allMatch(Meld::isConcealed);
-    }
-
-    boolean isReady(){
-        return ready;
+        return new WinningResult(score, context);
     }
 
     boolean isHandReady(){
@@ -305,7 +252,7 @@ public class RoundPlayer extends TableStrategyDelegator{
                     choices.add(TurnAction.ofNineTiles());
                 }
                 if(hand.isCompleted()){
-                    var context = getWinningContext(true, afterQuad, false);
+                    var context = new WinningContext(round, this, seatWind, hand.getDrawnTile(), false, afterQuad, false);
                     var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), context);
                     if(!score.isEmpty()){
                         choices.add(TurnAction.ofTsumo());
@@ -316,7 +263,7 @@ public class RoundPlayer extends TableStrategyDelegator{
                         choices.add(TurnAction.ofKan(quadTile));
                     }
                 }
-                if(isConcealed() && !round.isLastAround() && gamePlayer.getScore()>=1000){
+                if(getCallCount()==0 && !round.isLastAround() && gamePlayer.getScore()>=1000){
                     for(var readyTile: hand.getReadyTiles()){
                         choices.add(TurnAction.ofReadyAndDiscard(readyTile));
                     }
@@ -329,30 +276,30 @@ public class RoundPlayer extends TableStrategyDelegator{
         return choices.stream().toList();
     }
 
-    List<CallAction> getCallChoices(Wind discarder, Tile discardedTile){
+    List<CallAction> getCallChoices(Wind discarder, Tile discarded){
         var choices = new ArrayList<CallAction>();
         choices.add(CallAction.ofPass());
         if(ready){
-            if(hand.isCompletedBy(discardedTile)){
+            if(hand.isCompletedBy(discarded)){
                 choices.add(CallAction.ofRon());
             }
         }else{
-            if(hand.isCompletedBy(discardedTile) && !riverLock && !aroundLock){
-                var context = getWinningContext(false, false, false);
-                var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discardedTile, context);
+            if(hand.isCompletedBy(discarded) && !riverLock && !aroundLock){
+                var context = new WinningContext(round, this, discarder, discarded, false, false, false);
+                var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discarded, context);
                 if(!score.isEmpty()){
                     choices.add(CallAction.ofRon());
                 }
             }
-            if(!hand.getQuadBaseOf(discardedTile).isEmpty()){
+            if(!hand.getQuadBaseOf(discarded).isEmpty()){
                 choices.add(CallAction.ofKan());
             }
             if(!round.isLastTurn()){
-                for(var tripleBase: hand.getTripleBasesOf(discardedTile)){
+                for(var tripleBase: hand.getTripleBasesOf(discarded)){
                     choices.add(CallAction.ofPon(tripleBase.get(0), tripleBase.get(1)));
                 }
                 if(Side.LEFT.of(seatWind)==discarder){
-                    for(var sequenceBase: hand.getSequenceBasesOf(discardedTile)){
+                    for(var sequenceBase: hand.getSequenceBasesOf(discarded)){
                         choices.add(CallAction.ofChi(sequenceBase.get(0), sequenceBase.get(1)));
                     }
                 }
@@ -402,77 +349,33 @@ public class RoundPlayer extends TableStrategyDelegator{
         gamePlayer.applyScore(score);
     }
 
-    private WinningContext getWinningContext(boolean tsumo, boolean afterQuad, boolean quadGrab){
-        return new WinningContext(){
-            @Override
-            public Wind getRoundWind(){
-                return round.getRoundWind();
-            }
+    @Override
+    public List<Tile> getHandTiles(){
+        return hand.getHandTiles();
+    }
 
-            @Override
-            public Wind getSeatWind(){
-                return seatWind;
-            }
+    @Override
+    public List<Meld> getOpenMelds(){
+        return hand.getOpenMelds();
+    }
 
-            @Override
-            public boolean isTsumo(){
-                return tsumo;
-            }
+    @Override
+    public boolean isReady(){
+        return ready;
+    }
 
-            @Override
-            public boolean isSelfMade(){
-                return isConcealed();
-            }
+    @Override
+    public int getCallCount(){
+        return (int)hand.getOpenMelds().stream().filter(not(Meld::isConcealed)).count();
+    }
 
-            @Override
-            public boolean isReady(){
-                return ready;
-            }
+    @Override
+    public boolean isFirstAroundReady(){
+        return firstAroundReady;
+    }
 
-            @Override
-            public boolean isFirstAroundReady(){
-                return firstAroundReady;
-            }
-
-            @Override
-            public boolean isFirstAroundWin(){
-                return round.isFirstAround();
-            }
-
-            @Override
-            public boolean isReadyAroundWin(){
-                return readyAround;
-            }
-
-            @Override
-            public boolean isLastTileGrabWin(){
-                return round.isLastTurn() && !tsumo;
-            }
-
-            @Override
-            public boolean isLastTileDrawWin(){
-                return round.isLastTurn() && tsumo;
-            }
-
-            @Override
-            public boolean isQuadTileGrabWin(){
-                return quadGrab;
-            }
-
-            @Override
-            public boolean isQuadTileDrawWin(){
-                return afterQuad;
-            }
-
-            @Override
-            public List<Tile> getUpperPrisedTiles(){
-                return round.getUpperPrisedTiles();
-            }
-
-            @Override
-            public List<Tile> getLowerPrisedTiles(){
-                return round.getLowerPrisedTiles();
-            }
-        };
+    @Override
+    public boolean isReadyAround(){
+        return readyAround;
     }
 }
