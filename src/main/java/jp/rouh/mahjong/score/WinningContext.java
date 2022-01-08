@@ -70,9 +70,9 @@ public class WinningContext implements ScoringContext, PaymentContext{
         this.winningTile = winningTile;
         this.handTiles = List.copyOf(player.getHandTiles());
         this.upperIndicators = List.copyOf(round.getUpperIndicators());
-        this.lowerIndicators  =List.copyOf(round.getLowerIndicators());
         this.upperPrisedTiles = List.copyOf(round.getUpperPrisedTiles());
-        this.lowerPrisedTiles = List.copyOf(round.getLowerPrisedTiles());
+        this.lowerIndicators  = ready?List.copyOf(round.getLowerIndicators()):List.of();
+        this.lowerPrisedTiles = ready?List.copyOf(round.getLowerPrisedTiles()):List.of();
         this.depositCount = secondary?0:round.getTotalDepositCount();
         this.streakCount = round.getRoundStreakCount();
         this.openMelds = List.copyOf(player.getOpenMelds());
