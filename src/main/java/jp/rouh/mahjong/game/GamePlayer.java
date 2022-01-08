@@ -44,7 +44,7 @@ class GamePlayer extends TableStrategyDelegator implements GamePlayerAccessor{
 
     @Override
     public Wind getSeatWindAt(int roundCount){
-        return initialSeatWind.shift(4 - roundCount);
+        return initialSeatWind.shift(5 - roundCount);
     }
 
     @Override
