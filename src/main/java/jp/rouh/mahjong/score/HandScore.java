@@ -1,5 +1,6 @@
 package jp.rouh.mahjong.score;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -121,9 +122,22 @@ public class HandScore implements Comparable<HandScore>{
                 + (score.getLimit().isEmpty()?"":score.getLimit().getText()+" ")+getScore()+"点";
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>点数の高さを元に比較します。
+     * <p>点数が同一の場合, 飜数, 符数, 役の数の順に比較を行います。
+     * @param o 比較対象
+     * @return 比較結果
+     */
     @Override
     public int compareTo(HandScore o){
-        return getBaseScore() - o.getBaseScore();
+        int comparingScore = Integer.compare(getBaseScore(), o.getBaseScore());
+        if(comparingScore!=0) return comparingScore;
+        int comparingDoubles = Integer.compare(score.getDoubles(), o.score.getDoubles());
+        if(comparingDoubles!=0) return comparingDoubles;
+        int comparingPoint = Integer.compare(score.getPoint(), o.score.getPoint());
+        if(comparingPoint!=0) return comparingPoint;
+        return Integer.compare(handTypes.size(), o.handTypes.size());
     }
 
     /**
