@@ -207,6 +207,7 @@ public final class HandTiles{
      * @return 和了牌のセット(長さ0..1, 13)
      */
     private static Set<Tile> thirteenOrphansWinningTilesOf(List<Tile> handTiles){
+        if(handTiles.size()!=13) return emptySet();
         if(!handTiles.stream().allMatch(Tile::isOrphan)) return emptySet();
         var required = FlexList.copyOf(Tiles.orphans()).removedEach(handTiles);
         if(required.isEmpty()) return Set.copyOf(Tiles.orphans());
@@ -222,6 +223,7 @@ public final class HandTiles{
      * @return 和了牌のセット(長さ0..1)
      */
     private static Set<Tile> sevenPairsWinningTilesOf(List<Tile> handTiles){
+        if(handTiles.size()!=13) return emptySet();
         var nonPairTiles = handTiles.stream().collect(groupingBy(Tile::tileNumber)).values()
                 .stream().filter(group -> group.size()!=2).flatMap(List::stream).collect(toList());
         if(nonPairTiles.size()==1) return Set.copyOf(nonPairTiles);
