@@ -52,27 +52,34 @@ interface TableMasterAdapter extends TableMaster{
     }
 
     @Override
-    default void roundSettled(List<HandScoreData> scores){
+    default void handScoreNotified(List<HandScoreData> scores){
         for(var eachWind:Wind.values()){
-            getPlayerAt(eachWind).roundSettled(scores);
+            getPlayerAt(eachWind).handScoreNotified(scores);
         }
     }
 
     @Override
-    default void roundSettledByRiver(List<RiverScoreData> scores){
+    default void riverScoreNotified(List<RiverScoreData> scores){
         for(var eachWind:Wind.values()){
-            getPlayerAt(eachWind).roundSettledByRiver(scores);
+            getPlayerAt(eachWind).riverScoreNotified(scores);
         }
     }
 
     @Override
-    default void paymentSettled(Map<Wind, PaymentData> payments){
+    default void paymentNotified(Map<Wind, PaymentData> payments){
         for(var eachWind:Wind.values()){
             var map = new HashMap<Side, PaymentData>();
             for(var side:Side.values()){
                 map.put(side, payments.get(side.of(eachWind)));
             }
-            getPlayerAt(eachWind).paymentSettled(map);
+            getPlayerAt(eachWind).paymentNotified(map);
+        }
+    }
+
+    @Override
+    default void roundFinished(){
+        for(var eachWind:Wind.values()){
+            getPlayerAt(eachWind).roundFinished();
         }
     }
 
@@ -115,6 +122,13 @@ interface TableMasterAdapter extends TableMaster{
     default void wallTileRevealed(Wind wind, int column, Tile tile){
         for(var eachWind:Wind.values()){
             getPlayerAt(eachWind).wallTileRevealed(wind.from(eachWind), column, tile);
+        }
+    }
+
+    @Override
+    default void turnStarted(Wind wind){
+        for(var eachWind:Wind.values()){
+            getPlayerAt(eachWind).turnStarted(wind.from(eachWind));
         }
     }
 

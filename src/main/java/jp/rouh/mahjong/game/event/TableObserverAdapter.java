@@ -40,17 +40,22 @@ public interface TableObserverAdapter extends TableObserver{
     }
 
     @Override
-    default void roundSettled(List<HandScoreData> scores){
+    default void handScoreNotified(List<HandScoreData> scores){
 
     }
 
     @Override
-    default void roundSettledByRiver(List<RiverScoreData> scores){
+    default void riverScoreNotified(List<RiverScoreData> scores){
 
     }
 
     @Override
-    default void paymentSettled(Map<Side, PaymentData> payments){
+    default void paymentNotified(Map<Side, PaymentData> payments){
+
+    }
+
+    @Override
+    default void roundFinished(){
 
     }
 
@@ -86,6 +91,11 @@ public interface TableObserverAdapter extends TableObserver{
 
     @Override
     default void turnStarted(Side side){
+
+    }
+
+    @Override
+    default void handLocked(){
 
     }
 

@@ -54,6 +54,19 @@ final class TableViewPoints{
     }
 
     /**
+     * 振り聴表示の座標を取得します。
+     * @param handSize 手牌のサイズ
+     * @return 振り聴表示の座標
+     */
+    static Point ofLockMessage(int handSize){
+        return new PointWalker(TABLE_CENTER, Direction.BOTTOM)
+                .goStraight(54)
+                .goRight(42)
+                .goLeft(handSize*4)
+                .get();
+    }
+
+    /**
      * 捨て牌の座標を取得します。
      * @param dir プレイヤーの方向
      * @param index 捨て牌の位置(0..23)

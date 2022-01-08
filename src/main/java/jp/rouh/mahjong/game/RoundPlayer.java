@@ -75,6 +75,9 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
         if(!ready){
             riverLock = river.stream().anyMatch(hand::isCompletedBy);
         }
+        if(riverLock){
+            handLocked();
+        }
     }
 
     /**
@@ -116,6 +119,9 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
         }else if(caller!=seatWind){
             if(hand.isCompletedBy(discarded)){
                 aroundLock = true;
+            }
+            if(aroundLock){
+                handLocked();
             }
         }
     }

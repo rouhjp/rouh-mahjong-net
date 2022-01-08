@@ -71,8 +71,8 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
      */
     public RoundResultType start(int dice1, int dice2){
         LOG.info("round started");
-        seatUpdated();
         roundStarted(id.wind(), id.count(), streak, deposit, last);
+        seatUpdated();
         diceRolled(Wind.EAST, dice1, dice2);
         wall = wallGenerator.generate(dice1, dice2);
         wallGenerated();
@@ -80,6 +80,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         wall.revealIndicatorImmediately();
         distribute();
         while(wall.hasDrawableTile()){
+            turnStarted(turnWind);
             var turnPlayer = roundPlayers.get(turnWind);
             if(afterQuad){
                 turnPlayer.draw(wall.takeQuadTile());
@@ -89,6 +90,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             }
             doTurn();
             if(resultType!=null){
+                roundFinished();
                 return resultType;
             }
         }
@@ -105,8 +107,9 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
                 riverScoreDataList.add(result.getRiverScoreData());
                 paymentTable.apply(result.getHandScore(), result.getWinningContext());
             }
-            roundSettledByRiver(riverScoreDataList);
+            riverScoreNotified(riverScoreDataList);
             applyPayment(paymentTable);
+            roundFinished();
             return orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
         }
         var handReadyWinds = Stream.of(Wind.values())
@@ -115,6 +118,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             getPlayerAt(handReadyWind).roundExhausted();
         }
         applyPayment(PaymentTable.ofDrawn(handReadyWinds));
+        roundFinished();
         return handReadyWinds.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
     }
 
@@ -138,7 +142,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             var result = turnPlayer.declareTsumo(afterQuad);
             var paymentTable = new PaymentTable();
             paymentTable.apply(result.getHandScore(), result.getWinningContext());
-            roundSettled(List.of(result.getHandScoreData()));
+            handScoreNotified(List.of(result.getHandScoreData()));
             applyPayment(paymentTable);
             resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
             return;
@@ -170,7 +174,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         }
         var discardTile = turnAction.argument();
         turnPlayer.discard(discardTile);
-        riverTileAdded(turnWind, discardTile, false);
+        riverTileAdded(turnWind, discardTile, turnAction.type()==READY_DISCARD);
         doDiscard(discardTile);
     }
 
@@ -275,7 +279,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             dataMap.get(wind).setScoreAfter(getPlayerAt(wind).getScore());
             dataMap.get(wind).setRankAfter(getPlayerAt(wind).getRank());
         }
-        paymentSettled(dataMap);
+        paymentNotified(dataMap);
     }
 
     private void mediateWinnings(List<SignedCallAction> winningActions, Tile winningTile, boolean quadGrab){
@@ -306,7 +310,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
                 handScoreDataList.add(result.getHandScoreData());
             }
         }
-        roundSettled(handScoreDataList);
+        handScoreNotified(handScoreDataList);
         applyPayment(paymentTable);
     }
 

@@ -9,14 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
 
 import static jp.rouh.mahjong.app.view.TileLabel.*;
@@ -84,6 +84,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     private TableLabel initialEastLabel;
     private RoundResultViewPanel roundResultWindow;
     private GameResultViewPanel gameResultWindow;
+    private TableLabel drawMessageLabel;
+    private TableLabel lockMessageLabel;
 
     //access from both EDT, non-EDT
     // volatile array needs to rewrite array itself when updated
@@ -128,6 +130,9 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         playerNameLabels = new TableLabel[4];
         playerWindLabels = new TableLabel[4];
         playerScoreLabels = new TableLabel[4];
+        initialEastLabel = null;
+        drawMessageLabel = null;
+        lockMessageLabel = null;
     }
 
     private void clearTable(){
@@ -503,6 +508,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
         label.setBackground(Color.WHITE);
         label.setBaseLocationCentered(point);
         label.setBorder(new LineBorder(Color.BLACK));
+        drawMessageLabel = label;
         setLayer(label, GLASS_LAYER);
         add(label);
     }
@@ -702,8 +708,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 SwingUtilities.invokeAndWait(()->putDrawnMessage(drawType));
                 waitForAcknowledge();
                 SwingUtilities.invokeAndWait(()->{
-                    clearTable();
-                    repaint();
+                    remove(drawMessageLabel);
+                    drawMessageLabel = null;
                 });
             }catch(InterruptedException | InvocationTargetException e){
                 throw new RuntimeException(e);
@@ -712,7 +718,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     }
 
     @Override
-    public void roundSettled(List<HandScoreData> scores){
+    public void handScoreNotified(List<HandScoreData> scores){
         LOG.info("roundSettled "+scores);
         worker.submit(()->{
             try{
@@ -733,7 +739,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     }
 
     @Override
-    public void roundSettledByRiver(List<RiverScoreData> scores){
+    public void riverScoreNotified(List<RiverScoreData> scores){
         LOG.info("roundSettledByRiver "+scores);
         worker.submit(()->{
            try{
@@ -754,7 +760,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     }
 
     @Override
-    public void paymentSettled(Map<Side, PaymentData> payments){
+    public void paymentNotified(Map<Side, PaymentData> payments){
         LOG.info("paymentSettled "+payments);
         worker.submit(()->{
             try{
@@ -767,6 +773,19 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 SwingUtilities.invokeAndWait(()->{
                     remove(roundResultWindow);
                     roundResultWindow = null;
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public void roundFinished(){
+        LOG.info("roundFinished");
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
                     clearTable();
                     repaint();
                 });
@@ -860,7 +879,42 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     @Override
     public void turnStarted(Side side){
         LOG.info("turnStarted "+side);
-        //pass
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
+                    for(var playerWindLabel:playerWindLabels){
+                        playerWindLabel.setBorder(null);
+                    }
+                    var direction = Direction.of(side);
+                    var border = BorderFactory.createMatteBorder(
+                            direction==Direction.TOP?1:0,
+                            direction==Direction.LEFT?1:0,
+                            direction==Direction.BOTTOM?1:0,
+                            direction==Direction.RIGHT?1:0,
+                            Color.RED
+                    );
+                    playerWindLabels[direction.ordinal()].setBorder(border);
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
+
+        if(side==Side.SELF){
+            worker.submit(()->{
+                try{
+                    SwingUtilities.invokeAndWait(()->{
+                        if(lockMessageLabel!=null){
+                            remove(lockMessageLabel);
+                            lockMessageLabel = null;
+                            repaint();
+                        }
+                    });
+                }catch(InterruptedException | InvocationTargetException e){
+                    throw new RuntimeException(e);
+                }
+            });
+        }
     }
 
     @Override
@@ -910,6 +964,29 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 }
             })
         );
+    }
+
+    @Override
+    public void handLocked(){
+        LOG.info("handLocked");
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->{
+                    if(lockMessageLabel==null){
+                        var text = "フリテン";
+                        int handSize = (int)Arrays.stream(handTileLabels[Direction.BOTTOM.ordinal()]).filter(Objects::nonNull).count();
+                        var point = TableViewPoints.ofLockMessage(handSize);
+                        var label = TableTextLabels.ofText(text, 10, 3);
+                        label.setBaseLocationCentered(point);
+                        lockMessageLabel = label;
+                        setLayer(label, GLASS_LAYER);
+                        add(label);
+                    }
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override

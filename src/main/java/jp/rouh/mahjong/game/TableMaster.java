@@ -54,19 +54,24 @@ interface TableMaster{
      * 局が和了されたことを通知します。
      * @param scores 結果情報
      */
-    void roundSettled(List<HandScoreData> scores);
+    void handScoreNotified(List<HandScoreData> scores);
 
     /**
      * 局が流し満貫によって和了されたことを通知します。
      * @param scores 和了結果のリスト
      */
-    void roundSettledByRiver(List<RiverScoreData> scores);
+    void riverScoreNotified(List<RiverScoreData> scores);
 
     /**
      * 局の精算を通知します。
      * @param payments 精算内容
      */
-    void paymentSettled(Map<Wind, PaymentData> payments);
+    void paymentNotified(Map<Wind, PaymentData> payments);
+
+    /**
+     * 局が終了したことを通知します。
+     */
+    void roundFinished();
 
     /**
      * サイコロが振られたことを通知します。
@@ -110,6 +115,12 @@ interface TableMaster{
      * @param tile   対象牌
      */
     void wallTileRevealed(Wind wind, int column, Tile tile);
+
+    /**
+     * プレイヤーのターンが開始したことを通知します。
+     * @param wind プレイヤーの自風
+     */
+    void turnStarted(Wind wind);
 
     /**
      * 手牌が更新されたことを通知します。

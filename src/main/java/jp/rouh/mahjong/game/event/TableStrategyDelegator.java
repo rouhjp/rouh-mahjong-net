@@ -55,18 +55,23 @@ public abstract class TableStrategyDelegator implements TableStrategy{
     }
 
     @Override
-    public void roundSettled(List<HandScoreData> scores){
-        strategy.roundSettled(scores);
+    public void handScoreNotified(List<HandScoreData> scores){
+        strategy.handScoreNotified(scores);
     }
 
     @Override
-    public void roundSettledByRiver(List<RiverScoreData> scores){
-        strategy.roundSettledByRiver(scores);
+    public void riverScoreNotified(List<RiverScoreData> scores){
+        strategy.riverScoreNotified(scores);
     }
 
     @Override
-    public void paymentSettled(Map<Side, PaymentData> payments){
-        strategy.paymentSettled(payments);
+    public void paymentNotified(Map<Side, PaymentData> payments){
+        strategy.paymentNotified(payments);
+    }
+
+    @Override
+    public void roundFinished(){
+        strategy.roundFinished();
     }
 
     @Override
@@ -102,6 +107,11 @@ public abstract class TableStrategyDelegator implements TableStrategy{
     @Override
     public void turnStarted(Side side){
         strategy.turnStarted(side);
+    }
+
+    @Override
+    public void handLocked(){
+        strategy.handLocked();
     }
 
     @Override

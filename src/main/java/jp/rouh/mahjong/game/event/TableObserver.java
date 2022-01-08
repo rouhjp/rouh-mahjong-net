@@ -58,19 +58,24 @@ public interface TableObserver {
      * 局が和了されたことを通知します。
      * @param scores 和了結果のリスト
      */
-    void roundSettled(List<HandScoreData> scores);
+    void handScoreNotified(List<HandScoreData> scores);
 
     /**
      * 局が流し満貫によって和了されたことを通知します。
      * @param scores 和了結果のリスト
      */
-    void roundSettledByRiver(List<RiverScoreData> scores);
+    void riverScoreNotified(List<RiverScoreData> scores);
 
     /**
      * 局の精算を通知します。
      * @param payments 通知先からみたプレイヤーの相対方位とそのプレイヤーの精算情報のマップ
      */
-    void paymentSettled(Map<Side, PaymentData> payments);
+    void paymentNotified(Map<Side, PaymentData> payments);
+
+    /**
+     * 局が終了したことを通知します。
+     */
+    void roundFinished();
 
     /**
      * サイコロが振られたことを通知します。
@@ -120,6 +125,13 @@ public interface TableObserver {
      * @param side 通知先から見たプレイヤーの方向
      */
     void turnStarted(Side side);
+
+    /**
+     * フリテン状態であることを通知します。
+     * <p>自家の打牌時に聴牌でかつ捨て牌によるフリテン状態の場合,
+     * または他家の打牌完了時に同順フリテンである場合に通知されます。
+     */
+    void handLocked();
 
     /**
      * 他家の手牌が更新されたことを通知します。
