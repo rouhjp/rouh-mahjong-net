@@ -19,17 +19,28 @@ class TurnActionSelector{
     private final List<TurnAction> kanActions;
     private final TurnAction tsumoActionNullable;
     private final TurnAction nineTileActionNullable;
+    private final TurnAction discardDrawnActionNullable;
 
     /**
      * コンストラクタ。
      * @param choices ターン内行動のリスト
      */
     TurnActionSelector(List<TurnAction> choices){
-        this.discardActions = choices.stream().filter(c->c.type()==DISCARD).toList();
+        this.discardActions = choices.stream().filter(c->c.type()==DISCARD_ANY).toList();
         this.readyActions = choices.stream().filter(c->c.type()==READY_DISCARD).toList();
         this.kanActions = choices.stream().filter(c->c.type()==TURN_KAN).toList();
         this.tsumoActionNullable = choices.stream().filter(c->c.type()==TSUMO).findAny().orElse(null);
         this.nineTileActionNullable = choices.stream().filter(c->c.type()==NINE_TILES).findAny().orElse(null);
+        this.discardDrawnActionNullable = choices.stream().filter(c->c.type()==DISCARD_DRAWN).findAny().orElse(null);
+    }
+
+    /**
+     * 現在が立直状態でツモ切り打牌のみ打牌が選択可能であるか検査します。
+     * @return true 立直状態である場合
+     *         false 立直状態でない場合
+     */
+    boolean isReady(){
+        return discardActions.isEmpty() && discardDrawnActionNullable!=null;
     }
 
     /**
@@ -50,6 +61,16 @@ class TurnActionSelector{
      */
     boolean canDeclareTsumo(){
         return tsumoActionNullable!=null;
+    }
+
+    /**
+     * ツモ切り打牌が可能か検査します。
+     * <p>副露後(カンを除く)の場合はツモ切り打牌を選択できません。
+     * @return true ツモ切り打牌が可能である場合
+     *         false ツモ切り打牌が可能でない場合
+     */
+    boolean canDiscardDrawn(){
+        return discardDrawnActionNullable!=null;
     }
 
     /**
@@ -75,6 +96,8 @@ class TurnActionSelector{
     /**
      * 手牌中のある牌が打牌が可能か検査します。
      * <p>食い替えとなる牌は打牌不能となります。
+     * <p>立直状態の場合はいかなる牌もこの検査に適合しません。
+     * 打牌する場合は代わりにツモ切り打牌を選択する必要があります。
      * @param selecting 手牌中の牌
      * @return true 打牌可能な場合
      *         false 打牌不可能な場合
@@ -164,6 +187,20 @@ class TurnActionSelector{
             throw new NoSuchElementException("invalid action");
         }
         return nineTileActionNullable;
+    }
+
+    /**
+     * ツモ切り打牌を行う選択肢を取得します。
+     * <p>あらかじめ{@link #canDiscardDrawn()}もしくは{@link #isReady()}
+     * メソッドに適合するか確認する必要があります。
+     * @return ツモ切り打牌の選択肢
+     * @throws NoSuchElementException ツモ切り打牌が不可能な場合
+     */
+    TurnAction getDiscardDrawnAction(){
+        if(discardDrawnActionNullable==null){
+            throw new NoSuchElementException("invalid action");
+        }
+        return discardDrawnActionNullable;
     }
 
     /**

@@ -245,15 +245,19 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
     List<TurnAction> getTurnChoices(boolean afterCall, boolean afterQuad){
         var choices = new ArrayList<TurnAction>();
         if(ready){
+            choices.add(TurnAction.ofDiscardDrawn(hand.getDrawnTile()));
             if(hand.isCompleted()){
                 choices.add(TurnAction.ofTsumo());
             }
             if(hand.canReadyQuad()){
                 choices.add(TurnAction.ofKan(hand.getDrawnTile()));
             }
-            choices.add(TurnAction.ofDiscard(hand.getDrawnTile()));
         }else{
+            for(var discardTile: hand.getDiscardableTiles()){
+                choices.add(TurnAction.ofDiscard(discardTile));
+            }
             if(!afterCall){
+                choices.add(TurnAction.ofDiscardDrawn(hand.getDrawnTile()));
                 if(round.isFirstAround() && hand.isNineTilesHand()){
                     choices.add(TurnAction.ofNineTiles());
                 }
@@ -275,9 +279,6 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
                     }
                 }
             }
-            for(var discardTile: hand.getDiscardableTiles()){
-                choices.add(TurnAction.ofDiscard(discardTile));
-            }
         }
         return choices.stream().toList();
     }
@@ -286,7 +287,7 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
         var choices = new ArrayList<CallAction>();
         choices.add(CallAction.ofPass());
         if(ready){
-            if(hand.isCompletedBy(discarded)){
+            if(hand.isCompletedBy(discarded) && !riverLock && !aroundLock){
                 choices.add(CallAction.ofRon());
             }
         }else{
@@ -314,20 +315,13 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
         return choices;
     }
 
-    CallAction selectCallActionForSelfQuad(Tile declared){
-        if(hand.isThirteenOrphansHandReady()){
-            if(hand.isCompletedBy(declared) && !aroundLock && !riverLock){
-                return selectCallAction(List.of(CallAction.ofPass(), CallAction.ofRon()));
+    List<CallAction> getQuadCallChoices(Tile declared, boolean againstSelfQuad){
+        if(hand.isCompletedBy(declared) && !riverLock && !aroundLock){
+            if(!againstSelfQuad || hand.isThirteenOrphansHandReady()){
+                return List.of(CallAction.ofPass(), CallAction.ofRon());
             }
         }
-        return CallAction.ofPass();
-    }
-
-    CallAction selectCallActionForAddQuad(Tile added){
-        if(hand.isCompletedBy(added) && !aroundLock && !riverLock){
-            return selectCallAction(List.of(CallAction.ofPass(), CallAction.ofRon()));
-        }
-        return CallAction.ofPass();
+        return List.of(CallAction.ofPass());
     }
 
     public Wind getSeatWind(){

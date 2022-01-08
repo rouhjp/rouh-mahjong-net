@@ -319,9 +319,8 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         var futures = new ArrayList<Future<SignedCallAction>>(3);
         for(var eachWind:turnWind.others()){
             var future = executorService.submit(()->{
-                var action = self?
-                        getPlayerAt(eachWind).selectCallActionForSelfQuad(target):
-                        getPlayerAt(eachWind).selectCallActionForAddQuad(target);
+                var choices = getPlayerAt(eachWind).getQuadCallChoices(target, self);
+                var action = getPlayerAt(eachWind).selectCallAction(choices);
                 return new SignedCallAction(eachWind, action);
             });
             futures.add(future);

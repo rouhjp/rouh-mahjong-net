@@ -61,9 +61,13 @@ public interface TableStrategyAdapter extends TableStrategy{
                     if(player.canDeclareReady()) inputChoices.add(ActionInput.SELECT_READY);
                     if(player.canDeclareTsumo()) inputChoices.add(ActionInput.SELECT_TSUMO);
                     if(player.canDeclareNineTiles()) inputChoices.add(ActionInput.SELECT_NINE_TILES);
-                    for(int i = 0; i<tiles.size(); i++){
-                        if(player.canSelectForDiscard(tiles.get(i))){
-                            inputChoices.add(ActionInput.ofIndex(i));
+                    if(player.isReady()){
+                        inputChoices.add(ActionInput.ofIndex(tiles.size() - 1));
+                    }else{
+                        for(int i = 0; i<tiles.size(); i++){
+                            if(player.canSelectForDiscard(tiles.get(i))){
+                                inputChoices.add(ActionInput.ofIndex(i));
+                            }
                         }
                     }
                 }
