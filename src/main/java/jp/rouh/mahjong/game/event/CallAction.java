@@ -16,11 +16,25 @@ import java.util.NoSuchElementException;
  */
 public record CallAction(CallActionType type, List<Tile> arguments){
 
+    /**
+     * ロン宣言の優先度
+     */
     static final int RON_PRIORITY = 3;
 
+    /**
+     * ポンまたはカン宣言の優先度
+     */
     static final int PON_KAN_PRIORITY = 2;
 
+    /**
+     * チー宣言の優先度
+     */
     static final int CHI_PRIORITY = 1;
+
+    /**
+     * パスの優先度
+     */
+    static final int PASS_PRIORITY = 0;
 
     @Override
     public List<Tile> arguments() {
@@ -30,30 +44,27 @@ public record CallAction(CallActionType type, List<Tile> arguments){
         return arguments;
     }
 
-    public boolean higherPriorityThan(CallAction other){
-        return priority() > other.priority();
-    }
-
     /**
-     * この行動の優先順位を取得します。
-     * @return 優先度(0..3 数字が高い方が優先度が高い)
+     * この行動の優先度を取得します。
+     * <p>優先度とは, 複数プレイヤー間でターン外行動が選択されたとき
+     * どの行動が適用されるかの基準となる値です。
+     * <p>優先度は以下の順で定義され, 優先度が高いほど高い数値を返します。
+     * <ul>
+     *     <li>ロン宣言</li>
+     *     <li>ポン宣言, カン宣言</li>
+     *     <li>チー宣言</li>
+     *     <li>パス</li>
+     * </ul>
+     * <p>
+     * @return 優先度(数字が高い方が優先度が高い)
      */
     public int priority(){
         return switch(type){
             case RON -> RON_PRIORITY;
             case KAN, PON -> PON_KAN_PRIORITY;
             case CHI -> CHI_PRIORITY;
-            case PASS -> 0;
+            case PASS -> PASS_PRIORITY;
         };
-    }
-
-    /**
-     * パスかどうか検査します。
-     * @return true パスの場合
-     *         false パスでない場合
-     */
-    boolean isPass(){
-        return type==PASS;
     }
 
     /**

@@ -7,15 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static jp.rouh.mahjong.game.event.TurnActionType.*;
 import static jp.rouh.mahjong.game.RoundResultType.*;
 
 /**
@@ -78,7 +73,14 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         wallGenerated();
         wall.addObserver(this);
         wall.revealIndicatorImmediately();
-        distribute();
+        for(int i = 0; i<3; i++){
+            for(var wind:Wind.values()){
+                roundPlayers.get(wind).distributed(wall.takeFourTiles());
+            }
+        }
+        for(var wind:Wind.values()){
+            roundPlayers.get(wind).distributed(wall.takeTile());
+        }
         while(wall.hasDrawableTile()){
             turnStarted(turnWind);
             var turnPlayer = roundPlayers.get(turnWind);
@@ -94,158 +96,143 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
                 return resultType;
             }
         }
+        doExhaustion();
+        roundFinished();
+        return resultType;
+    }
+
+    /**
+     * 流局(荒牌平局)時の処理。
+     */
+    private void doExhaustion(){
         roundDrawn(DrawType.EXHAUSTED);
         var orphanRiverWinds = Stream.of(Wind.values())
                 .filter(wind->getPlayerAt(wind).isOrphanRiver()).toList();
         if(!orphanRiverWinds.isEmpty()){
-            var paymentTable = new PaymentTable();
-            var riverScoreDataList = new ArrayList<RiverScoreData>();
+            var payments = new PaymentTable();
+            var riverScores = new ArrayList<RiverScoreData>();
             boolean secondary = false;
             for(var orphanRiverWind:orphanRiverWinds){
                 var result = getPlayerAt(orphanRiverWind).declareOrphanRiver(secondary);
+                riverScores.add(result.getRiverScoreData());
+                payments.apply(result.getHandScore(), result.getWinningContext());
                 secondary = true;
-                riverScoreDataList.add(result.getRiverScoreData());
-                paymentTable.apply(result.getHandScore(), result.getWinningContext());
             }
-            riverScoreNotified(riverScoreDataList);
-            applyPayment(paymentTable);
-            roundFinished();
-            return orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
+            riverScoreNotified(riverScores);
+            paymentNotified(payments);
+            resultType =  orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
+            return;
         }
         var handReadyWinds = Stream.of(Wind.values())
                 .filter(wind->getPlayerAt(wind).isHandReady()).toList();
         for(var handReadyWind:handReadyWinds){
             getPlayerAt(handReadyWind).roundExhausted();
         }
-        applyPayment(PaymentTable.ofDrawn(handReadyWinds));
-        roundFinished();
-        return handReadyWinds.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
+        paymentNotified(PaymentTable.ofDrawn(handReadyWinds));
+        resultType = handReadyWinds.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
     }
 
-    private void distribute(){
-        for(int i = 0; i<3; i++){
-            for(var wind:Wind.values()){
-                roundPlayers.get(wind).distributed(wall.takeFourTiles());
-            }
-        }
-        for(var wind:Wind.values()){
-            roundPlayers.get(wind).distributed(wall.takeTile());
-        }
-    }
-
+    /**
+     * ターン開始時の処理。
+     */
     private void doTurn(){
-        LOG.info(turnWind+" turn started");
         var turnPlayer = roundPlayers.get(turnWind);
         var turnAction = turnPlayer.selectTurnAction(turnPlayer.getTurnChoices(afterCall, afterQuad));
-        LOG.info(turnWind+" "+turnAction);
-        if(turnAction.type()==TSUMO){
-            var result = turnPlayer.declareTsumo(afterQuad);
-            var paymentTable = new PaymentTable();
-            paymentTable.apply(result.getHandScore(), result.getWinningContext());
-            handScoreNotified(List.of(result.getHandScoreData()));
-            applyPayment(paymentTable);
-            resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
-            return;
-        }
-        if(turnAction.type()==NINE_TILES){
-            turnPlayer.declareNineTiles();
-            roundDrawn(DrawType.NINE_TILES_DECLARED);
-            resultType = turnWind==Wind.EAST? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
-            return;
-        }
-        if(turnAction.type()==TURN_KAN){
-            var targetTile = turnAction.argument();
-            var self = turnPlayer.declareKan(targetTile);
-            var callActions = mediateCallActionForQuad(targetTile, self);
-            if(!callActions.isEmpty()){
-                mediateWinnings(callActions, targetTile, true);
-                return;
+        switch(turnAction.type()){
+            case TSUMO -> {
+                var result = turnPlayer.declareTsumo(afterQuad);
+                var payments = new PaymentTable();
+                payments.apply(result.getHandScore(), result.getWinningContext());
+                handScoreNotified(List.of(result.getHandScoreData()));
+                paymentNotified(payments);
+                resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
             }
-            if(self){
-                wall.revealIndicatorImmediately();
+            case NINE_TILES -> {
+                turnPlayer.declareNineTiles();
+                roundDrawn(DrawType.NINE_TILES_DECLARED);
+                resultType = turnWind==Wind.EAST? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
             }
-            afterCall = false;
-            afterQuad = true;
-            return;
-        }
-        if(turnAction.type()==READY_DISCARD){
-            turnPlayer.declareReady();
-            seatUpdated();
-        }
-        var discardTile = turnAction.argument();
-        turnPlayer.discard(discardTile);
-        riverTileAdded(turnWind, discardTile, turnAction.type()==READY_DISCARD);
-        doDiscard(discardTile);
-    }
-
-    private void doDiscard(Tile discarded){
-        var discarderWind = turnWind;
-        var turnPlayer = getPlayerAt(turnWind);
-        var actions = mediateCallAction(discarded);
-        for(var action:actions){
-            LOG.info(action.from()+" "+action.get());
-        }
-        if(!actions.isEmpty()){
-            switch(actions.get(0).get().type()){
-                case RON -> {
-                    mediateWinnings(actions, discarded, false);
+            case TURN_KAN -> {
+                var declaredTile = turnAction.argument();
+                var selfQuad = turnPlayer.declareKan(declaredTile);
+                var callActions = new CallActionMediator(turnWind.others())
+                        .withPlayers(this::getPlayerAt)
+                        .withChoices(wind->getPlayerAt(wind).getQuadCallChoices(declaredTile, selfQuad))
+                        .mediate();
+                if(!callActions.isEmpty()){
+                    doClaim(callActions, declaredTile, true);
                     return;
                 }
-                case KAN -> {
-                    assert actions.size()==1: "multiple kan declared simultaneously";
-                    var callWind = actions.get(0).from();
-                    getPlayerAt(callWind).declareKan(discarded, turnWind);
-                    turnPlayer.discardTileClaimed();
-                    roundPlayers.values().forEach(RoundPlayer::aroundInterrupted);
-                    firstAround = false;
-                    afterCall = true;
-                    afterQuad = true;
-                    turnWind = callWind;
+                if(selfQuad){
+                    wall.revealIndicatorImmediately();
                 }
-                case PON -> {
-                    assert actions.size()==1: "multiple pon declared simultaneously";
-                    var callWind = actions.get(0).from();
-                    var baseTiles = actions.get(0).get().arguments();
-                    getPlayerAt(callWind).declarePon(discarded, baseTiles, turnWind);
-                    turnPlayer.discardTileClaimed();
-                    roundPlayers.values().forEach(RoundPlayer::aroundInterrupted);
-                    firstAround = false;
-                    afterCall = true;
-                    afterQuad = false;
-                    turnWind = callWind;
-                }
-                case CHI -> {
-                    assert actions.size()==1: "multiple chi declared simultaneously";
-                    var callWind = actions.get(0).from();
-                    var baseTiles = actions.get(0).get().arguments();
-                    getPlayerAt(callWind).declareChi(discarded, baseTiles);
-                    turnPlayer.discardTileClaimed();
-                    roundPlayers.values().forEach(RoundPlayer::aroundInterrupted);
-                    firstAround = false;
-                    afterCall = true;
-                    afterQuad = false;
-                    turnWind = callWind;
-                }
+                afterCall = false;
+                afterQuad = true;
             }
-            for(var wind:Wind.values()){
-                getPlayerAt(wind).discardTileSettled(discarderWind, discarded, turnWind);
+            case READY_DISCARD -> {
+                var discardedTile = turnAction.argument();
+                turnPlayer.declareReady();
+                turnPlayer.discard(discardedTile);
+                seatUpdated();
+                riverTileAdded(turnWind, discardedTile, true);
+                doDiscard(discardedTile);
             }
+            case DISCARD_ANY, DISCARD_DRAWN -> {
+                var discardedTile = turnAction.argument();
+                turnPlayer.discard(discardedTile);
+                riverTileAdded(turnWind, discardedTile, false);
+                doDiscard(discardedTile);
+            }
+        }
+    }
+
+    /**
+     * 打牌時の処理。
+     * @param discarded 打牌
+     */
+    private void doDiscard(Tile discarded){
+        var discarderWind = turnWind;
+        var discarder = getPlayerAt(turnWind);
+        var actions = new CallActionMediator(discarderWind.others())
+                .withPlayers(this::getPlayerAt)
+                .withChoices(wind->getPlayerAt(wind).getCallChoices(discarderWind, discarded))
+                .mediate();
+        if(!actions.isEmpty()){
+            if(actions.values().stream().allMatch(action->action.type()==CallActionType.RON)){
+                doClaim(actions, discarded, false);
+                return;
+            }
+            assert actions.size()==1;
+            var action = List.copyOf(actions.values()).get(0);
+            var callerWind = List.copyOf(actions.keySet()).get(0);
+            var caller = getPlayerAt(callerWind);
+            switch(action.type()){
+                case KAN -> caller.declareKan(discarded, discarderWind);
+                case PON -> caller.declarePon(discarded, action.arguments(), discarderWind);
+                case CHI -> caller.declareChi(discarded, action.arguments());
+                default -> throw new AssertionError();
+            }
+            discarder.discardTileClaimed();
+            roundPlayers.values().forEach(RoundPlayer::aroundInterrupted);
+            roundPlayers.values().forEach(player->player.discardTileSettled(discarderWind, discarded, callerWind));
+            afterCall = true;
+            afterQuad = action.type()==CallActionType.KAN;
+            turnWind = callerWind;
+            firstAround = false;
         }else{
-            for(var wind:Wind.values()){
-                getPlayerAt(wind).discardTileSettled(discarderWind, discarded, null);
-            }
+            roundPlayers.values().forEach(player->player.discardTileSettled(discarderWind, discarded, null));
             afterCall = false;
             afterQuad = false;
             turnWind = turnWind.next();
-        }
-        if(firstAround){
-            firstAroundDiscards.add(discarded);
-            if(firstAroundDiscards.size()==4){
-                firstAround = false;
-                if(firstAroundDiscards.get(0).isWind() && firstAroundDiscards.stream().distinct().count()==1){
-                    roundDrawn(DrawType.FOUR_WINDS_DISCARDED);
-                    resultType = DRAW_ADVANTAGE_NON_DEALER;
-                    return;
+            if(firstAround){
+                firstAroundDiscards.add(discarded);
+                if(firstAroundDiscards.size()==4){
+                    firstAround = false;
+                    if(firstAroundDiscards.get(0).isWind() && firstAroundDiscards.stream().distinct().count()==1){
+                        roundDrawn(DrawType.FOUR_WINDS_DISCARDED);
+                        resultType = DRAW_ADVANTAGE_NON_DEALER;
+                        return;
+                    }
                 }
             }
         }
@@ -262,8 +249,41 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         wall.revealIndicatorsIfPresent();
     }
 
-    private void applyPayment(PaymentTable table){
-        LOG.info("payment: "+table);
+    /**
+     * ロン発生時の処理。
+     * @param ronActions ロン宣言のマップ
+     * @param winningTile 和了牌
+     * @param againstQuad 槍槓かどうか
+     */
+    private void doClaim(Map<Wind, CallAction> ronActions, Tile winningTile, boolean againstQuad){
+        if(ronActions.size()==3){
+            for(var wind:ronActions.keySet()){
+                declared(wind, Declaration.RON);
+            }
+            roundDrawn(DrawType.THREE_PLAYERS_CLAIMED);
+            resultType = DRAW_ADVANTAGE_NON_DEALER;
+            return;
+        }
+        resultType = ronActions.containsKey(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
+        var payments = new PaymentTable();
+        var handScores = new ArrayList<HandScoreData>();
+        boolean secondary = false;
+        for(var side:new Side[]{Side.RIGHT, Side.ACROSS, Side.LEFT}){
+            if(ronActions.containsKey(side.of(turnWind))){
+                var winner = getPlayerAt(side.of(turnWind));
+                var result = againstQuad?
+                        winner.declareRonByQuad(winningTile, turnWind, secondary):
+                        winner.declareRon(winningTile, turnWind, secondary);
+                secondary = true;
+                payments.apply(result.getHandScore(), result.getWinningContext());
+                handScores.add(result.getHandScoreData());
+            }
+        }
+        handScoreNotified(handScores);
+        paymentNotified(payments);
+    }
+
+    private void paymentNotified(PaymentTable table){
         var dataMap = new HashMap<Wind, PaymentData>();
         for(var wind:Wind.values()){
             dataMap.put(wind, new PaymentData());
@@ -282,122 +302,12 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         paymentNotified(dataMap);
     }
 
-    private void mediateWinnings(List<SignedCallAction> winningActions, Tile winningTile, boolean quadGrab){
-        LOG.info("winnings: "+winningActions.stream().map(SignedCallAction::from).toList());
-        LOG.info("deposit="+deposit);
-        if(winningActions.size()==3){
-            for(var winningAction:winningActions){
-                declared(winningAction.from(), Declaration.RON);
-            }
-            roundDrawn(DrawType.THREE_PLAYERS_CLAIMED);
-            resultType = DRAW_ADVANTAGE_NON_DEALER;
-            return;
-        }
-        boolean dealerWon = winningActions.stream().anyMatch(sca->sca.from()==Wind.EAST);
-        resultType = dealerWon? DEALER_VICTORY:NON_DEALER_VICTORY;
-        var paymentTable = new PaymentTable();
-        var handScoreDataList = new ArrayList<HandScoreData>();
-        boolean secondary = false;
-        for(var side:new Side[]{Side.RIGHT, Side.ACROSS, Side.LEFT}){
-            var winnerWind = side.of(turnWind);
-            if(winningActions.stream().anyMatch(action->action.from()==winnerWind)){
-                var winner = getPlayerAt(winnerWind);
-                var result = quadGrab?
-                        winner.declareRonByQuad(winningTile, turnWind, secondary):
-                        winner.declareRon(winningTile, turnWind, secondary);
-                secondary = true;
-                paymentTable.apply(result.getHandScore(), result.getWinningContext());
-                handScoreDataList.add(result.getHandScoreData());
-            }
-        }
-        handScoreNotified(handScoreDataList);
-        applyPayment(paymentTable);
-    }
-
-    private List<SignedCallAction> mediateCallActionForQuad(Tile target, boolean self){
-        var executorService = Executors.newFixedThreadPool(3);
-        var futures = new ArrayList<Future<SignedCallAction>>(3);
-        for(var eachWind:turnWind.others()){
-            var future = executorService.submit(()->{
-                var choices = getPlayerAt(eachWind).getQuadCallChoices(target, self);
-                var action = getPlayerAt(eachWind).selectCallAction(choices);
-                return new SignedCallAction(eachWind, action);
-            });
-            futures.add(future);
-        }
-        try{
-            var actions = new ArrayList<SignedCallAction>(3);
-            for(var future: futures){
-                var action = future.get();
-                if(action.get().type()!=CallActionType.PASS){
-                    actions.add(action);
-                }
-            }
-            return actions;
-        }catch(InterruptedException | ExecutionException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    private List<SignedCallAction> mediateCallAction(Tile discarded){
-        var executorService = Executors.newFixedThreadPool(3);
-        var completionService = new ExecutorCompletionService<SignedCallAction>(executorService);
-        var choiceMap = new HashMap<Wind, List<CallAction>>();
-        for(var eachWind:turnWind.others()){
-            var choices = getPlayerAt(eachWind).getCallChoices(turnWind, discarded);
-            choiceMap.put(eachWind, choices);
-        }
-        if(choiceMap.values().stream().allMatch(choices->choices.size()==1)){
-            return List.of();
-        }
-        var futures = new ArrayList<Future<SignedCallAction>>(3);
-        for(var eachWind:turnWind.others()){
-            var future = completionService.submit(()->{
-                var choices = choiceMap.get(eachWind);
-                if(choices.size()==1){
-                    return new SignedCallAction(eachWind, choices.get(0));
-                }
-                var action = getPlayerAt(eachWind).selectCallAction(choices);
-                return new SignedCallAction(eachWind, action);
-            });
-            futures.add(future);
-        }
-        executorService.shutdown();
-        try{
-            var finalAnswer = (SignedCallAction)null;
-            var answers = new ArrayList<SignedCallAction>();
-            for(int i = 0; i<3; i++){
-                var answer = completionService.take().get();
-                answers.add(answer);
-                choiceMap.remove(answer.from());
-                if(answer.get().type()!=CallActionType.PASS){
-                    if(choiceMap.values().stream().noneMatch(choices->
-                            choices.stream().anyMatch(choice->choice.higherPriorityThan(answer.get())))){
-                        finalAnswer = answer;
-                        executorService.shutdownNow();
-                        for(var future:futures){
-                            if(!future.isDone()){
-                                future.cancel(true);
-                            }
-                        }
-                    }
-                }
-            }
-            if(finalAnswer!=null) return List.of(finalAnswer);
-            int highestPriority = answers.stream().mapToInt(sca->sca.get().priority()).max().orElseThrow();
-            return answers.stream()
-                    .filter(sca->sca.get().priority()==highestPriority)
-                    .filter(sca->sca.get().type()!=CallActionType.PASS)
-                    .toList();
-        }catch(InterruptedException | ExecutionException e){
-            throw new RuntimeException(e);
-        }
-    }
-
     private void seatUpdated(){
-        var seatMap = Stream.of(Wind.values())
-                .collect(Collectors.toMap(wind->wind, wind->roundPlayers.get(wind).getPlayerData()));
-        seatUpdated(seatMap);
+        var dataMap = new HashMap<Wind, PlayerData>();
+        for(var wind:Wind.values()){
+            dataMap.put(wind, getPlayerAt(wind).getPlayerData());
+        }
+        seatUpdated(dataMap);
     }
 
     @Override
@@ -409,7 +319,6 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     public int getRoundCount(){
         return id.count();
     }
-
 
     @Override
     public int getRoundStreakCount(){
