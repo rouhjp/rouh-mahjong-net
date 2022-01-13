@@ -249,7 +249,7 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
             if(hand.isCompleted()){
                 choices.add(TurnAction.ofTsumo());
             }
-            if(hand.canReadyQuad()){
+            if(!round.isLastTurn() && round.getTotalQuadCount()<4 && hand.canReadyQuad()){
                 choices.add(TurnAction.ofKan(hand.getDrawnTile()));
             }
         }else{
