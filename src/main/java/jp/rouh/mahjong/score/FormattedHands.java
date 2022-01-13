@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.IntStream;
 
 /**
  * 整形済み手牌に関するユーティリティクラス。
@@ -33,23 +32,28 @@ final class FormattedHands{
             var head = new Head(arranged.get(0));
             var tail = arranged.subList(1, arranged.size());
             if(head.contains(winningTile)){
-                var handMelds = tail.stream().map(tiles->new HandMeld(tiles, true)).toList();
                 var wait = Wait.SINGLE_HEAD;
-                var melds = new ArrayList<Meld>(4);
-                melds.addAll(handMelds);
+                var melds = new ArrayList<Meld>();
+                for(var meldTiles:tail){
+                    melds.add(Meld.ofHand(meldTiles));
+                }
                 melds.addAll(openMelds);
                 formattedHands.add(new FormattedHand(head, melds, wait));
             }
             for(int i = 0; i<tail.size(); i++){
                 if(tail.get(i).contains(winningTile)){
-                    int winningMeldIndex = i;
-                    var handMelds = IntStream.range(0, tail.size())
-                            .mapToObj(index -> new HandMeld(tail.get(index), winningMeldIndex!=index || context.isTsumo()))
-                            .toList();
-                    var wait = Wait.of(handMelds.get(winningMeldIndex), winningTile);
                     var melds = new ArrayList<Meld>(4);
-                    melds.addAll(handMelds);
+                    for(int k = 0; k<tail.size(); k++){
+                        if(!context.isTsumo() && k==i){
+                            var base = new ArrayList<>(tail.get(k));
+                            base.remove(winningTile);
+                            melds.add(Meld.ofHand(base, winningTile));
+                        }else{
+                            melds.add(Meld.ofHand(tail.get(k)));
+                        }
+                    }
                     melds.addAll(openMelds);
+                    var wait = Wait.of(melds.get(i), winningTile);
                     formattedHands.add(new FormattedHand(head, melds, wait));
                 }
             }

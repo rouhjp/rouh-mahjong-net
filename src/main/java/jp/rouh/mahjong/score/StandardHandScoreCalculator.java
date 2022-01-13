@@ -28,7 +28,7 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
         var fourteenTiles = new ArrayList<>(handTiles);
         fullTiles.add(winningTile);
         fourteenTiles.add(winningTile);
-        openMelds.stream().map(Meld::getTilesFormed).forEach(fullTiles::addAll);
+        openMelds.stream().map(Meld::getTilesSorted).forEach(fullTiles::addAll);
         openMelds.stream().map(Meld::getTilesTruncated).forEach(fourteenTiles::addAll);
         var feature = new HandFeature(fullTiles, fourteenTiles, winningTile, context);
         var limitHandTypes = LimitHandType.testAll(feature, context);

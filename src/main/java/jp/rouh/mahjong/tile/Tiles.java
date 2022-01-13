@@ -5,7 +5,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
 import static java.util.function.Predicate.not;
@@ -55,7 +54,7 @@ public final class Tiles{
      * @return 么九牌のリスト
      */
     public static List<Tile> orphans(){
-        return Stream.of(Tile.values()).filter(Tile::isOrphan).toList();
+        return ORPHANS;
     }
 
     /**

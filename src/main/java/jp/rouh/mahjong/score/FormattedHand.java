@@ -2,6 +2,7 @@ package jp.rouh.mahjong.score;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -65,6 +66,19 @@ public class FormattedHand{
      */
     Wait getWait(){
         return wait;
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if(this==o) return true;
+        if(o==null || getClass()!=o.getClass()) return false;
+        FormattedHand that = (FormattedHand)o;
+        return Objects.equals(head, that.head) && Objects.equals(melds, that.melds) && wait==that.wait;
+    }
+
+    @Override
+    public int hashCode(){
+        return Objects.hash(head, melds, wait);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package jp.rouh.util;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -253,6 +254,17 @@ public class FlexList<E> extends ArrayList<E>{
         return List.of(List.copyOf(this));
     }
 
+    /**
+     * このリストの全ての要素に対し, その要素とその他の要素に対する二項消費関数を実行します。
+     * @param action 二項消費関数
+     */
+    public void forEach(BiConsumer<? super E, List<? super E>> action){
+        for(int i = 0; i<size(); i++){
+            var others = new ArrayList<>(this);
+            var element = others.remove(i);
+            action.accept(element, others);
+        }
+    }
 
     /**
      * リストから, 全ての要素の組み合わせのリストを取得します。
