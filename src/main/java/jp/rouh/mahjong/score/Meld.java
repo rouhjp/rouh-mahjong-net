@@ -158,7 +158,7 @@ public class Meld implements HandComponent{
      *         false 刻子でない場合
      */
     public boolean isTriple(){
-        return !base.get(0).equalsIgnoreRed(base.get(1)) && sorted.size()==3;
+        return base.get(0).equalsIgnoreRed(base.get(1)) && sorted.size()==3;
     }
 
     /**
