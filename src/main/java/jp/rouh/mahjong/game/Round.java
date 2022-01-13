@@ -81,7 +81,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         for(var wind:Wind.values()){
             roundPlayers.get(wind).distributed(wall.takeTile());
         }
-        while(wall.hasDrawableTile()){
+        while(wall.hasDrawableTile() || afterCall){
             turnStarted(turnWind);
             var turnPlayer = roundPlayers.get(turnWind);
             if(afterQuad){
