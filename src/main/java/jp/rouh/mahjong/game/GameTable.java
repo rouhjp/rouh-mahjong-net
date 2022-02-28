@@ -83,7 +83,7 @@ public class GameTable{
         for(var orderWind:Wind.values()){
             var player = players.get(orderWind.ordinal());
             var seatWind = orderWind.from(dealerOrderWind).of(EAST);
-            map.put(seatWind, new PlayerTempData(player.getName(), seatWind));
+            map.put(seatWind, player.getPlayerTempData(seatWind));
         }
         for(var orderWind:Wind.values()){
             var sideMap = new HashMap<Side, PlayerTempData>();

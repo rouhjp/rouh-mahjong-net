@@ -3,6 +3,7 @@ package jp.rouh.mahjong.game;
 import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.score.PaymentTable;
 import jp.rouh.mahjong.tile.*;
+import jp.rouh.util.FlexMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -284,20 +285,21 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     }
 
     private void paymentNotified(PaymentTable table){
+        var beforeRankMap = FlexMap.of(Wind.class, wind->getPlayerAt(wind).getRank());
+        var beforeScoreMap = FlexMap.of(Wind.class, wind->getPlayerAt(wind).getScore());
+        //apply score
+        roundPlayers.forEach((wind, player)->player.applyScore(table.paymentOf(wind)));
         var dataMap = new HashMap<Wind, PaymentData>();
         for(var wind:Wind.values()){
-            dataMap.put(wind, new PaymentData());
-            dataMap.get(wind).setName(getPlayerAt(wind).getName());
-            dataMap.get(wind).setWind(wind);
-            dataMap.get(wind).setScoreBefore(getPlayerAt(wind).getScore());
-            dataMap.get(wind).setRankBefore(getPlayerAt(wind).getRank());
-        }
-        for(var wind:Wind.values()){
-            getPlayerAt(wind).applyScore(table.paymentOf(wind));
-        }
-        for(var wind:Wind.values()){
-            dataMap.get(wind).setScoreAfter(getPlayerAt(wind).getScore());
-            dataMap.get(wind).setRankAfter(getPlayerAt(wind).getRank());
+            var data = new PaymentData.Builder()
+                    .withName(getPlayerAt(wind).getName())
+                    .withWind(getPlayerAt(wind).getSeatWind())
+                    .withRankBefore(beforeRankMap.get(wind))
+                    .withScoreBefore(beforeScoreMap.get(wind))
+                    .withRankAfter(getPlayerAt(wind).getRank())
+                    .withScoreAfter(getPlayerAt(wind).getScore())
+                    .build();
+            dataMap.put(wind, data);
         }
         paymentNotified(dataMap);
     }

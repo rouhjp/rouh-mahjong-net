@@ -6,18 +6,13 @@ package jp.rouh.mahjong.game.event;
  * @version 1.0
  */
 public class ProfileData{
-    private final String name;
-
-    public ProfileData(String name){
-        this.name = name;
-    }
+    private String name;
 
     public String getName(){
         return name;
     }
 
-    @Override
-    public String toString(){
-        return "Profile("+name+")";
+    public void setName(String name){
+        this.name = name;
     }
 }

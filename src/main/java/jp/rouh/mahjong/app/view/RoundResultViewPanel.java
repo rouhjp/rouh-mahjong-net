@@ -3,8 +3,7 @@ package jp.rouh.mahjong.app.view;
 import jp.rouh.mahjong.game.event.PaymentData;
 import jp.rouh.mahjong.game.event.HandScoreData;
 import jp.rouh.mahjong.game.event.RiverScoreData;
-import jp.rouh.mahjong.score.HandType;
-import jp.rouh.mahjong.score.Meld;
+import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 
 import javax.swing.*;
@@ -56,13 +55,15 @@ class RoundResultViewPanel extends TablePanel{
         var handTiles = data.getHandTiles();
         var winningTile = data.getWinningTile();
         var openMelds = data.getOpenMelds();
+        var tiltSides = data.getMeldTiltSides();
         var upperIndicators = data.getUpperIndicators();
         var lowerIndicators = data.getLowerIndicators();
-        var handTypes = data.getHandTypes();
+        var handTypeNames = data.getHandTypeNames();
+        var handTypeGrades = data.getHandTypeGrades();
         boolean tsumo = data.isTsumo();
-        displayHand(handTiles, winningTile, openMelds, tsumo);
+        displayHand(handTiles, winningTile, openMelds, tiltSides, tsumo);
         displayIndicators(upperIndicators, lowerIndicators);
-        displayHandTypes(handTypes);
+        displayHandTypes(handTypeNames, handTypeGrades);
         displayExpression(data.getScoreExpression());
     }
 
@@ -73,7 +74,7 @@ class RoundResultViewPanel extends TablePanel{
     void displayScore(RiverScoreData data){
         removeAll();
         displayIndicators(List.of(), List.of());
-        displayHandTypes(List.of(data.getHandType()));
+        displayHandTypes(List.of(data.getHandTypeName()), List.of(data.getHandTypeGrade()));
         displayExpression(data.getScoreExpression());
     }
 
@@ -84,10 +85,10 @@ class RoundResultViewPanel extends TablePanel{
         add(label);
     }
 
-    private void displayHand(List<Tile> handTiles, Tile winningTile, List<Meld> openMelds, boolean tsumo){
+    private void displayHand(List<Tile> handTiles, Tile winningTile, List<List<Tile>> openMelds, List<Side> tiltSides, boolean tsumo){
         int margin = 2;
-        int handWidth = (handTiles.size() + 1)*TILE_WIDTH + margin + openMelds.stream()
-                .mapToInt(m->m.getTilesSorted().size()*TILE_WIDTH + margin).sum();
+        int handWidth = (handTiles.size() + 1)*TILE_WIDTH + margin +
+                openMelds.stream().mapToInt(m->m.size()*TILE_WIDTH + margin).sum();
         int handTilesWidthOffset = (PANEL_WIDTH - handWidth)/2;
         //純手牌描画
         for(int i = 0; i<handTiles.size(); i++){
@@ -110,13 +111,13 @@ class RoundResultViewPanel extends TablePanel{
         for(int meldIndex = 0, totalTileIndex = 0; meldIndex<openMelds.size(); meldIndex++){
             var meld = openMelds.get(meldIndex);
             var meldLabels = new ArrayList<TileLabel>(4);
-            if(meld.isConcealed()){
+            if(tiltSides.get(meldIndex)==Side.SELF){
                 meldLabels.add(TileLabel.ofFaceDown(Direction.TOP));
                 meldLabels.add(TileLabel.ofFaceUp(Direction.TOP, meld.get(1)));
                 meldLabels.add(TileLabel.ofFaceUp(Direction.TOP, meld.get(2)));
                 meldLabels.add(TileLabel.ofFaceDown(Direction.TOP));
             }else{
-                for(var tile:meld.getTilesSorted()){
+                for(var tile:meld){
                     meldLabels.add(TileLabel.ofFaceUp(Direction.TOP, tile));
                 }
             }
@@ -157,7 +158,7 @@ class RoundResultViewPanel extends TablePanel{
         }
     }
 
-    private void displayHandTypes(List<HandType> handTypes){
+    private void displayHandTypes(List<String> handTypeNames, List<String> handTypeGrades){
         int handTypeNameWidth = 24;
         int handTypeDoublesWidth = 4;
         int handTypeWidth = 28;
@@ -165,13 +166,12 @@ class RoundResultViewPanel extends TablePanel{
         int centerHandTypesWidthOffset = PANEL_WIDTH/2 - handTypeWidth/2 - 1;
         int leftHandTypesWidthOffset = PANEL_WIDTH/2 - handTypeWidth - 1;
         int rightHandTypesWidthOffset = PANEL_WIDTH/2 + 1;
-        for(int i = 0; i<handTypes.size(); i++){
-            var handType = handTypes.get(i);
+        for(int i = 0; i<handTypeNames.size(); i++){
             int handTypesHeightOffset = 24 + (i%8)*handTypeHeight;
-            int handTypesWidthOffset = i>=8? rightHandTypesWidthOffset:handTypes.size()>=8? leftHandTypesWidthOffset:centerHandTypesWidthOffset;
-            var handTypeNameLabel = TableTextLabels.ofText(handType.getName(), handTypeNameWidth, handTypeHeight);
-            var handTypeDoublesLabel = TableTextLabels.ofText(handType.getGrade().getCode(), handTypeDoublesWidth, handTypeHeight);
-            boolean lastRow = i==7 || i==(handTypes.size() - 1);
+            int handTypesWidthOffset = i>=8? rightHandTypesWidthOffset:handTypeNames.size()>=8? leftHandTypesWidthOffset:centerHandTypesWidthOffset;
+            var handTypeNameLabel = TableTextLabels.ofText(handTypeNames.get(i), handTypeNameWidth, handTypeHeight);
+            var handTypeDoublesLabel = TableTextLabels.ofText(handTypeGrades.get(i), handTypeDoublesWidth, handTypeHeight);
+            boolean lastRow = i==7 || i==(handTypeNames.size() - 1);
             handTypeNameLabel.setBorder(BorderFactory.createMatteBorder(1, 1, lastRow?1:0, 1, Color.BLACK));
             handTypeDoublesLabel.setBorder(BorderFactory.createMatteBorder(1, 0, lastRow?1:0, 1, Color.BLACK));
             handTypeNameLabel.setBaseLocation(handTypesWidthOffset, handTypesHeightOffset);

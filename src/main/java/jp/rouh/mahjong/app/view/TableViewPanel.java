@@ -630,7 +630,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     }
 
     @Override
-    public void gameSettled(List<GameScoreData> scores){
+    public void gameFinished(List<GameScoreData> scores){
         LOG.info("gameSettled "+scores);
         worker.submit(()->SwingUtilities.invokeLater(()->putGameResultWindow(scores)));
     }

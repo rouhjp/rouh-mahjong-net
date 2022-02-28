@@ -10,7 +10,7 @@ import static jp.rouh.mahjong.game.event.TurnActionType.*;
  * ターン内行動クラス。
  * <p>打牌や立直宣言など, 自身の摸打時に選択可能な行動を表します。
  * @param type 行動の種別
- * @param argument 行動に必要な牌
+ * @param argument 行動の対象牌
  * @author Rouh
  * @version 1.0
  */
@@ -22,6 +22,15 @@ public record TurnAction(TurnActionType type, Tile argument) {
             throw new NoSuchElementException(type+" has no argument");
         }
         return argument;
+    }
+
+    /**
+     * 行動の対象牌が存在するかどうか検査します。
+     * @return true 行動の対象牌が存在する場合
+     *         false 行動の対象牌が存在しない場合
+     */
+    public boolean hasArgument(){
+        return argument!=null;
     }
 
     @Override

@@ -1,6 +1,5 @@
 package jp.rouh.mahjong.score;
 
-import java.util.Comparator;
 import java.util.List;
 
 /**

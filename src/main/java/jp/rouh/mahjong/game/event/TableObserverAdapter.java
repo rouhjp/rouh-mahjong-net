@@ -15,7 +15,7 @@ public interface TableObserverAdapter extends TableObserver{
     }
 
     @Override
-    default void gameSettled(List<GameScoreData> scores){
+    default void gameFinished(List<GameScoreData> scores){
 
     }
 

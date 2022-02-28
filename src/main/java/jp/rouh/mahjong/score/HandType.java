@@ -1,6 +1,5 @@
 package jp.rouh.mahjong.score;
 
-import java.util.List;
 import java.util.NoSuchElementException;
 
 /**

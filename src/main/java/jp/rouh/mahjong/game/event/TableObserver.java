@@ -24,7 +24,7 @@ public interface TableObserver {
      * 対局が終了したことを通知します。
      * @param scores スコアのリスト
      */
-    void gameSettled(List<GameScoreData> scores);
+    void gameFinished(List<GameScoreData> scores);
 
     /**
      * 指定の方向に位置するプレイヤー情報を通知します。

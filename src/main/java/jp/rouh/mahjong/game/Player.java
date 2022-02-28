@@ -1,7 +1,9 @@
 package jp.rouh.mahjong.game;
 
+import jp.rouh.mahjong.game.event.PlayerTempData;
 import jp.rouh.mahjong.game.event.ProfileData;
 import jp.rouh.mahjong.game.event.TableStrategy;
+import jp.rouh.mahjong.tile.Wind;
 
 /**
  * プレイヤークラス。
@@ -43,6 +45,15 @@ class Player{
      * @return プロファイル情報
      */
     ProfileData getProfileData(){
-        return new ProfileData(name);
+        var data = new ProfileData();
+        data.setName(name);
+        return data;
+    }
+
+    PlayerTempData getPlayerTempData(Wind tempSeatWind){
+        var data = new PlayerTempData();
+        data.setName(name);
+        data.setSeatWind(tempSeatWind);
+        return data;
     }
 }

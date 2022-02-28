@@ -44,6 +44,10 @@ public record CallAction(CallActionType type, List<Tile> arguments){
         return arguments;
     }
 
+    public boolean hasArguments(){
+        return arguments!=null;
+    }
+
     /**
      * この行動の優先度を取得します。
      * <p>優先度とは, 複数プレイヤー間でターン外行動が選択されたとき

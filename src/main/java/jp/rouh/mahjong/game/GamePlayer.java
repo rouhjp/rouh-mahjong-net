@@ -75,6 +75,10 @@ class GamePlayer extends TableStrategyDelegator implements GamePlayerAccessor{
     }
 
     GameScoreData getResultScoreData(){
-        return new GameScoreData(name, score, getResultPoint());
+        var data = new GameScoreData();
+        data.setName(name);
+        data.setScore(score);
+        data.setResultPoint(getResultPoint());
+        return data;
     }
 }

@@ -1,6 +1,8 @@
 package jp.rouh.mahjong.game.event;
 
 import jp.rouh.mahjong.tile.Wind;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +21,7 @@ import java.util.function.Function;
  * @version 1.0
  */
 public class CallActionMediator{
+    private final Logger LOG = LoggerFactory.getLogger(CallActionMediator.class);
     private final List<Wind> winds;
     private final Map<Wind, TableStrategy> playerMap = new HashMap<>();
     private final Map<Wind, List<CallAction>> choicesMap = new HashMap<>();
@@ -85,6 +88,10 @@ public class CallActionMediator{
      */
     public Map<Wind, CallAction> mediate(){
         if(playerMap.isEmpty() || choicesMap.isEmpty()) throw new IllegalStateException("parameter not initialized yet");
+        for(var key:choicesMap.keySet()){
+            LOG.info("choices("+key+"): "+choicesMap.get(key));
+        }
+
         var winds = playerMap.keySet();
         var highestPriorityMap = new HashMap<Wind, Integer>();
         for(var wind:winds){
@@ -111,6 +118,7 @@ public class CallActionMediator{
             var answerMap = new HashMap<Wind, CallAction>();
             for(int i = 0; i<winds.size(); i++){
                 var answer = completionService.take().get();
+                LOG.info("answer("+answer.from+") "+answer.action);
                 highestPriorityMap.remove(answer.from());
                 if(answer.action().priority()!=CallAction.PASS_PRIORITY){
                     answerMap.entrySet().removeIf(entry->entry.getValue().priority()<answer.action.priority());
@@ -118,6 +126,7 @@ public class CallActionMediator{
                     // return immediately if all remaining actions are lower priority
                     if(highestPriorityMap.values().stream().noneMatch(priority->priority>=answer.action().priority())){
                         executorService.shutdownNow();
+                        LOG.info("answer interrupted");
                         return answerMap;
                     }
                 }

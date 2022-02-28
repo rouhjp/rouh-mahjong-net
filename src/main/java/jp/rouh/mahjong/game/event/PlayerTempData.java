@@ -8,29 +8,22 @@ import jp.rouh.mahjong.tile.Wind;
  * @version 1.0
  */
 public class PlayerTempData{
-    private final String name;
-    private final Wind seatWind;
-
-    /**
-     * プレイヤー情報DTOのコンストラクタ。
-     * @param name 名前
-     * @param tempSeatWind 仮風
-     */
-    public PlayerTempData(String name, Wind tempSeatWind){
-        this.name = name;
-        this.seatWind = tempSeatWind;
-    }
+    private String name;
+    private Wind seatWind;
 
     public String getName(){
         return name;
+    }
+
+    public void setName(String name){
+        this.name = name;
     }
 
     public Wind getSeatWind(){
         return seatWind;
     }
 
-    @Override
-    public String toString(){
-        return "player("+name+" "+seatWind+")";
+    public void setSeatWind(Wind seatWind){
+        this.seatWind = seatWind;
     }
 }

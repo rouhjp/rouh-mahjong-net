@@ -101,7 +101,7 @@ public class PreparedGame implements GameAccessor{
         }
         var resultScores = playerRanking.stream().map(GamePlayer::getResultScoreData).toList();
         for(var wind:Wind.values()){
-            gamePlayers.get(wind).gameSettled(resultScores);
+            gamePlayers.get(wind).gameFinished(resultScores);
         }
     }
 

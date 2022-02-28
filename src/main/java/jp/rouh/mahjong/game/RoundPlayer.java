@@ -341,8 +341,13 @@ public class RoundPlayer extends TableStrategyDelegator implements WinningPlayer
     }
 
     PlayerData getPlayerData(){
-        var initialSeatWind = gamePlayer.getSeatWindAt(1);
-        return new PlayerData(getName(), initialSeatWind, seatWind, getScore(), getRank());
+        var data = new PlayerData();
+        data.setName(getName());
+        data.setInitialSeatWind(gamePlayer.getSeatWindAt(1));
+        data.setSeatWind(seatWind);
+        data.setScore(getScore());
+        data.setRank(getRank());
+        return data;
     }
 
     void applyScore(int score){

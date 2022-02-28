@@ -8,49 +8,49 @@ import jp.rouh.mahjong.tile.Wind;
  * @version 1.0
  */
 public class PlayerData{
-    private final String name;
-    private final Wind initialSeatWind;
-    private final Wind seatWind;
-    private final int score;
-    private final int rank;
-
-    /**
-     * プレイヤー情報DTOのコンストラクタ。
-     * @param name 名前
-     * @param seatWind 風
-     * @param score 持ち点
-     * @param rank ランク
-     */
-    public PlayerData(String name, Wind initialWind, Wind seatWind, int score, int rank){
-        this.name = name;
-        this.initialSeatWind = initialWind;
-        this.seatWind = seatWind;
-        this.score = score;
-        this.rank = rank;
-    }
+    private String name;
+    private Wind initialSeatWind;
+    private Wind seatWind;
+    private int score;
+    private int rank;
 
     public String getName(){
         return name;
+    }
+
+    public void setName(String name){
+        this.name = name;
     }
 
     public Wind getInitialSeatWind(){
         return initialSeatWind;
     }
 
+    public void setInitialSeatWind(Wind initialSeatWind){
+        this.initialSeatWind = initialSeatWind;
+    }
+
     public Wind getSeatWind(){
         return seatWind;
+    }
+
+    public void setSeatWind(Wind seatWind){
+        this.seatWind = seatWind;
     }
 
     public int getScore(){
         return score;
     }
 
+    public void setScore(int score){
+        this.score = score;
+    }
+
     public int getRank(){
         return rank;
     }
 
-    @Override
-    public String toString(){
-        return "player("+name+" "+ initialSeatWind +" "+seatWind+" "+score+" "+rank+")";
+    public void setRank(int rank){
+        this.rank = rank;
     }
 }
