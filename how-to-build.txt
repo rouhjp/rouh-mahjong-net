@@ -1,0 +1,16 @@
+
+./jdk-17.0.1
+=>シンボリックリンクが正しいことを確認
+
+$ gradle shadowJar ... 実行可能jarを作成
+$ gradle generateJRE ... exe バンドル用jre-minを作成
+$ gradle launch4j ... jarをexe化
+
+./build/libs/rouh-mahjong-net-1.0-SNAPSHOT-all.jar
+=> fat jar が生成されているか確認
+
+./build/jre-min
+=> jre-min が生成されているか確認
+
+./build/libs/rouh-mahjong-net.exe
+=> exe が生成されているか確認

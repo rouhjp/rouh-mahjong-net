@@ -1,10 +1,16 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id 'edu.sc.seis.launch4j' version '2.5.3'
 }
 
 group 'jp.rouh'
 version '1.0-SNAPSHOT'
+
+application{
+    mainClassName = 'jp.rouh.mahjong.app.Application'
+}
 
 repositories {
     mavenCentral()
@@ -13,16 +19,29 @@ repositories {
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-    implementation group: 'io.netty', name: 'netty-all', version: '4.1.70.Final'
-    
+
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.32'
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.10'
     implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.10'
-    implementation group: 'org.codehaus.janino', name: 'janino', version: '3.1.6'
 }
 
 test {
     useJUnitPlatform()
 }
 
+launch4j{
+    jarTask = shadowJar
+    bundledJrePath = project.projectDir.toString() + '/build/jre-min'
+}
+
+task generateJRE {
+    doFirst {
+        exec {
+            workingDir = project.projectDir
+            commandLine = ['cmd', '/C', 'generate-jre.bat']
+        }
+    }
+}
+
 tasks.withType(AbstractCompile)*.options*.encoding = tasks.withType(GroovyCompile)*.groovyOptions*.encoding = 'UTF-8'
+
