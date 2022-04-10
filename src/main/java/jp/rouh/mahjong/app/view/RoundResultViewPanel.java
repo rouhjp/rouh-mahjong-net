@@ -194,7 +194,7 @@ class RoundResultViewPanel extends TablePanel{
         int rankAfter = data.getRankAfter();
         int scoreBefore = data.getScoreBefore();
         int scoreAfter = data.getScoreAfter();
-        int scoreApplied = data.getScoreApplied();
+        int scoreApplied = scoreAfter - scoreBefore;
         var name = data.getName();
         var wind = data.getWind();
         var rankMsg = rankAfter + "位";

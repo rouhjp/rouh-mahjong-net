@@ -69,6 +69,7 @@ public class Application implements ApplicationContext{
     private void createScenes(){
         scenes.put(MenuScene.class, new MenuScene(this));
         scenes.put(TableScene.class, new TableScene(this));
+        scenes.put(RoomScene.class, new RoomScene(this));
         scenes.forEach((clazz, scene)->rootPanel.add(scene, clazz.toString()));
     }
 
@@ -76,6 +77,13 @@ public class Application implements ApplicationContext{
     public <T extends Scene> void moveTo(Class<T> clazz){
         assert scenes.containsKey(clazz): "scene not found: "+clazz;
         cardLayout.show(rootPanel, clazz.toString());
+    }
+
+    @Override
+    public <T extends Scene> T sceneOf(Class<T> clazz){
+        @SuppressWarnings("unchecked")
+        var scene = (T)scenes.get(clazz);
+        return scene;
     }
 
     @Override

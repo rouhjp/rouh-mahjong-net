@@ -287,18 +287,16 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     private void paymentNotified(PaymentTable table){
         var beforeRankMap = FlexMap.of(Wind.class, wind->getPlayerAt(wind).getRank());
         var beforeScoreMap = FlexMap.of(Wind.class, wind->getPlayerAt(wind).getScore());
-        //apply score
         roundPlayers.forEach((wind, player)->player.applyScore(table.paymentOf(wind)));
         var dataMap = new HashMap<Wind, PaymentData>();
         for(var wind:Wind.values()){
-            var data = new PaymentData.Builder()
-                    .withName(getPlayerAt(wind).getName())
-                    .withWind(getPlayerAt(wind).getSeatWind())
-                    .withRankBefore(beforeRankMap.get(wind))
-                    .withScoreBefore(beforeScoreMap.get(wind))
-                    .withRankAfter(getPlayerAt(wind).getRank())
-                    .withScoreAfter(getPlayerAt(wind).getScore())
-                    .build();
+            var data = new PaymentData();
+            data.setName(getPlayerAt(wind).getName());
+            data.setWind(getPlayerAt(wind).getSeatWind());
+            data.setRankBefore(beforeRankMap.get(wind));
+            data.setScoreBefore(beforeScoreMap.get(wind));
+            data.setRankAfter(getPlayerAt(wind).getRank());
+            data.setScoreAfter(getPlayerAt(wind).getScore());
             dataMap.put(wind, data);
         }
         paymentNotified(dataMap);

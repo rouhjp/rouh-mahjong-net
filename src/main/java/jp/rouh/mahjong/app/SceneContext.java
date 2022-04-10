@@ -17,6 +17,9 @@ public interface SceneContext{
      */
     <T extends Scene> void moveTo(Class<T> clazz);
 
+
+    <T extends Scene> T sceneOf(Class<T> clazz);
+
     /**
      * 指定したシーンに画面遷移します。
      * @param clazz 遷移先シーンのクラスオブジェクト

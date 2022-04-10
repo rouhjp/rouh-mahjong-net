@@ -1,0 +1,276 @@
+package jp.rouh.mahjong.app;
+
+import jp.rouh.mahjong.app.view.TableScene;
+import jp.rouh.mahjong.game.event.TableStrategyDelegator;
+import jp.rouh.mahjong.net.*;
+import jp.rouh.util.net.BioMessageClient;
+import jp.rouh.util.net.MessageConnection;
+import jp.rouh.util.net.msg.MessageConverter;
+import jp.rouh.util.net.msg.RemoteConnections;
+
+import javax.swing.*;
+import javax.swing.border.LineBorder;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class RoomScene extends Scene{
+    private static final int HEADER_BASE_HEIGHT = 12;
+    private static final int MAIN_BASE_HEIGHT = 96;
+    private static final int FOOTER_BASE_HEIGHT = 12;
+    private static final int BUTTON_WIDTH = 20;
+    private final MessageConverter converter = RoomMessageConverters.getConverter();
+    private final MemberPanel[] memberPanels = new MemberPanel[4];
+    private final AtomicBoolean ready = new AtomicBoolean(false);
+    private final TableDispatcher dispatcher;
+    private final JLabel readyButton;
+    private final JLabel startButton;
+    private Connection connection;
+
+
+    private interface Connection{
+
+        Room getRoom();
+
+        void close();
+    }
+
+    private class TableDispatcher extends TableStrategyDelegator implements RoomObserver{
+        private TableDispatcher(){
+            super(getContext().sceneOf(TableScene.class).getTableView());
+        }
+
+        @Override
+        public void roomUpdated(List<RoomMemberData> members){
+            for(int i = 0; i<4; i++){
+                if(i>=members.size()){
+                    memberPanels[i].displayNone();
+                }else{
+                    memberPanels[i].displayMemberData(members.get(i));
+                }
+            }
+            startButton.setEnabled(connection instanceof HostConnection && members.stream().allMatch(RoomMemberData::isReady));
+        }
+
+        @Override
+        public void gameStarted(){
+            getContext().moveTo(TableScene.class);
+        }
+    }
+
+
+    private class HostConnection implements Connection{
+        private final RoomServer localServer;
+        private final MessageConnection localConnection;
+        private final Room localRoom;
+        private HostConnection(int port) throws IOException{
+            localServer = new RoomServer();
+            localServer.start(port);
+            localConnection = new BioMessageClient("localhost", port);
+            localConnection.addListener(RemoteConnections.newDispatcher(dispatcher, localConnection, converter));
+            localRoom = RemoteConnections.newProxy(Room.class, localConnection, converter);
+        }
+
+        @Override
+        public Room getRoom(){
+            return localRoom;
+        }
+
+        @Override
+        public void close(){
+            localConnection.close();
+            localServer.close();
+        }
+    }
+
+
+    private class JoinConnection implements Connection{
+        private final MessageConnection remoteConnection;
+        private final Room remoteRoom;
+
+        JoinConnection(String host, int port) throws IOException{
+            remoteConnection = new BioMessageClient(host, port);
+            remoteConnection.addListener(RemoteConnections.newDispatcher(dispatcher, remoteConnection, converter));
+            remoteRoom = RemoteConnections.newProxy(Room.class, remoteConnection, converter);
+        }
+
+        @Override
+        public Room getRoom(){
+            return remoteRoom;
+        }
+
+        @Override
+        public void close(){
+            remoteConnection.close();
+        }
+    }
+
+    RoomScene(ApplicationContext context){
+        super(context);
+        this.dispatcher = new TableDispatcher();
+        var sceneLayout = new SpringLayout();
+        setLayout(sceneLayout);
+
+        var headerPanel = new AutoResizablePanel(Scene.BASE_WIDTH, HEADER_BASE_HEIGHT, context);
+        var mainPanel = new AutoResizablePanel(Scene.BASE_WIDTH, MAIN_BASE_HEIGHT, context);
+        var footerPanel = new AutoResizablePanel(Scene.BASE_WIDTH, FOOTER_BASE_HEIGHT, context);
+        sceneLayout.putConstraint(SpringLayout.NORTH, headerPanel, 0, SpringLayout.NORTH, this);
+        sceneLayout.putConstraint(SpringLayout.NORTH, mainPanel, 0, SpringLayout.SOUTH, headerPanel);
+        sceneLayout.putConstraint(SpringLayout.NORTH, footerPanel, 0, SpringLayout.SOUTH, mainPanel);
+        add(headerPanel);
+        add(mainPanel);
+        add(footerPanel);
+
+        var headerLayout = new SpringLayout();
+        headerPanel.setLayout(headerLayout);
+        headerPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
+        var exitButton = new LButton(BUTTON_WIDTH, HEADER_BASE_HEIGHT, this::exit);
+        exitButton.setText("EXIT");
+        var statusLabel = new JLabel("connected");
+        headerLayout.putConstraint(SpringLayout.WEST, statusLabel, 0, SpringLayout.WEST, headerPanel);
+        headerLayout.putConstraint(SpringLayout.EAST, exitButton, 0, SpringLayout.EAST, headerPanel);
+        headerPanel.add(statusLabel);
+        headerPanel.add(exitButton);
+
+        var footerLayout = new SpringLayout();
+        footerPanel.setLayout(footerLayout);
+        footerPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLACK));
+        var readyButton = new LButton(BUTTON_WIDTH, FOOTER_BASE_HEIGHT, this::toggleReady);
+        var startButton = new LButton(BUTTON_WIDTH, FOOTER_BASE_HEIGHT, this::start);
+        this.readyButton = readyButton;
+        this.startButton = startButton;
+        readyButton.setText("READY");
+        startButton.setText("START");
+        footerLayout.putConstraint(SpringLayout.WEST, readyButton, 0, SpringLayout.WEST, footerPanel);
+        footerLayout.putConstraint(SpringLayout.WEST, startButton, 0, SpringLayout.EAST, readyButton);
+        footerPanel.add(readyButton);
+        footerPanel.add(startButton);
+
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        for(int i = 0; i<4; i++){
+            var memberPanel = new MemberPanel(i);
+            memberPanels[i] = memberPanel;
+            mainPanel.add(memberPanel);
+        }
+    }
+
+    void initAsHost(int port, String name) throws IOException{
+        connection = new HostConnection(port);
+        new SwingWorker<Void, Void>(){
+            @Override
+            protected Void doInBackground(){
+                connection.getRoom().notifyName(name);
+                return null;
+            }
+        }.execute();
+    }
+
+    void initAsGuest(String host, int port, String name) throws IOException{
+        connection = new JoinConnection(host, port);
+        new SwingWorker<Void, Void>(){
+            @Override
+            protected Void doInBackground(){
+                connection.getRoom().notifyName(name);
+                return null;
+            }
+        }.execute();
+    }
+
+    private void start(){
+        var room = connection.getRoom();
+        room.start();
+    }
+
+    public void toggleReady(){
+        new SwingWorker<Void, Void>(){
+            @Override
+            protected Void doInBackground(){
+                connection.getRoom().notifyReady(!ready.get());
+                return null;
+            }
+
+            @Override
+            protected void done(){
+                ready.set(!ready.get());
+                readyButton.setText(ready.get()?"CANCEL":"READY");
+            }
+        }.execute();
+    }
+
+    public void exit(){
+        connection.close();
+        connection = null;
+        getContext().moveTo(MenuScene.class);
+    }
+
+    private class MemberPanel extends AutoResizablePanel{
+        private final JLabel nameLabel = new JLabel();
+        private final JLabel readyLabel = new JLabel("ready");
+        private MemberPanel(int index){
+            super(Scene.BASE_WIDTH, MAIN_BASE_HEIGHT/4, getContext());
+            var indexLabel = new JLabel(new String[]{"①", "②", "③", "④"}[index%4]);
+            readyLabel.setForeground(Color.RED);
+            setLayout(new FlowLayout());
+            add(indexLabel);
+            add(nameLabel);
+            add(readyLabel);
+            setVisible(false);
+        }
+
+        private void displayMemberData(RoomMemberData data){
+            nameLabel.setText(data.getName());
+            readyLabel.setVisible(data.isReady());
+            setVisible(true);
+        }
+
+        private void displayNone(){
+            setVisible(false);
+        }
+    }
+
+    private class LButton extends JLabel{
+        private static final Color NON_ACTIVE_BG = Color.WHITE;
+        private static final Color NON_ACTIVE_FG = Color.BLACK;
+        private static final Color ACTIVE_BG = Color.DARK_GRAY;
+        private static final Color ACTIVE_FG = Color.WHITE;
+        private final int baseWidth;
+        private final int baseHeight;
+        LButton(int baseWidth, int baseHeight, Runnable action){
+            this.baseWidth = baseWidth;
+            this.baseHeight = baseHeight;
+            setVerticalAlignment(CENTER);
+            setHorizontalAlignment(CENTER);
+            setBorder(new LineBorder(Color.BLACK));
+            setOpaque(true);
+            setBackground(NON_ACTIVE_BG);
+            setForeground(NON_ACTIVE_FG);
+            addMouseListener(new MouseAdapter(){
+                @Override
+                public void mousePressed(MouseEvent e){
+                    action.run();
+                }
+
+                @Override
+                public void mouseEntered(MouseEvent e){
+                    setBackground(ACTIVE_BG);
+                    setForeground(ACTIVE_FG);
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e){
+                    setBackground(NON_ACTIVE_BG);
+                    setForeground(NON_ACTIVE_FG);
+                }
+            });
+        }
+
+        @Override
+        public Dimension getPreferredSize(){
+            int weight = getContext().getSizeWeight();
+            return new Dimension(baseWidth*weight, baseHeight*weight);
+        }
+    }
+}

@@ -33,12 +33,7 @@ public class TableViewManualTest1{
     private void start(){
         table.roundStarted(EAST, 1, 5, 5, true);
         table.wallGenerated();
-        table.seatUpdated(Map.of(
-                LEFT, new PlayerData("おおらか", EAST, EAST, 25000, 1),
-                SELF, new PlayerData("ほがらか", SOUTH, SOUTH, 24000, 4),
-                RIGHT, new PlayerData("なごやか", WEST, WEST, 25000, 2),
-                ACROSS, new PlayerData("さわやか", NORTH, NORTH, 25000, 3)
-        ));
+
         var allTiles = List.of(P2, P2, P3, P3, P4, P4, P5, P5, P6, P6, P7, P8, DW, P7);
         table.handUpdated(allTiles, true);
         table.handUpdated(LEFT, 13, false);

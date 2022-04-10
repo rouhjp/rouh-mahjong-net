@@ -6,9 +6,12 @@ package jp.rouh.mahjong.game.event;
  * @version 1.0
  */
 public class RiverScoreData{
-    private final String handTypeName;
-    private final String handTypeGrade;
-    private final String scoreExpression;
+    private String handTypeName;
+    private String handTypeGrade;
+    private String scoreExpression;
+
+    public RiverScoreData(){
+    }
 
     public RiverScoreData(String handTypeName, String handTypeGrade, String scoreExpression){
         this.handTypeName = handTypeName;
@@ -26,5 +29,17 @@ public class RiverScoreData{
 
     public String getScoreExpression(){
         return scoreExpression;
+    }
+
+    public void setHandTypeName(String handTypeName){
+        this.handTypeName = handTypeName;
+    }
+
+    public void setHandTypeGrade(String handTypeGrade){
+        this.handTypeGrade = handTypeGrade;
+    }
+
+    public void setScoreExpression(String scoreExpression){
+        this.scoreExpression = scoreExpression;
     }
 }

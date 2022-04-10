@@ -7,6 +7,7 @@ class AutoResizablePanel extends JPanel{
     private final int baseWidth;
     private final int baseHeight;
     private final ApplicationContext context;
+
     AutoResizablePanel(int baseWidth, int baseHeight, ApplicationContext context){
         this.baseWidth = baseWidth;
         this.baseHeight = baseHeight;

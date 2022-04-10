@@ -5,14 +5,12 @@ import jp.rouh.mahjong.game.GameTable;
 import jp.rouh.mahjong.game.event.TableStrategyMock;
 
 import javax.swing.*;
-import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.util.concurrent.Executors;
 
 public class MenuScene extends Scene{
-
+    private final JTextField nameField = new JTextField();
     private final JTextField joinPortField = new JTextField();
     private final JTextField joinHostField = new JTextField();
     private final JTextField hostPortField = new JTextField();
@@ -22,9 +20,14 @@ public class MenuScene extends Scene{
         var layout = new SpringLayout();
         setLayout(layout);
 
+        nameField.setColumns(8);
         joinHostField.setColumns(10);
         joinPortField.setColumns(4);
         hostPortField.setColumns(4);
+
+        var nameRow = new JPanel();
+        nameRow.add(new JLabel("name:"));
+        nameRow.add(nameField);
 
         var joinRow = new JPanel();
         joinRow.setBorder(BorderFactory.createTitledBorder("Join Game"));
@@ -47,66 +50,65 @@ public class MenuScene extends Scene{
         var testButton = new JButton("start");
         testRow.add(testButton);
 
-        layout.putConstraint(SpringLayout.NORTH, joinRow, 10, SpringLayout.NORTH, this);
+        var errorMessageLabel = new JLabel();
+        errorMessageLabel.setForeground(Color.RED);
+
+        layout.putConstraint(SpringLayout.NORTH, nameRow, 10, SpringLayout.NORTH, this);
+        layout.putConstraint(SpringLayout.NORTH, joinRow, 10, SpringLayout.SOUTH, nameRow);
         layout.putConstraint(SpringLayout.NORTH, hostRow, 10, SpringLayout.SOUTH, joinRow);
         layout.putConstraint(SpringLayout.NORTH, testRow, 10, SpringLayout.SOUTH, hostRow);
+        layout.putConstraint(SpringLayout.NORTH, errorMessageLabel, 10, SpringLayout.SOUTH, testRow);
+
+        add(nameRow);
+        add(joinRow);
+        add(hostRow);
+        add(testRow);
+        add(errorMessageLabel);
+
+        joinButton.addActionListener(event->{
+            try{
+                var host = joinHostField.getText();
+                int port = Integer.parseInt(joinPortField.getText());
+                var name = nameField.getText().isBlank()? "guest":nameField.getText();
+
+                var roomScene = context.sceneOf(RoomScene.class);
+                roomScene.initAsGuest(host, port, name);
+                context.moveTo(RoomScene.class);
+            }catch(IOException e){
+                errorMessageLabel.setText("接続に失敗しました: " + e.getMessage());
+            }catch(NumberFormatException e){
+                errorMessageLabel.setText("ポート番号が不正です: " + joinPortField.getText());
+            }
+        });
+
+        hostButton.addActionListener(event->{
+            try{
+                int port = Integer.parseInt(hostPortField.getText());
+                var name = nameField.getText().isBlank()? "guest":nameField.getText();
+
+                var roomScene = context.sceneOf(RoomScene.class);
+                roomScene.initAsHost(port, name);
+                context.moveTo(RoomScene.class);
+            }catch(IOException e){
+                errorMessageLabel.setText("接続に失敗しました: "+e.getMessage());
+            }catch(NumberFormatException e){
+                errorMessageLabel.setText("ポート番号が不正です: "+hostPortField.getText());
+            }
+        });
 
         testButton.addActionListener(event->context.moveTo(TableScene.class, tableScene->{
             var executor = Executors.newSingleThreadExecutor();
             executor.submit(()->{
-                try{
-                    var table = new GameTable();
-                    table.addPlayer("けもみみ", tableScene.getTableView());
-                    table.addPlayer("guest1", TableStrategyMock.DISCARD);
-                    table.addPlayer("guest2", TableStrategyMock.DISCARD);
-                    table.addPlayer("guest3", TableStrategyMock.DISCARD);
-                    table.start();
-                }catch(Exception e){
-                    e.printStackTrace();
-                }
+                var table = new GameTable();
+                var name = nameField.getText().isBlank()? "you":nameField.getText();
+                table.addPlayer(name, tableScene.getTableView());
+                table.addPlayer("guest1", TableStrategyMock.DISCARD);
+                table.addPlayer("guest2", TableStrategyMock.DISCARD);
+                table.addPlayer("guest3", TableStrategyMock.DISCARD);
+                table.start();
             });
             executor.shutdown();
         }));
 
-        add(joinRow);
-        add(hostRow);
-        add(testRow);
-
     }
-
-    private static class LButton extends JLabel{
-        private static final Color NON_ACTIVE_BG = Color.WHITE;
-        private static final Color NON_ACTIVE_FG = Color.BLACK;
-        private static final Color ACTIVE_BG = Color.DARK_GRAY;
-        private static final Color ACTIVE_FG = Color.WHITE;
-
-        LButton(String text, Runnable action){
-            setText(text);
-            setVerticalAlignment(CENTER);
-            setHorizontalAlignment(CENTER);
-            setBorder(new LineBorder(Color.BLACK));
-            setOpaque(true);
-            setBackground(NON_ACTIVE_BG);
-            setForeground(NON_ACTIVE_FG);
-            addMouseListener(new MouseAdapter(){
-                @Override
-                public void mousePressed(MouseEvent e){
-                    action.run();
-                }
-
-                @Override
-                public void mouseEntered(MouseEvent e){
-                    setBackground(ACTIVE_BG);
-                    setForeground(ACTIVE_FG);
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e){
-                    setBackground(NON_ACTIVE_BG);
-                    setForeground(NON_ACTIVE_FG);
-                }
-            });
-        }
-    }
-
 }
