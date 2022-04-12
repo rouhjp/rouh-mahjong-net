@@ -30,11 +30,15 @@ test {
 }
 
 launch4j{
+    copyright = "rouh"
     jarTask = shadowJar
-    bundledJrePath = project.projectDir.toString() + '/build/jre-min'
+    mainClassName = 'jp.rouh.mahjong.app.Application'
+    outputDir = './product'
+    bundledJrePath = './jre-min'
+    bundledJre64Bit = true
 }
 
-task generateJRE {
+task generateJRE(dependsOn: ["shadowJar"]){
     doFirst {
         exec {
             workingDir = project.projectDir
@@ -42,6 +46,12 @@ task generateJRE {
         }
     }
 }
+
+task createProductZIP(type: Zip, dependsOn:["launch4j", "generateJRE"]){
+    archiveFileName = 'rouh-mahjong.zip'
+    from 'build/product'
+}
+
 
 tasks.withType(AbstractCompile)*.options*.encoding = tasks.withType(GroovyCompile)*.groovyOptions*.encoding = 'UTF-8'
 
