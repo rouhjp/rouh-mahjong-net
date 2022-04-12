@@ -6,7 +6,7 @@ import java.util.function.Predicate;
 
 /**
  * ある型のオブジェクトを文字列に変換するルール。
- * @see MessageConverter
+ * <p>このルールはコンバータ{@see MessageConverter}で使用されます。
  * @param <E> 対象の型
  * @author Rouh
  * @version 1.0

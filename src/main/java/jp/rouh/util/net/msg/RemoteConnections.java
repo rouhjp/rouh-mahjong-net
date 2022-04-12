@@ -12,12 +12,33 @@ import java.util.List;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 
+/**
+ * 接続先オブジェクトでリモートメソッド呼び出しを行うためのユーティリティクラス。
+ * @author Rouh
+ * @version 1.0
+ */
 public class RemoteConnections{
     private static final Logger LOG = LoggerFactory.getLogger(RemoteConnections.class);
     private RemoteConnections(){
         throw new AssertionError("instantiate utility class");
     }
 
+    /**
+     * 接続先オブジェクトへのメソッド呼び出しを発行するためのプロキシを生成します。
+     * <p>指定したインターフェースで定義されたメソッドをこのプロキシから呼び出した場合,
+     * 指定したコンバータで引数を文字列に変換し, メッセージ通信を用いて通信先にリクエストを送信します。
+     * 送信先のメッセージ通信に{@link #newDispatcher}メソッドで生成したリスナを設定することで,
+     * メッセージ通信越しのリモートメソッド呼び出しが実現可能です。
+     * <p>メソッドに戻り値が存在する場合は, リスナが返答するレスポンスの到着を待つため,
+     * メソッド呼び出しはブロッキングな操作となることに注意が必要です。
+     * <p>また, コンバータは{@link RemoteRequest}及び{@link RemoteResponse}を
+     * 文字列に変換することができる必要があります。
+     * @param remoteInterface 接続先オブジェクトの呼び出しインターフェース
+     * @param connection メッセージ通信
+     * @param converter オブジェクトを文字列にマッピングする文字列コンバータ
+     * @param <T> 呼び出しインターフェース
+     * @return プロキシ
+     */
     public static <T> T newProxy(Class<T> remoteInterface, MessageConnection connection, MessageConverter converter){
         @SuppressWarnings("unchecked")
         var proxy = (T)Proxy.newProxyInstance(remoteInterface.getClassLoader(),
@@ -25,6 +46,18 @@ public class RemoteConnections{
         return proxy;
     }
 
+    /**
+     * リモートメソッド呼び出しに応答するためのメッセージリスナを生成します。
+     * <p>このリスナを登録したメッセージ通信に対して, リモートメソッド呼び出しリクエストが送られた場合,
+     * 委譲先オブジェクトに対してリクエストされたメソッドを呼び出し,
+     * 戻り値がある場合はその戻り値を渡されたメッセージ通信先に対して転送します。
+     * <p>また, コンバータは{@link RemoteRequest}及び{@link RemoteResponse}を
+     * 文字列に変換することができる必要があります。
+     * @param dispatchTo 委譲先
+     * @param connection 戻り値転送時のメッセージ通信(通常はこのリスナの登録先と同じオブジェクト)
+     * @param converter 戻り値転送時のオブジェクトを文字列にマッピングする文字列コンバータ
+     * @return メッセージリスナ
+     */
     public static MessageListener newDispatcher(Object dispatchTo, MessageConnection connection, MessageConverter converter){
         return message->{
             LOG.info("remote-receiver=> received: " + message);
@@ -49,11 +82,6 @@ public class RemoteConnections{
                 LOG.info("exception caught while resolving received message: " + e.getMessage() + " message=" + message);
             }
         };
-    }
-
-    @Deprecated
-    public static void setReceiver(Object dispatchTo, MessageConnection connection, MessageConverter converter){
-        connection.addListener(newDispatcher(dispatchTo, connection, converter));
     }
 
     private static class RemoteProxy implements InvocationHandler, MessageListener{

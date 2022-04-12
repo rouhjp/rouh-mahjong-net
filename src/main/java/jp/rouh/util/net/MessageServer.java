@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
- * オブジェクト通信サーバ。
+ * メッセージ通信サーバ。
  * @author Rouh
  * @version 1.0
  */

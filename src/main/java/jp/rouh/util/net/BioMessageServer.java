@@ -16,7 +16,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * ブロッキングIOによるメッセージ通信サーバ
+ * ブロッキングIOによるメッセージ通信サーバ。
+ * <p>このクラスはメッセージ通信サーバ{@link MessageServer}の実装です。
  * @author Rouh
  * @version 1.0
  */
@@ -27,6 +28,10 @@ public class BioMessageServer implements MessageServer{
     private final Queue<BioMessageChannel> users = new ConcurrentLinkedQueue<>();
     private final AtomicReference<ServerSocket> serverSocket = new AtomicReference<>();
 
+    /**
+     * サーバのインスタンスを生成します。
+     * <p>サーバは{@link #start}メソッドが呼ばれるまで停止状態のままです。
+     */
     public BioMessageServer(){
         //pass
     }

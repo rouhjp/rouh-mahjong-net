@@ -24,12 +24,4 @@ public class MessageConversionException extends RuntimeException{
     public MessageConversionException(String message, Throwable cause){
         super(message, cause);
     }
-
-    /**
-     * 原因例外を指定したコンストラクタ。
-     * @param cause 原因例外
-     */
-    public MessageConversionException(Throwable cause){
-        super(cause);
-    }
 }
