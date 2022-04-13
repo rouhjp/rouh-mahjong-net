@@ -51,7 +51,7 @@ interface HandComponent{
      * @return true 対象の牌が存在する場合
      *         false 対象の牌が存在しない場合
      */
-    default boolean contains(Tile tile){
+    default boolean containsIgnoreRed(Tile tile){
         return getTilesSorted().stream().anyMatch(tile::equalsIgnoreRed);
     }
 

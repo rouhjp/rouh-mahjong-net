@@ -80,7 +80,7 @@ enum Wait{
      * @throws IllegalArgumentException 和了牌を含まない場合
      */
     static Wait of(Meld meld, Tile winningTile){
-        if(!meld.contains(winningTile)){
+        if(!meld.containsIgnoreRed(winningTile)){
             throw new IllegalArgumentException("no winning tile found: " + winningTile + " " + meld);
         }
         if(meld.isSequence()){

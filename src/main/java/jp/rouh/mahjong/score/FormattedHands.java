@@ -31,7 +31,7 @@ final class FormattedHands{
         for(var arranged: HandTiles.arrange(handTiles, winningTile)){
             var head = new Head(arranged.get(0));
             var tail = arranged.subList(1, arranged.size());
-            if(head.contains(winningTile)){
+            if(head.containsIgnoreRed(winningTile)){
                 var wait = Wait.SINGLE_HEAD;
                 var melds = new ArrayList<Meld>();
                 for(var meldTiles:tail){
@@ -41,7 +41,7 @@ final class FormattedHands{
                 formattedHands.add(new FormattedHand(head, melds, wait));
             }
             for(int i = 0; i<tail.size(); i++){
-                if(tail.get(i).contains(winningTile)){
+                if(tail.get(i).stream().anyMatch(t->t.equalsIgnoreRed(winningTile))){
                     var melds = new ArrayList<Meld>(4);
                     for(int k = 0; k<tail.size(); k++){
                         if(!context.isTsumo() && k==i){
