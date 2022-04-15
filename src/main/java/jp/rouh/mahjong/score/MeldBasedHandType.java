@@ -99,7 +99,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
-                    && hand.getMelds().stream().allMatch(Meld::isTerminal);
+                    && hand.getComponents().stream().allMatch(HandComponent::isTerminal);
         }
     },
 
@@ -110,7 +110,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
-                    && hand.getMelds().stream().allMatch(Meld::isTerminal);
+                    && hand.getComponents().stream().allMatch(HandComponent::isTerminal);
         }
     },
 
