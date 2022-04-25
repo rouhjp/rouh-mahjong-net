@@ -14,15 +14,26 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
+/**
+ * 麻雀ルームサーバ。
+ * @author Rouh
+ * @version 1.0
+ */
 public class RoomServer extends BioMessageServer implements MessageServerListener{
     private static final Logger LOG = LoggerFactory.getLogger(RoomServer.class);
     private final MessageConverter converter = RoomMessageConverters.getConverter();
     private final Map<String, RoomMember> members = new ConcurrentHashMap<>();
 
+    /**
+     * 麻雀ルームサーバを生成します。
+     */
     public RoomServer(){
         addListener(this);
     }
 
+    /**
+     * 麻雀ルームサーバに接続したメンバ。
+     */
     private class RoomMember implements Room{
         private final RoomObserver observer;
         private String name;
@@ -63,6 +74,11 @@ public class RoomServer extends BioMessageServer implements MessageServerListene
         }
     }
 
+    /**
+     * メンバからゲーム開始要求を受け取った際の処理。
+     * <p>接続した全メンバにゲーム開始を通知し, 新規スレッドでゲームを開始します。
+     * <p>接続メンバが4人に満たない場合はNPCを数合わせとして追加してゲームを開始します。
+     */
     private void start(){
         members.values().forEach(member->member.observer.gameStarted());
         var executor = Executors.newSingleThreadExecutor();
@@ -80,6 +96,10 @@ public class RoomServer extends BioMessageServer implements MessageServerListene
         executor.shutdown();
     }
 
+    /**
+     * メンバが接続, 名前通知, 準備完了状態変更した際に実行される情報更新処理。
+     * <p>接続した全メンバに変更を通知します。
+     */
     private void updated(){
         var memberList = members.values().stream().map(RoomMember::getData).toList();
         members.values().forEach(member->member.getObserver().roomUpdated(memberList));

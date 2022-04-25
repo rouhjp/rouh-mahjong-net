@@ -20,7 +20,9 @@ public interface Room{
      */
     void notifyReady(boolean ready);
 
-
+    /**
+     * ゲーム開始を要求します。
+     */
     void start();
 
 }

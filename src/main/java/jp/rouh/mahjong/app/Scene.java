@@ -5,6 +5,8 @@ import java.awt.*;
 
 /**
  * シーン(画面)の抽象クラス。
+ * @author Rouh
+ * @version 1.0
  */
 public abstract class Scene extends JPanel{
 

@@ -93,11 +93,12 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
 
     private final Waiter<ActionInput> actionInputWaiter = new Waiter<>();
     private final Waiter<Void> acknowledgeWaiter = new Waiter<>();
+    private final Runnable callback;
 
     /**
      * コンストラクタ。
      */
-    TableViewPanel(){
+    TableViewPanel(Runnable callback){
         setLayout(null);
         setBaseSize(TABLE_WIDTH, TABLE_HEIGHT);
         setBorder(new LineBorder(Color.BLACK));
@@ -112,6 +113,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
             }
 
         });
+        this.callback = callback;
     }
 
     private void initialize(){
@@ -567,6 +569,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     @Override
     public ActionInput waitForInput(List<ActionInput> choices){
         requireCallOnNonEDT();
+        LOG.info("waitForInput "+choices);
         var future = worker.submit(()->{
             SwingUtilities.invokeLater(()->{
                 for(int i = 0; i<choices.size(); i++){
@@ -632,7 +635,20 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     @Override
     public void gameFinished(List<GameScoreData> scores){
         LOG.info("gameSettled "+scores);
-        worker.submit(()->SwingUtilities.invokeLater(()->putGameResultWindow(scores)));
+        worker.submit(()->{
+            try{
+                SwingUtilities.invokeAndWait(()->putGameResultWindow(scores));
+                waitForAcknowledge();
+                SwingUtilities.invokeAndWait(()->{
+                    LOG.info("game finished");
+                    callback.run();
+                    clearTable();
+                    repaint();
+                });
+            }catch(InterruptedException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override

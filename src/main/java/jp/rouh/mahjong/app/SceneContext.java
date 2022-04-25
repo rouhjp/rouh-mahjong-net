@@ -17,7 +17,12 @@ public interface SceneContext{
      */
     <T extends Scene> void moveTo(Class<T> clazz);
 
-
+    /**
+     * 指定したシーンを取得します。
+     * @param clazz 遷移先シーンのクラスオブジェクト
+     * @param <T> 遷移先シーン
+     * @return 遷移先シーン
+     */
     <T extends Scene> T sceneOf(Class<T> clazz);
 
     /**
@@ -26,5 +31,9 @@ public interface SceneContext{
      * @param initializer 遷移前に遷移先シーンに適用する初期化処理
      * @param <T> 遷移先シーン
      */
-    <T extends Scene> void moveTo(Class<T> clazz, Consumer<T> initializer);
+    default <T extends Scene> void moveTo(Class<T> clazz, Consumer<T> initializer){
+        var scene = sceneOf(clazz);
+        initializer.accept(scene);
+        moveTo(clazz);
+    }
 }

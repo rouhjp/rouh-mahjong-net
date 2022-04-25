@@ -36,6 +36,7 @@ launch4j{
     outputDir = './product'
     bundledJrePath = './jre-min'
     bundledJre64Bit = true
+    jvmOptions = ['-Dfile.encoding=UTF8']
 }
 
 task generateJRE(dependsOn: ["shadowJar"]){

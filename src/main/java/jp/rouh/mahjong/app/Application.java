@@ -27,6 +27,7 @@ public class Application implements ApplicationContext{
     private final Map<Class<? extends Scene>, Scene> scenes = new HashMap<>();
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel rootPanel = new JPanel(cardLayout);
+
     private Application(){
         var frame = new JFrame(APPLICATION_TITLE);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -86,15 +87,11 @@ public class Application implements ApplicationContext{
         return scene;
     }
 
-    @Override
-    public <T extends Scene> void moveTo(Class<T> clazz, Consumer<T> initializer){
-        assert scenes.containsKey(clazz): "scene not found: "+clazz;
-        @SuppressWarnings("unchecked")
-        var scene = (T)scenes.get(clazz);
-        initializer.accept(scene);
-        cardLayout.show(rootPanel, clazz.toString());
-    }
-
+    /**
+     * 実行メインメソッド。
+     * <p>アプリケーションのウィンドウを表示します。
+     * @param args 引数は利用しない
+     */
     public static void main(String[] args){
         SwingUtilities.invokeLater(Application::new);
     }

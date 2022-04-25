@@ -9,12 +9,21 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 
+/**
+ * メニュー画面。
+ * @author Rouh
+ * @version 1.0
+ */
 public class MenuScene extends Scene{
     private final JTextField nameField = new JTextField();
     private final JTextField joinPortField = new JTextField();
     private final JTextField joinHostField = new JTextField();
     private final JTextField hostPortField = new JTextField();
 
+    /**
+     * メニュー画面を生成します。
+     * @param context アプリケーションコンテキストの参照
+     */
     public MenuScene(ApplicationContext context){
         super(context);
         var layout = new SpringLayout();

@@ -10,7 +10,7 @@ import java.awt.event.ComponentEvent;
 import java.util.concurrent.Executors;
 
 public class TableViewGameFrame{
-    private final TableViewPanel table = new TableViewPanel();
+    private final TableViewPanel table = new TableViewPanel(()->{});
 
     TableViewGameFrame(){
         var frame = new JFrame();

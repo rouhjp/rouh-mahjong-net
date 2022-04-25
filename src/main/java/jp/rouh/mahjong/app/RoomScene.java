@@ -1,6 +1,7 @@
 package jp.rouh.mahjong.app;
 
 import jp.rouh.mahjong.app.view.TableScene;
+import jp.rouh.mahjong.game.event.GameScoreData;
 import jp.rouh.mahjong.game.event.TableStrategyDelegator;
 import jp.rouh.mahjong.net.*;
 import jp.rouh.util.net.BioMessageClient;
@@ -17,6 +18,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * ルーム画面。
+ * 麻雀ゲーム開始のためメンバーを集める部屋の画面。
+ * @author Rouh
+ * @version 1.0
+ */
 public class RoomScene extends Scene{
     private static final int HEADER_BASE_HEIGHT = 12;
     private static final int MAIN_BASE_HEIGHT = 96;
@@ -30,14 +37,29 @@ public class RoomScene extends Scene{
     private final JLabel startButton;
     private Connection connection;
 
-
+    /**
+     * 接続インターフェース。
+     * ゲーム主催時のローカルサーバ, もしくは参加時のリモートサーバへの接続。
+     */
     private interface Connection{
 
+        /**
+         * 接続先を{@link Room}として扱うプロキシを取得します。
+         * @see RemoteConnections
+         * @return 取得
+         */
         Room getRoom();
 
+        /**
+         * 接続を切断します。
+         */
         void close();
     }
 
+    /**
+     * 接続先からのリクエストを受け取り, 適宜{@link TableScene}に委譲します。
+     * {@link TableStrategyDelegator}
+     */
     private class TableDispatcher extends TableStrategyDelegator implements RoomObserver{
         private TableDispatcher(){
             super(getContext().sceneOf(TableScene.class).getTableView());
@@ -58,10 +80,14 @@ public class RoomScene extends Scene{
         @Override
         public void gameStarted(){
             getContext().moveTo(TableScene.class);
+            //ゲーム開始後は準備完了状態をfalseへ
+            toggleReady();
         }
     }
 
-
+    /**
+     * ゲーム主催時の接続
+     */
     private class HostConnection implements Connection{
         private final RoomServer localServer;
         private final MessageConnection localConnection;
@@ -86,7 +112,9 @@ public class RoomScene extends Scene{
         }
     }
 
-
+    /**
+     * ゲーム参加時の接続
+     */
     private class JoinConnection implements Connection{
         private final MessageConnection remoteConnection;
         private final Room remoteRoom;
@@ -108,6 +136,10 @@ public class RoomScene extends Scene{
         }
     }
 
+    /**
+     * ルーム画面を生成します。
+     * @param context アプリケーションコンテキストの参照
+     */
     RoomScene(ApplicationContext context){
         super(context);
         this.dispatcher = new TableDispatcher();
@@ -157,49 +189,63 @@ public class RoomScene extends Scene{
         }
     }
 
+    /**
+     * ゲームを主催し, ルーム画面を初期化します。
+     * @param port ポート番号
+     * @param name 接続名
+     * @throws IOException 接続に失敗した場合
+     */
     void initAsHost(int port, String name) throws IOException{
-        connection = new HostConnection(port);
+        //接続はブロッキング処理のためワークスレッド上で実行します
         new SwingWorker<Void, Void>(){
             @Override
-            protected Void doInBackground(){
+            protected Void doInBackground() throws IOException{
+                connection = new HostConnection(port);
                 connection.getRoom().notifyName(name);
                 return null;
             }
         }.execute();
     }
 
+    /**
+     * ゲームに参加し, ルーム画面を初期化します。
+     * @param host ホスト名
+     * @param port ポート番号
+     * @param name 接続名
+     * @throws IOException 接続に失敗した場合
+     */
     void initAsGuest(String host, int port, String name) throws IOException{
-        connection = new JoinConnection(host, port);
+        //接続はブロッキング処理のためワークスレッド上で実行します
         new SwingWorker<Void, Void>(){
             @Override
-            protected Void doInBackground(){
+            protected Void doInBackground() throws IOException{
+                connection = new JoinConnection(host, port);
                 connection.getRoom().notifyName(name);
                 return null;
             }
         }.execute();
     }
 
+    /**
+     * スタートボタン押下時の処理
+     */
     private void start(){
         var room = connection.getRoom();
         room.start();
     }
 
+    /**
+     * 準備完了ボタン押下時の処理
+     */
     public void toggleReady(){
-        new SwingWorker<Void, Void>(){
-            @Override
-            protected Void doInBackground(){
-                connection.getRoom().notifyReady(!ready.get());
-                return null;
-            }
-
-            @Override
-            protected void done(){
-                ready.set(!ready.get());
-                readyButton.setText(ready.get()?"CANCEL":"READY");
-            }
-        }.execute();
+        connection.getRoom().notifyReady(!ready.get());
+        ready.set(!ready.get());
+        readyButton.setText(ready.get()?"CANCEL":"READY");
     }
 
+    /**
+     * 退室ボタン押下時の処理
+     */
     public void exit(){
         connection.close();
         connection = null;

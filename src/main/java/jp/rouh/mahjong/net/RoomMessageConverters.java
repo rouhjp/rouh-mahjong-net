@@ -14,7 +14,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class RoomMessageConverters{
+/**
+ * 麻雀ルーム{@link Room}及び通知先{@link RoomObserver}で使用するオブジェクトを
+ * 文字列変換するコンバータを用意するユーティリティクラス。
+ * @author Rouh
+ * @version 1.0
+ */
+public final class RoomMessageConverters{
     private static final MessageConverter INSTANCE;
     static{
         var converter = new MessageConverter();
@@ -40,6 +46,10 @@ public class RoomMessageConverters{
         throw new AssertionError("instantiate utility class");
     }
 
+    /**
+     * コンバータのシングルトンインスタンスを取得します。
+     * @return コンバータ
+     */
     public static MessageConverter getConverter(){
         return INSTANCE;
     }
