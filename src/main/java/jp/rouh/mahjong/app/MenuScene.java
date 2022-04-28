@@ -79,12 +79,10 @@ public class MenuScene extends Scene{
                 var host = joinHostField.getText();
                 int port = Integer.parseInt(joinPortField.getText());
                 var name = nameField.getText().isBlank()? "guest":nameField.getText();
-
                 var roomScene = context.sceneOf(RoomScene.class);
-                roomScene.initAsGuest(host, port, name);
-                context.moveTo(RoomScene.class);
-            }catch(IOException e){
-                errorMessageLabel.setText("接続に失敗しました: " + e.getMessage());
+                roomScene.initAsGuest(host, port, name,
+                        ()->context.moveTo(RoomScene.class),
+                        e->errorMessageLabel.setText("接続に失敗しました: " + e.getMessage()));
             }catch(NumberFormatException e){
                 errorMessageLabel.setText("ポート番号が不正です: " + joinPortField.getText());
             }
@@ -94,12 +92,10 @@ public class MenuScene extends Scene{
             try{
                 int port = Integer.parseInt(hostPortField.getText());
                 var name = nameField.getText().isBlank()? "guest":nameField.getText();
-
                 var roomScene = context.sceneOf(RoomScene.class);
-                roomScene.initAsHost(port, name);
-                context.moveTo(RoomScene.class);
-            }catch(IOException e){
-                errorMessageLabel.setText("接続に失敗しました: "+e.getMessage());
+                roomScene.initAsHost(port, name,
+                        ()->context.moveTo(RoomScene.class),
+                        e->errorMessageLabel.setText("接続に失敗しました: "+e.getMessage()));
             }catch(NumberFormatException e){
                 errorMessageLabel.setText("ポート番号が不正です: "+hostPortField.getText());
             }

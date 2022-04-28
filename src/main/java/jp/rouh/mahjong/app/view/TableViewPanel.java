@@ -23,14 +23,12 @@ import static jp.rouh.mahjong.app.view.TileLabel.*;
 
 /**
  * 麻雀卓を描画するパネル。
- * <p>このパネルはSwingコンポーネントで作成された
- * {@link TableObserver}インターフェース及び{@link TableStrategy}インターフェースの実装です。
- * <p>このオブジェクトのメソッドはすべて非イベントディスパッチスレッド(EDT)上から
- * 呼び出されることを想定します。
+ * <p>このパネルはSwingコンポーネントで作成された{@link TableView}インターフェースの実装です。
+ * <p>このオブジェクトのメソッドはすべて非イベントディスパッチスレッド(EDT)上から呼び出されることを想定します。
  * @author Rouh
  * @version 1.0
  */
-public class TableViewPanel extends TablePanel implements TableObserver, TableStrategyAdapter{
+public class TableViewPanel extends TablePanel implements TableObserver, TableView{
 
     /**
      * 麻雀卓の幅の基本サイズ。
@@ -87,10 +85,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     private TableLabel drawMessageLabel;
     private TableLabel lockMessageLabel;
 
-    //access from both EDT, non-EDT
-    // volatile array needs to rewrite array itself when updated
-    private volatile Tile[] handTiles;
-
     private final Waiter<ActionInput> actionInputWaiter = new Waiter<>();
     private final Waiter<Void> acknowledgeWaiter = new Waiter<>();
     private final Runnable callback;
@@ -140,7 +134,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     private void clearTable(){
         initialize();
         removeAll();
-        handTiles = null;
     }
 
     private void putTile(TileLabel label, Point p){
@@ -562,16 +555,11 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     }
 
     @Override
-    public List<Tile> getShownHandTiles(){
-        return List.of(handTiles);
-    }
-
-    @Override
     public ActionInput waitForInput(List<ActionInput> choices){
         requireCallOnNonEDT();
         LOG.info("waitForInput "+choices);
         var future = worker.submit(()->{
-            SwingUtilities.invokeLater(()->{
+            SwingUtilities.invokeAndWait(()->{
                 for(int i = 0; i<choices.size(); i++){
                     if(choices.get(i).isOption()){
                         putOptionButton(choices.get(i), i);
@@ -605,6 +593,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 });
                 return input;
             }catch(InterruptedException | InvocationTargetException e){
+                LOG.debug("exception caught: "+e);
                 return null;
             }
         });
@@ -642,6 +631,8 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
                 SwingUtilities.invokeAndWait(()->{
                     LOG.info("game finished");
                     callback.run();
+                    remove(gameResultWindow);
+                    gameResultWindow = null;
                     clearTable();
                     repaint();
                 });
@@ -953,8 +944,6 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
     @Override
     public void handUpdated(List<Tile> allTiles, boolean wide){
         LOG.info("handUpdated "+allTiles+" wide="+wide);
-        //volatile array update
-        handTiles = allTiles.toArray(Tile[]::new);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
@@ -1038,14 +1027,18 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableSt
 
     @Override
     public void selfQuadAdded(Side side, List<Tile> tiles){
-        LOG.info("selfQuadAdded "+side+" "+tiles);
-        worker.submit(()->SwingUtilities.invokeLater(()->appendSelfQuad(Direction.of(side), tiles)));
+        synchronized(this){
+            LOG.info("selfQuadAdded " + side + " " + tiles);
+            worker.submit(()->SwingUtilities.invokeLater(()->appendSelfQuad(Direction.of(side), tiles)));
+        }
     }
 
     @Override
     public void meldTileAdded(Side side, int index, Tile tile){
-        LOG.info("meldTileAdded "+side+" index="+index+" "+tile);
-        worker.submit(()->SwingUtilities.invokeLater(()->addTileToMeld(Direction.of(side), index, tile)));
+        synchronized(this){
+            LOG.info("meldTileAdded " + side + " index=" + index + " " + tile);
+            worker.submit(()->SwingUtilities.invokeLater(()->addTileToMeld(Direction.of(side), index, tile)));
+        }
     }
 
     private static class GlassLabel extends TableLabel{

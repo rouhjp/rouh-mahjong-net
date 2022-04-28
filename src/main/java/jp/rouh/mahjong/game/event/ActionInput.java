@@ -7,7 +7,6 @@ package jp.rouh.mahjong.game.event;
  * 「この牌を選択し立直する」「この牌を選択しチーを宣言する」などの
  * 入力を求められた際の最終的なプレイヤー行動の一単位であるのに対し,
  * このクラスで扱う選択肢は, 立直ボタンの押下など, プレゼンテーションの一単位です。
- * @see TableStrategyAdapter
  * @author Rouh
  * @version 1.0
  */

@@ -13,7 +13,7 @@ import java.util.Set;
 
 import static java.util.function.Predicate.not;
 
-public class RoundPlayer extends TableStrategyDelegator implements WinningPlayerAccessor{
+public class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccessor{
     private final HandScoreCalculator calculator = StandardHandScoreCalculator.getInstance();
     private final RoundAccessor round;
     private final TableMaster master;

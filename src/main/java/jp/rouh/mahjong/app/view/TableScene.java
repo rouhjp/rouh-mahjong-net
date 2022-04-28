@@ -4,6 +4,8 @@ import jp.rouh.mahjong.app.ApplicationContext;
 import jp.rouh.mahjong.app.RoomScene;
 import jp.rouh.mahjong.app.Scene;
 import jp.rouh.mahjong.game.event.TableStrategy;
+import jp.rouh.mahjong.game.event.TableView;
+import jp.rouh.mahjong.game.event.TableViewStrategy;
 
 /**
  * 麻雀卓画面。
@@ -12,8 +14,8 @@ import jp.rouh.mahjong.game.event.TableStrategy;
  */
 public class TableScene extends Scene{
     private final ApplicationContext context;
-    private final TableViewPanel view;
-
+    private final TableViewPanel viewPanel;
+    private final TableViewStrategy strategy;
     private final int EDGE_BASE_SIZE = 2;
 
     /**
@@ -26,9 +28,10 @@ public class TableScene extends Scene{
         setLayout(null);
         int weight = context.getSizeWeight();
         var callback = (Runnable)()->context.moveTo(RoomScene.class);
-        view = new TableViewPanel(callback);
-        view.setLocation(EDGE_BASE_SIZE*weight, EDGE_BASE_SIZE*weight);
-        add(view);
+        viewPanel = new TableViewPanel(callback);
+        strategy = new TableViewStrategy(viewPanel);
+        viewPanel.setLocation(EDGE_BASE_SIZE*weight, EDGE_BASE_SIZE*weight);
+        add(viewPanel);
     }
 
     /**
@@ -36,15 +39,15 @@ public class TableScene extends Scene{
      * @return 描画パネル
      */
     public TableStrategy getTableView(){
-        return view;
+        return strategy;
     }
 
     @Override
     public void weightUpdated(){
         int weight = context.getSizeWeight();
         TableSizeManager.getInstance().setWeight(weight);
-        view.setLocation(EDGE_BASE_SIZE*weight, EDGE_BASE_SIZE*weight);
-        view.resize();
+        viewPanel.setLocation(EDGE_BASE_SIZE*weight, EDGE_BASE_SIZE*weight);
+        viewPanel.resize();
     }
 
 }

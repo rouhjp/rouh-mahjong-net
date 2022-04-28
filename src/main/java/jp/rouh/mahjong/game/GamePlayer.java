@@ -1,7 +1,7 @@
 package jp.rouh.mahjong.game;
 
 import jp.rouh.mahjong.game.event.GameScoreData;
-import jp.rouh.mahjong.game.event.TableStrategyDelegator;
+import jp.rouh.mahjong.game.event.ForwardingTableStrategy;
 import jp.rouh.mahjong.tile.Wind;
 
 /**
@@ -9,7 +9,7 @@ import jp.rouh.mahjong.tile.Wind;
  * @author Rouh
  * @version 1.0
  */
-class GamePlayer extends TableStrategyDelegator implements GamePlayerAccessor{
+class GamePlayer extends ForwardingTableStrategy implements GamePlayerAccessor{
     private final GameAccessor game;
     private final String name;
     private final Wind initialSeatWind;

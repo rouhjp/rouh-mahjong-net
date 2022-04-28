@@ -138,7 +138,10 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
      */
     private void doTurn(){
         var turnPlayer = roundPlayers.get(turnWind);
+        var turnChoices = turnPlayer.getTurnChoices(afterCall, afterQuad);
+        LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selecting turn action from "+turnChoices);
         var turnAction = turnPlayer.selectTurnAction(turnPlayer.getTurnChoices(afterCall, afterQuad));
+        LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selected "+turnAction);
         switch(turnAction.type()){
             case TSUMO -> {
                 var result = turnPlayer.declareTsumo(afterQuad);
@@ -194,10 +197,12 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     private void doDiscard(Tile discarded){
         var discarderWind = turnWind;
         var discarder = getPlayerAt(turnWind);
+        LOG.debug("["+turnWind+"]"+discarder.getName()+" discarded "+discarded);
         var actions = new CallActionMediator(discarderWind.others())
                 .withPlayers(this::getPlayerAt)
                 .withChoices(wind->getPlayerAt(wind).getCallChoices(discarderWind, discarded))
                 .mediate();
+        actions.forEach((wind, action)->LOG.debug("["+wind+"] select call action "+action));
         if(!actions.isEmpty()){
             if(actions.values().stream().allMatch(action->action.type()==CallActionType.RON)){
                 doClaim(actions, discarded, false);

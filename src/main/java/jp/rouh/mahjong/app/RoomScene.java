@@ -1,8 +1,7 @@
 package jp.rouh.mahjong.app;
 
 import jp.rouh.mahjong.app.view.TableScene;
-import jp.rouh.mahjong.game.event.GameScoreData;
-import jp.rouh.mahjong.game.event.TableStrategyDelegator;
+import jp.rouh.mahjong.game.event.ForwardingTableStrategy;
 import jp.rouh.mahjong.net.*;
 import jp.rouh.util.net.BioMessageClient;
 import jp.rouh.util.net.MessageConnection;
@@ -17,6 +16,7 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * ルーム画面。
@@ -58,9 +58,9 @@ public class RoomScene extends Scene{
 
     /**
      * 接続先からのリクエストを受け取り, 適宜{@link TableScene}に委譲します。
-     * {@link TableStrategyDelegator}
+     * {@link ForwardingTableStrategy}
      */
-    private class TableDispatcher extends TableStrategyDelegator implements RoomObserver{
+    private class TableDispatcher extends ForwardingTableStrategy implements RoomObserver{
         private TableDispatcher(){
             super(getContext().sceneOf(TableScene.class).getTableView());
         }
@@ -193,15 +193,21 @@ public class RoomScene extends Scene{
      * ゲームを主催し, ルーム画面を初期化します。
      * @param port ポート番号
      * @param name 接続名
-     * @throws IOException 接続に失敗した場合
+     * @param callback 完了時のコールバック処理
+     * @param exceptionHandler 例外発生時のコールバック処理
      */
-    void initAsHost(int port, String name) throws IOException{
+    void initAsHost(int port, String name, Runnable callback, Consumer<IOException> exceptionHandler){
         //接続はブロッキング処理のためワークスレッド上で実行します
         new SwingWorker<Void, Void>(){
             @Override
-            protected Void doInBackground() throws IOException{
-                connection = new HostConnection(port);
-                connection.getRoom().notifyName(name);
+            protected Void doInBackground(){
+                try{
+                    connection = new HostConnection(port);
+                    connection.getRoom().notifyName(name);
+                    SwingUtilities.invokeLater(callback);
+                }catch(IOException e){
+                    exceptionHandler.accept(e);
+                }
                 return null;
             }
         }.execute();
@@ -212,15 +218,21 @@ public class RoomScene extends Scene{
      * @param host ホスト名
      * @param port ポート番号
      * @param name 接続名
-     * @throws IOException 接続に失敗した場合
+     * @param callback 完了時のコールバック処理
+     * @param exceptionHandler 例外発生時のコールバック処理
      */
-    void initAsGuest(String host, int port, String name) throws IOException{
+    void initAsGuest(String host, int port, String name, Runnable callback, Consumer<IOException> exceptionHandler){
         //接続はブロッキング処理のためワークスレッド上で実行します
         new SwingWorker<Void, Void>(){
             @Override
-            protected Void doInBackground() throws IOException{
-                connection = new JoinConnection(host, port);
-                connection.getRoom().notifyName(name);
+            protected Void doInBackground(){
+                try{
+                    connection = new JoinConnection(host, port);
+                    connection.getRoom().notifyName(name);
+                    SwingUtilities.invokeLater(callback);
+                }catch(IOException e){
+                    exceptionHandler.accept(e);
+                }
                 return null;
             }
         }.execute();
