@@ -1,12 +1,21 @@
 
-exeとJREをバンドルしたzipファイルを以下のディレクトリに作成する
-build/distributions/rouh-mahjong.zip
+Github へのリリースまでの流れ
 
+・前提条件
+gradle7 及び jdk17 がインストールされていること
+./jdk-17 が有効である(JDK17へのシンボリックリンクが正しい)ことを確認
+以下、windows power shell でのシンボリックリンクの作成コマンド例
+New-Item -Value 'C:\Program Files\Java\jdk-17.0.2' -Path '.\' -Name 'jdk-17' -ItemType SymbolicLink
+
+・gradle で zip を作成する
 $ gradle clean
 $ gradle createProductZIP
 
-※gradle7 及び jdk17 が必要
+・タグを作成する
+$ git -a v1.0.0 -m "Beta Release 1.0.0"
+$ git tag
+$ git push origin v1.0.1
 
-./jdk-17
-=>JDK17へのシンボリックリンクが正しいことを確認
-// New-Item -Value 'C:\Program Files\Java\jdk-17.0.2' -Path '.\' -Name 'jdk-17' -ItemType SymbolicLink
+・Github で新規リリースを作成
+タグを指定し、作成したzipをアップロードする
+
