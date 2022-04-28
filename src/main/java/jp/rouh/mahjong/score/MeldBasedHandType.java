@@ -76,7 +76,8 @@ enum MeldBasedHandType implements BasicHandType{
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
-                    && hand.getComponents().stream().anyMatch(HandComponent::isHonor);
+                    && hand.getComponents().stream().anyMatch(HandComponent::isHonor)
+                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
         }
     },
 
@@ -88,7 +89,8 @@ enum MeldBasedHandType implements BasicHandType{
         boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
-                    && hand.getComponents().stream().anyMatch(HandComponent::isHonor);
+                    && hand.getComponents().stream().anyMatch(HandComponent::isHonor)
+                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
         }
     },
 
@@ -99,7 +101,8 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
-                    && hand.getComponents().stream().allMatch(HandComponent::isTerminal);
+                    && hand.getComponents().stream().allMatch(HandComponent::isTerminal)
+                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
         }
     },
 
@@ -110,7 +113,8 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
-                    && hand.getComponents().stream().allMatch(HandComponent::isTerminal);
+                    && hand.getComponents().stream().allMatch(HandComponent::isTerminal)
+                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
         }
     },
 
