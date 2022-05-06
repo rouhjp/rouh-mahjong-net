@@ -39,8 +39,9 @@ interface GameAccessor{
 
     /**
      * 指定された順位に対応するウマを取得します。
-     * @param rank 順位
+     * @param rank 順位(1..4)
      * @return ウマ
+     * @throws IllegalArgumentException 順位が範囲外の場合
      */
     int getRankScore(int rank);
 

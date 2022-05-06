@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 配山{@link Wall}の実装クラス。
+ * 牌山{@link Wall}の実装クラス。
  * @author Rouh
  * @version 1.0
  */

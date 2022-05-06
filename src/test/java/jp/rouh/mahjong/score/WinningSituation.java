@@ -16,7 +16,7 @@ public class WinningSituation implements ScoringContext{
     private final List<WinningCharacteristics> characteristics;
 
 
-    WinningSituation(Wind round, Wind seat, List<Tile> upper, List<Tile> lower, List<WinningCharacteristics> characteristics){
+    public WinningSituation(Wind round, Wind seat, List<Tile> upper, List<Tile> lower, List<WinningCharacteristics> characteristics){
         this.roundWind = round;
         this.seatWind = seat;
         this.upperPrisedTiles = upper;

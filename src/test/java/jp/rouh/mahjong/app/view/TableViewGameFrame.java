@@ -2,6 +2,7 @@ package jp.rouh.mahjong.app.view;
 
 import jp.rouh.mahjong.game.GameTable;
 import jp.rouh.mahjong.game.event.TableStrategyMock;
+import jp.rouh.mahjong.game.event.TableViewStrategy;
 
 import javax.swing.*;
 import java.awt.*;
@@ -43,7 +44,7 @@ public class TableViewGameFrame{
         executor.submit(()->{
             try{
                 var table = new GameTable();
-                table.addPlayer("けもみみ", this.table);
+                table.addPlayer("けもみみ", new TableViewStrategy(this.table));
                 table.addPlayer("guest1", TableStrategyMock.DISCARD);
                 table.addPlayer("guest2", TableStrategyMock.DISCARD);
                 table.addPlayer("guest3", TableStrategyMock.DISCARD);
@@ -56,7 +57,6 @@ public class TableViewGameFrame{
     }
 
     public static void main(String[] args){
-//        System.out.println("var tiles = List.of("+Tiles.shuffledTileSet().stream().map(Tile::name).collect(Collectors.joining(", "))+");");
         SwingUtilities.invokeLater(TableViewGameFrame::new);
     }
 }

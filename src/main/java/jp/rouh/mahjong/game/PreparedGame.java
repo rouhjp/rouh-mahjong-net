@@ -23,18 +23,30 @@ public class PreparedGame implements GameAccessor{
     private static final int RETURN_SCORE = 30000;
     private static final int BIG_RANK_SCORE = 20000;
     private static final int SMALL_RANK_SCORE = 10000;
-
     private final Map<Wind, GamePlayer> gamePlayers;
     private final GameSpan span;
+    private final WallGenerator wallGenerator;
 
     /**
      * コンストラクタ。
      * @param players プレイヤーの対局開始時の自風に対するマップ
+     * @param span 局スパン
      */
     PreparedGame(Map<Wind, Player> players, GameSpan span){
+        this(players, span, null);
+    }
+
+    /**
+     * コンストラクタ。
+     * @param players プレイヤーの対局開始時の自風に対するマップ
+     * @param span 局スパン
+     * @param wallGenerator 牌山生成器
+     */
+    PreparedGame(Map<Wind, Player> players, GameSpan span, WallGenerator wallGenerator){
         this.gamePlayers = new FlexMap<>(players)
                 .mapValue((wind, player)->new GamePlayer(this, player, wind));
         this.span = span;
+        this.wallGenerator = wallGenerator;
     }
 
     void start(){
@@ -46,7 +58,9 @@ public class PreparedGame implements GameAccessor{
         while(!finished){
             boolean last = span.isLastRound(roundId);
             var params = new RoundParameter(roundId, streak, deposit, last);
-            var round = new Round(params, playerList);
+            var round = wallGenerator==null?
+                    new Round(params, playerList):
+                    new Round(params, playerList, wallGenerator);
             var dices = DiceTwin.roll();
             var result = round.start(dices.firstValue(), dices.secondValue());
             if(span.hasExtended()){
