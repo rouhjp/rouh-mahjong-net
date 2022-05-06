@@ -17,6 +17,7 @@ final class FormattedHands{
         throw new AssertionError("instantiate utility class");
     }
 
+
     /**
      * 手牌を複数の整形済み手牌にフォーマットします。
      * <p>手牌が七対子もしくは完成形でない場合は空のセットが返されます。
@@ -41,13 +42,14 @@ final class FormattedHands{
                 formattedHands.add(new FormattedHand(head, melds, wait));
             }
             for(int i = 0; i<tail.size(); i++){
-                if(tail.get(i).stream().anyMatch(t->t.equalsIgnoreRed(winningTile))){
+                var targetTile = tail.get(i).stream().filter(t->t.equalsIgnoreRed(winningTile)).findFirst();
+                if(targetTile.isPresent()){
                     var melds = new ArrayList<Meld>(4);
                     for(int k = 0; k<tail.size(); k++){
                         if(!context.isTsumo() && k==i){
                             var base = new ArrayList<>(tail.get(k));
-                            base.remove(winningTile);
-                            melds.add(Meld.ofHand(base, winningTile));
+                            base.remove(targetTile.get());
+                            melds.add(Meld.ofHand(base, targetTile.get()));
                         }else{
                             melds.add(Meld.ofHand(tail.get(k)));
                         }
