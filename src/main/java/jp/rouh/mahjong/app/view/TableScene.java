@@ -27,11 +27,19 @@ public class TableScene extends Scene{
         this.context = context;
         setLayout(null);
         int weight = context.getSizeWeight();
-        var callback = (Runnable)()->context.moveTo(RoomScene.class);
-        viewPanel = new TableViewPanel(callback);
+        viewPanel = new TableViewPanel();
         strategy = new TableViewStrategy(viewPanel);
         viewPanel.setLocation(EDGE_BASE_SIZE*weight, EDGE_BASE_SIZE*weight);
         add(viewPanel);
+    }
+
+    /**
+     * 遷移元画面を登録します。
+     * ゲーム終了後に遷移元へ遷移します。
+     * @param scene 遷移元画面
+     */
+    public void setBackScene(Class<? extends Scene> scene){
+        viewPanel.setCallbackAction(()->context.moveTo(scene));
     }
 
     /**

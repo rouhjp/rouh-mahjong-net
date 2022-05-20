@@ -1,7 +1,7 @@
 package jp.rouh.mahjong.app.view;
 
 import jp.rouh.mahjong.game.GameTable;
-import jp.rouh.mahjong.game.event.TableStrategyMock;
+import jp.rouh.mahjong.bot.TableStrategyMock;
 import jp.rouh.mahjong.game.event.TableViewStrategy;
 
 import javax.swing.*;
@@ -11,7 +11,7 @@ import java.awt.event.ComponentEvent;
 import java.util.concurrent.Executors;
 
 public class TableViewGameFrame{
-    private final TableViewPanel table = new TableViewPanel(()->{});
+    private final TableViewPanel table = new TableViewPanel();
 
     TableViewGameFrame(){
         var frame = new JFrame();

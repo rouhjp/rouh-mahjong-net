@@ -87,12 +87,12 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     private final Waiter<ActionInput> actionInputWaiter = new Waiter<>();
     private final Waiter<Void> acknowledgeWaiter = new Waiter<>();
-    private final Runnable callback;
+    private Runnable callback = ()->{};
 
     /**
      * コンストラクタ。
      */
-    TableViewPanel(Runnable callback){
+    TableViewPanel(){
         setLayout(null);
         setBaseSize(TABLE_WIDTH, TABLE_HEIGHT);
         setBorder(new LineBorder(Color.BLACK));
@@ -107,6 +107,9 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
             }
 
         });
+    }
+
+    void setCallbackAction(Runnable callback){
         this.callback = callback;
     }
 

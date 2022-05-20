@@ -79,7 +79,7 @@ public class RoomScene extends Scene{
 
         @Override
         public void gameStarted(){
-            getContext().moveTo(TableScene.class);
+            getContext().moveTo(TableScene.class, scene->scene.setBackScene(RoomScene.class));
             //ゲーム開始後は準備完了状態をfalseへ
             toggleReady();
         }

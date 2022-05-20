@@ -41,7 +41,7 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
      * @param gamePlayers プレイヤー
      */
     Round(RoundParameter params, List<? extends GamePlayerAccessor> gamePlayers){
-        this(params, gamePlayers, (d1, d2)->new ArrayWall(Tiles.shuffledTileSet().toArray(new Tile[0]), d1 + d2));
+        this(params, gamePlayers, (d1, d2)->new ArrayWall(Tiles.newShuffledTileSet().toArray(new Tile[0]), d1 + d2));
     }
 
     /**

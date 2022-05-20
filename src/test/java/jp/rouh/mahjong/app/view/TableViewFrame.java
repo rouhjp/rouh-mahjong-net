@@ -6,7 +6,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 
 public class TableViewFrame{
-    private final TableViewPanel table = new TableViewPanel(()->{});
+    private final TableViewPanel table = new TableViewPanel();
 
     TableViewFrame(){
         var frame = new JFrame();

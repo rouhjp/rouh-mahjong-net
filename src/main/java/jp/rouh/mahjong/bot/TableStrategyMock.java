@@ -1,4 +1,9 @@
-package jp.rouh.mahjong.game.event;
+package jp.rouh.mahjong.bot;
+
+import jp.rouh.mahjong.game.event.CallAction;
+import jp.rouh.mahjong.game.event.TableObserverAdapter;
+import jp.rouh.mahjong.game.event.TableStrategy;
+import jp.rouh.mahjong.game.event.TurnAction;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;

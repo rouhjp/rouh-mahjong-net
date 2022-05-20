@@ -5,6 +5,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static java.util.function.Predicate.not;
@@ -29,11 +30,20 @@ public final class Tiles{
         throw new AssertionError("instantiate utility class");
     }
 
-    public static List<Tile> shuffledTileSet(){
-        return shuffledTileSet(new SecureRandom().generateSeed(20));
+    /**
+     * 136枚の牌セットをシャッフルした可変のリストを取得します。
+     * @return 牌のリスト
+     */
+    public static List<Tile> newShuffledTileSet(){
+        return newShuffledTileSet(new SecureRandom().generateSeed(20));
     }
 
-    public static List<Tile> shuffledTileSet(byte[] seed){
+    /**
+     * 136枚の牌セットをシャッフルした可変のリストを取得します。
+     * @param seed シャッフルの際に用いる乱数のシード値
+     * @return 牌のリスト
+     */
+    public static List<Tile> newShuffledTileSet(byte[] seed){
         try{
             var random = SecureRandom.getInstance("SHA1PRNG");
             random.setSeed(seed);
@@ -90,7 +100,13 @@ public final class Tiles{
         };
     }
 
-    private static Tile toNonPrisedRed(Tile tile){
+    /**
+     * 与えられた牌が赤ドラ牌である場合, 対応する非赤ドラ牌を返します。
+     * <p>与えられた牌が非赤ドラ牌である場合, その牌をそのまま返します。
+     * @param tile 牌
+     * @return 非赤ドラ牌
+     */
+    public static Tile toNonPrisedRed(Tile tile){
         return switch(tile){
             case M5R -> Tile.M5;
             case P5R -> Tile.P5;
@@ -122,6 +138,30 @@ public final class Tiles{
     }
 
     /**
+     * 与えられた二つの牌が隣接する数牌かどうか検査します。
+     * @param a 一つ目の牌
+     * @param b 二つ目の牌
+     * @return true 隣接する数牌である場合
+     *         false 隣接する数牌でない場合
+     */
+    public static boolean isNext(Tile a, Tile b){
+        return a.isSameTypeOf(b) && !a.isHonor()
+                && Math.abs(a.tileNumber() - b.tileNumber())==1;
+    }
+
+    /**
+     * 与えられた二つの牌が一つ飛ばしの数牌かどうか検査します。
+     * @param a 一つ目の牌
+     * @param b 二つ目の牌
+     * @return true 一つ飛ばしの数牌である場合
+     *         false 一つ飛ばしの数牌でない場合
+     */
+    public static boolean isStep(Tile a, Tile b){
+        return a.isSameTypeOf(b) && !a.isHonor()
+                && Math.abs(a.tileNumber() - b.tileNumber())==2;
+    }
+
+    /**
      * 与えられた牌と牌が対子・塔子を構成しうる近隣の牌であるか検査します。
      * 例えば, 一萬と一萬は塔子を構成し得るため検査に適合します。
      * 例えば, 一萬と三萬は塔子を構成し得るため検査に適合します。
@@ -138,12 +178,25 @@ public final class Tiles{
                 Math.abs(a.tileNumber() - b.tileNumber())<3;
     }
 
+    /**
+     * 与えられた牌のリストと追加牌が, 合わせて順子を構成するか検査します。
+     * @param baseTiles 牌のリスト
+     * @param claimedTile 追加牌
+     * @return true 順子を構成する場合
+     *         false 順子を構成しない場合
+     */
     public static boolean isSequence(List<Tile> baseTiles, Tile claimedTile){
         var tiles = new ArrayList<>(baseTiles);
         tiles.add(claimedTile);
         return isSequence(tiles);
     }
 
+    /**
+     * 与えられた牌のリストが順子を構成するか検査します。
+     * @param tiles 牌のリスト
+     * @return true 順子を構成する場合
+     *         false 順子を構成しない場合
+     */
     public static boolean isSequence(List<Tile> tiles){
         if(tiles.size()!=3) return false;
         var sorted = tiles.stream().sorted().toList();
@@ -151,24 +204,50 @@ public final class Tiles{
                 sorted.get(2).isNextOf(sorted.get(1));
     }
 
+    /**
+     * 与えられた牌のリストと追加牌が, 合わせて刻子を構成するか検査します。
+     * @param baseTiles 牌のリスト
+     * @param claimedTile 追加牌
+     * @return true 刻子を構成する場合
+     *         false 刻子を構成しない場合
+     */
     public static boolean isTriple(List<Tile> baseTiles, Tile claimedTile){
         var tiles = new ArrayList<>(baseTiles);
         tiles.add(claimedTile);
         return isTriple(tiles);
     }
 
+    /**
+     * 与えられた牌のリストが刻子を構成するか検査します。
+     * @param tiles 牌のリスト
+     * @return true 刻子を構成する場合
+     *         false 刻子を構成しない場合
+     */
     public static boolean isTriple(List<Tile> tiles){
         if(tiles.size()!=3) return false;
         return tiles.get(1).equalsIgnoreRed(tiles.get(0)) &&
                 tiles.get(2).equalsIgnoreRed(tiles.get(0));
     }
 
+    /**
+     * 与えられた牌のリストと追加牌が, 合わせて槓子を構成するか検査します。
+     * @param baseTiles 牌のリスト
+     * @param claimedTile 追加牌
+     * @return true 槓子を構成する場合
+     *         false 槓子を構成しない場合
+     */
     public static boolean isQuad(List<Tile> baseTiles, Tile claimedTile){
         var tiles = new ArrayList<>(baseTiles);
         tiles.add(claimedTile);
         return isQuad(tiles);
     }
 
+    /**
+     * 与えられた牌のリストが槓子を構成するか検査します。
+     * @param tiles 牌のリスト
+     * @return true 槓子を構成する場合
+     *         false 槓子を構成しない場合
+     */
     public static boolean isQuad(List<Tile> tiles){
         if(tiles.size()!=4) return false;
         return tiles.get(1).equalsIgnoreRed(tiles.get(0)) &&
@@ -176,4 +255,23 @@ public final class Tiles{
                 tiles.get(3).equalsIgnoreRed(tiles.get(0));
     }
 
+    /**
+     * 指定された牌の, 順子を構成する上で必要となる次の数牌をオプショナルとして取得します。
+     * @param tile 牌
+     * @return 次の牌(オプショナル)
+     */
+    public static Optional<Tile> nextOf(Tile tile){
+        if(tile.hasNext()) return Optional.of(tile.next());
+        return Optional.empty();
+    }
+
+    /**
+     * 指定された牌の, 順子を構成する上で必要となる前の数牌をオプショナルとして取得します。
+     * @param tile 牌
+     * @return 前の牌(オプショナル)
+     */
+    public static Optional<Tile> previousOf(Tile tile){
+        if(tile.hasPrevious()) return Optional.of(tile.previous());
+        return Optional.empty();
+    }
 }

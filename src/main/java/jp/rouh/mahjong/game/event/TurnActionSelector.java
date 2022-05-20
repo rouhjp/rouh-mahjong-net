@@ -5,6 +5,8 @@ import jp.rouh.mahjong.tile.Tile;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static jp.rouh.mahjong.game.event.TurnActionType.*;
 
@@ -13,7 +15,7 @@ import static jp.rouh.mahjong.game.event.TurnActionType.*;
  * @author Rouh
  * @version 1.0
  */
-class TurnActionSelector{
+public class TurnActionSelector{
     private final List<TurnAction> discardActions;
     private final List<TurnAction> readyActions;
     private final List<TurnAction> kanActions;
@@ -25,7 +27,7 @@ class TurnActionSelector{
      * コンストラクタ。
      * @param choices ターン内行動のリスト
      */
-    TurnActionSelector(List<TurnAction> choices){
+    public TurnActionSelector(List<TurnAction> choices){
         this.discardActions = choices.stream().filter(c->c.type()==DISCARD_ANY).toList();
         this.readyActions = choices.stream().filter(c->c.type()==READY_DISCARD).toList();
         this.kanActions = choices.stream().filter(c->c.type()==TURN_KAN).toList();
@@ -35,11 +37,19 @@ class TurnActionSelector{
     }
 
     /**
+     * 手牌中の立直宣言牌として選択可能な牌を全て取得します。
+     * @return 立直宣言牌のセット
+     */
+    public Set<Tile> getReadySelectableTiles(){
+        return readyActions.stream().map(TurnAction::argument).collect(Collectors.toSet());
+    }
+
+    /**
      * 現在が立直状態でツモ切り打牌のみ打牌が選択可能であるか検査します。
      * @return true 立直状態である場合
      *         false 立直状態でない場合
      */
-    boolean isReady(){
+    public boolean isReady(){
         return discardActions.isEmpty() && discardDrawnActionNullable!=null;
     }
 
@@ -49,7 +59,7 @@ class TurnActionSelector{
      * @return true 九種九牌が宣言可能である場合
      *         false 九種九牌が宣言可能でない場合
      */
-    boolean canDeclareNineTiles(){
+    public boolean canDeclareNineTiles(){
         return nineTileActionNullable!=null;
     }
 
@@ -59,7 +69,7 @@ class TurnActionSelector{
      * @return true ツモが宣言可能である場合
      *         false ツモが宣言可能でない場合
      */
-    boolean canDeclareTsumo(){
+    public boolean canDeclareTsumo(){
         return tsumoActionNullable!=null;
     }
 
@@ -69,7 +79,7 @@ class TurnActionSelector{
      * @return true ツモ切り打牌が可能である場合
      *         false ツモ切り打牌が可能でない場合
      */
-    boolean canDiscardDrawn(){
+    public boolean canDiscardDrawn(){
         return discardDrawnActionNullable!=null;
     }
 
@@ -79,7 +89,7 @@ class TurnActionSelector{
      * @return true 立直が宣言可能である場合
      *         false 立直が宣言可能でない場合
      */
-    boolean canDeclareReady(){
+    public boolean canDeclareReady(){
         return !readyActions.isEmpty();
     }
 
@@ -89,7 +99,7 @@ class TurnActionSelector{
      * @return true カンが宣言可能である場合
      *         false カンが宣言可能でない場合
      */
-    boolean canDeclareKan(){
+    public boolean canDeclareKan(){
         return !kanActions.isEmpty();
     }
 
@@ -102,7 +112,7 @@ class TurnActionSelector{
      * @return true 打牌可能な場合
      *         false 打牌不可能な場合
      */
-    boolean canSelectForDiscard(Tile selecting){
+    public boolean canSelectForDiscard(Tile selecting){
         return discardActions.stream().anyMatch(a->a.argument().equals(selecting));
     }
 
@@ -112,7 +122,7 @@ class TurnActionSelector{
      * @return true 立直宣言牌として選択可能な場合
      *         false 立直宣言牌として選択不可能な場合
      */
-    boolean canSelectForReady(Tile selecting){
+    public boolean canSelectForReady(Tile selecting){
         return readyActions.stream().anyMatch(a->a.argument().equals(selecting));
     }
 
@@ -123,7 +133,7 @@ class TurnActionSelector{
      * @return true カン構成牌として選択可能な場合
      *         false カン構成牌として選択不可能な場合
      */
-    boolean canSelectForKan(Tile selecting){
+    public boolean canSelectForKan(Tile selecting){
         return kanActions.stream().anyMatch(a->a.argument().equals(selecting));
     }
 
@@ -134,7 +144,7 @@ class TurnActionSelector{
      * @return 打牌の選択肢
      * @throws NoSuchElementException 選択肢した牌が不正の場合
      */
-    TurnAction getDiscardActionOf(Tile selected){
+    public TurnAction getDiscardActionOf(Tile selected){
         return discardActions.stream().filter(a->a.argument().equals(selected))
                 .findAny().orElseThrow(()->new NoSuchElementException("invalid tile: "+selected));
     }
@@ -146,7 +156,7 @@ class TurnActionSelector{
      * @return 立直宣言の選択肢
      * @throws NoSuchElementException 選択肢した牌が不正の場合
      */
-    TurnAction getReadyActionOf(Tile selected){
+    public TurnAction getReadyActionOf(Tile selected){
         return readyActions.stream().filter(a->a.argument().equals(selected))
                 .findAny().orElseThrow(()->new NoSuchElementException("invalid tile: "+selected));
     }
@@ -158,7 +168,7 @@ class TurnActionSelector{
      * @return カン宣言の選択肢
      * @throws NoSuchElementException 選択肢した牌が不正の場合
      */
-    TurnAction getKanActionOf(Tile selected){
+    public TurnAction getKanActionOf(Tile selected){
         return kanActions.stream().filter(a->a.argument().equals(selected))
                 .findAny().orElseThrow(()->new NoSuchElementException("invalid tile: "+selected));
     }
@@ -169,7 +179,7 @@ class TurnActionSelector{
      * @return ツモ宣言の選択肢
      * @throws NoSuchElementException ツモ宣言が不可能な場合
      */
-    TurnAction getTsumoAction(){
+    public TurnAction getTsumoAction(){
         if(tsumoActionNullable==null){
             throw new NoSuchElementException("invalid action");
         }
@@ -182,7 +192,7 @@ class TurnActionSelector{
      * @return 九種九牌宣言の選択肢
      * @throws NoSuchElementException 九種九牌宣言が不可能な場合
      */
-    TurnAction getNineTilesAction(){
+    public TurnAction getNineTilesAction(){
         if(nineTileActionNullable==null){
             throw new NoSuchElementException("invalid action");
         }
@@ -196,7 +206,7 @@ class TurnActionSelector{
      * @return ツモ切り打牌の選択肢
      * @throws NoSuchElementException ツモ切り打牌が不可能な場合
      */
-    TurnAction getDiscardDrawnAction(){
+    public TurnAction getDiscardDrawnAction(){
         if(discardDrawnActionNullable==null){
             throw new NoSuchElementException("invalid action");
         }
@@ -214,7 +224,7 @@ class TurnActionSelector{
      *         空 構成牌を指定しなければ一意に選択肢が定まらない場合
      * @throws NoSuchElementException カン宣言不可能な場合
      */
-    Optional<TurnAction> getSingleOutKanAction(){
+    public Optional<TurnAction> getSingleOutKanAction(){
         if(kanActions.isEmpty()){
             throw new NoSuchElementException("invalid action");
         }

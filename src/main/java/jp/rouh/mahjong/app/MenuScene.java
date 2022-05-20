@@ -2,11 +2,10 @@ package jp.rouh.mahjong.app;
 
 import jp.rouh.mahjong.app.view.TableScene;
 import jp.rouh.mahjong.game.GameTable;
-import jp.rouh.mahjong.game.event.TableStrategyMock;
+import jp.rouh.mahjong.bot.TableStrategyMock;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
 import java.util.concurrent.Executors;
 
 /**
@@ -102,6 +101,7 @@ public class MenuScene extends Scene{
         });
 
         testButton.addActionListener(event->context.moveTo(TableScene.class, tableScene->{
+            tableScene.setBackScene(MenuScene.class);
             var executor = Executors.newSingleThreadExecutor();
             executor.submit(()->{
                 var table = new GameTable();

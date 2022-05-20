@@ -13,7 +13,7 @@ import static jp.rouh.mahjong.game.event.CallActionType.*;
  * @author Rouh
  * @version 1.0
  */
-class CallActionSelector{
+public class CallActionSelector{
     private final List<CallAction> chiActions;
     private final List<CallAction> ponActions;
     private final CallAction kanActionNullable;
@@ -24,7 +24,7 @@ class CallActionSelector{
      * コンストラクタ。
      * @param choices ターン外行動のリスト
      */
-    CallActionSelector(List<CallAction> choices){
+    public CallActionSelector(List<CallAction> choices){
         this.passAction = choices.stream().filter(c->c.type()==PASS).findAny().orElseThrow();
         this.chiActions = choices.stream().filter(c->c.type()==CHI).toList();
         this.ponActions = choices.stream().filter(c->c.type()==PON).toList();
@@ -41,7 +41,7 @@ class CallActionSelector{
      * @return true チーが宣言可能である場合
      *         false チーが宣言可能でない場合
      */
-    boolean canDeclareChi(){
+    public boolean canDeclareChi(){
         return !chiActions.isEmpty();
     }
 
@@ -54,7 +54,7 @@ class CallActionSelector{
      * @return true ポンが宣言可能である場合
      *         false ポンが宣言可能でない場合
      */
-    boolean canDeclarePon(){
+    public boolean canDeclarePon(){
         return !ponActions.isEmpty();
     }
 
@@ -65,7 +65,7 @@ class CallActionSelector{
      * @return true カンが宣言可能である場合
      *         false カンが宣言可能でない場合
      */
-    boolean canDeclareKan(){
+    public boolean canDeclareKan(){
         return kanActionNullable!=null;
     }
 
@@ -75,7 +75,7 @@ class CallActionSelector{
      * @return true ロンが宣言可能である場合
      *         false ロンが宣言可能でない場合
      */
-    boolean canDeclareRon(){
+    public boolean canDeclareRon(){
         return ronActionNullable!=null;
     }
 
@@ -89,7 +89,7 @@ class CallActionSelector{
      * @return true チー構成牌の場合
      *         false チー構成牌でない場合
      */
-    boolean canSelectForChi(Tile selecting){
+    public boolean canSelectForChi(Tile selecting){
         return chiActions.stream().anyMatch(a->a.arguments().contains(selecting));
     }
 
@@ -103,7 +103,7 @@ class CallActionSelector{
      * @return true ポン構成牌の場合
      *         false ポン構成牌でない場合
      */
-    boolean canSelectForPon(Tile selecting){
+    public boolean canSelectForPon(Tile selecting){
         return ponActions.stream().anyMatch(a->a.arguments().contains(selecting));
     }
 
@@ -117,7 +117,7 @@ class CallActionSelector{
      * @return true チー構成牌の場合
      *         false チー構成牌でない場合
      */
-    boolean canSelectForChiUnderSelection(Tile selecting, Tile selected){
+    public boolean canSelectForChiUnderSelection(Tile selecting, Tile selected){
         return chiActions.stream().anyMatch(a->
                 a.arguments().equals(List.of(selected, selecting)) ||
                         a.arguments().equals(List.of(selecting, selected)));
@@ -133,7 +133,7 @@ class CallActionSelector{
      * @return true ポン構成牌の場合
      *         false ポン構成牌でない場合
      */
-    boolean canSelectForPonUnderSelection(Tile selecting, Tile selected){
+    public boolean canSelectForPonUnderSelection(Tile selecting, Tile selected){
         return ponActions.stream().anyMatch(a->
                 a.arguments().equals(List.of(selected, selecting)) ||
                         a.arguments().equals(List.of(selecting, selected)));
@@ -150,7 +150,7 @@ class CallActionSelector{
      *         空 構成牌を指定しなければ一意に選択肢が定まらない場合
      * @throws NoSuchElementException チー宣言不可能な場合
      */
-    Optional<CallAction> getSingledOutChiAction(){
+    public Optional<CallAction> getSingledOutChiAction(){
         if(chiActions.isEmpty()){
             throw new NoSuchElementException("invalid action");
         }
@@ -168,7 +168,7 @@ class CallActionSelector{
      *         空 構成牌1によって一意に選択肢が定まらなかった場合
      * @throws NoSuchElementException 構成牌が不正の場合
      */
-    Optional<CallAction> getSingledOutChiAction(Tile selected){
+    public Optional<CallAction> getSingledOutChiAction(Tile selected){
         var matchedChiActions = chiActions.stream()
                 .filter(a->a.arguments().contains(selected)).toList();
         if(matchedChiActions.isEmpty()){
@@ -186,7 +186,7 @@ class CallActionSelector{
      * @return チー宣言の選択肢
      * @throws NoSuchElementException 構成牌が不正の場合
      */
-    CallAction getSingledOutChiAction(Tile selected1, Tile selected2){
+    public CallAction getSingledOutChiAction(Tile selected1, Tile selected2){
         return chiActions.stream()
                 .filter(a->a.arguments().equals(List.of(selected1, selected2)) ||
                         a.arguments().equals(List.of(selected2, selected1)))
@@ -205,7 +205,7 @@ class CallActionSelector{
      *         空 構成牌を指定しなければ一意に選択肢が定まらない場合
      * @throws NoSuchElementException ポン宣言不可能な場合
      */
-    Optional<CallAction> getSingledOutPonAction(){
+    public Optional<CallAction> getSingledOutPonAction(){
         if(ponActions.isEmpty()){
             throw new NoSuchElementException("invalid action");
         }
@@ -223,7 +223,7 @@ class CallActionSelector{
      *         空 構成牌1によって一意に選択肢が定まらなかった場合
      * @throws NoSuchElementException 構成牌が不正の場合
      */
-    Optional<CallAction> getSingledOutPonAction(Tile selected){
+    public Optional<CallAction> getSingledOutPonAction(Tile selected){
         var matchedPonActions = ponActions.stream()
                 .filter(a->a.arguments().contains(selected)).toList();
         if(matchedPonActions.isEmpty()){
@@ -241,7 +241,7 @@ class CallActionSelector{
      * @return ポン宣言の選択肢
      * @throws NoSuchElementException 構成牌が不正の場合
      */
-    CallAction getSingledOutPonAction(Tile selected1, Tile selected2){
+    public CallAction getSingledOutPonAction(Tile selected1, Tile selected2){
         return ponActions.stream()
                 .filter(a->a.arguments().equals(List.of(selected1, selected2)) ||
                         a.arguments().equals(List.of(selected2, selected1)))
@@ -255,7 +255,7 @@ class CallActionSelector{
      * @return カン宣言の選択肢
      * @throws NoSuchElementException カン宣言不可能な場合
      */
-    CallAction getKanAction(){
+    public CallAction getKanAction(){
         if(kanActionNullable==null){
             throw new NoSuchElementException();
         }
@@ -268,7 +268,7 @@ class CallActionSelector{
      * @return ロン宣言の選択肢
      * @throws NoSuchElementException ロン宣言不可能な場合
      */
-    CallAction getRonAction(){
+    public CallAction getRonAction(){
         if(ronActionNullable==null){
             throw new NoSuchElementException();
         }
@@ -279,7 +279,7 @@ class CallActionSelector{
      * パスする選択肢を取得します。
      * @return パスの選択肢
      */
-    CallAction getPassAction(){
+    public CallAction getPassAction(){
         return passAction;
     }
 }

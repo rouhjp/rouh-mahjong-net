@@ -1,7 +1,7 @@
 package jp.rouh.mahjong.net;
 
+import jp.rouh.mahjong.bot.TableStrategyBots;
 import jp.rouh.mahjong.game.GameTable;
-import jp.rouh.mahjong.game.event.TableStrategyMock;
 import jp.rouh.util.net.BioMessageServer;
 import jp.rouh.util.net.MessageConnection;
 import jp.rouh.util.net.MessageServerListener;
@@ -80,20 +80,22 @@ public class RoomServer extends BioMessageServer implements MessageServerListene
      * <p>接続メンバが4人に満たない場合はNPCを数合わせとして追加してゲームを開始します。
      */
     private void start(){
-        members.values().forEach(member->member.observer.gameStarted());
-        var executor = Executors.newSingleThreadExecutor();
-        executor.submit(()->{
-            var table = new GameTable();
-            var players = members.values().stream().toList();
-            for(var player:players){
-                table.addPlayer(player.name, player.getObserver());
-            }
-            for(int i = 1;i<=(4 - players.size());i++){
-                table.addPlayer("bot"+i, TableStrategyMock.DISCARD);
-            }
-            table.start();
-        });
-        executor.shutdown();
+        if(members.values().stream().allMatch(member->member.ready)){
+            members.values().forEach(member->member.observer.gameStarted());
+            var executor = Executors.newSingleThreadExecutor();
+            executor.submit(()->{
+                var table = new GameTable();
+                var players = members.values().stream().toList();
+                for(var player: players){
+                    table.addPlayer(player.name, player.getObserver());
+                }
+                for(int i = 1; i<=(4 - players.size()); i++){
+                    table.addPlayer("bot" + i, TableStrategyBots.newReadyBot());
+                }
+                table.start();
+            });
+            executor.shutdown();
+        }
     }
 
     /**
