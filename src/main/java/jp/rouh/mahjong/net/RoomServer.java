@@ -84,15 +84,19 @@ public class RoomServer extends BioMessageServer implements MessageServerListene
             members.values().forEach(member->member.observer.gameStarted());
             var executor = Executors.newSingleThreadExecutor();
             executor.submit(()->{
-                var table = new GameTable();
-                var players = members.values().stream().toList();
-                for(var player: players){
-                    table.addPlayer(player.name, player.getObserver());
+                try{
+                    var table = new GameTable();
+                    var players = members.values().stream().toList();
+                    for(var player: players){
+                        table.addPlayer(player.name, player.getObserver());
+                    }
+                    for(int i = 1; i<=(4 - players.size()); i++){
+                        table.addPlayer("bot" + i, TableStrategyBots.newReadyBot());
+                    }
+                    table.start();
+                }catch(Exception e){
+                    LOG.error("exception caught while playing online game", e);
                 }
-                for(int i = 1; i<=(4 - players.size()); i++){
-                    table.addPlayer("bot" + i, TableStrategyBots.newReadyBot());
-                }
-                table.start();
             });
             executor.shutdown();
         }

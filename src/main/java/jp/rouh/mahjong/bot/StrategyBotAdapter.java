@@ -130,6 +130,9 @@ class StrategyBotAdapter implements TileCounter, TableObserverAdapter, TableStra
         synchronized(this){
             try{
                 var selector = new TurnActionSelector(choices);
+                if(selector.isReady()){
+                    return selector.getDiscardDrawnAction();
+                }
                 if(selector.canDeclareTsumo()){
                     return selector.getTsumoAction();
                 }
