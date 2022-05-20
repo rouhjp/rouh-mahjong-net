@@ -88,7 +88,7 @@ enum Wait{
                 return MIDDLE_STRAIGHT;
             }
             if(meld.isTerminal() && !winningTile.isTerminal()){
-                return DOUBLE_SIDE_STRAIGHT;
+                return SINGLE_SIDE_STRAIGHT;
             }
             return DOUBLE_SIDE_STRAIGHT;
         }
