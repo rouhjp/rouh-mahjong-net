@@ -6,7 +6,24 @@ package jp.rouh.util.net.msg;
  * @version 1.0
  */
 public class RemoteResponse{
+    private String requestId;
     private Object value;
+
+    /**
+     * リクエストIDを取得します。
+     * @return リクエストID
+     */
+    public String getRequestId(){
+        return requestId;
+    }
+
+    /**
+     * リクエストIDを設定します。
+     * @param requestId リクエストID
+     */
+    public void setRequestId(String requestId){
+        this.requestId = requestId;
+    }
 
     /**
      * 戻り値を取得します。

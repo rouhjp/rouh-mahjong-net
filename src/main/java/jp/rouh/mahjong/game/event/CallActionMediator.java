@@ -133,6 +133,7 @@ public class CallActionMediator{
             }
             return answerMap;
         }catch(InterruptedException | ExecutionException e){
+            LOG.error("call action mediator interrupted", e);
             throw new RuntimeException(e);
         }
     }

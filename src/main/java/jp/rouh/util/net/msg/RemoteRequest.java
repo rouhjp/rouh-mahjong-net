@@ -9,8 +9,25 @@ import java.util.List;
  * @version 1.0
  */
 public class RemoteRequest{
+    private String id;
     private Method method;
     private List<Object> parameters;
+
+    /**
+     * IDを取得します。
+     * @return ID
+     */
+    public String getId(){
+        return id;
+    }
+
+    /**
+     * IDを設定します。
+     * @param id ID
+     */
+    public void setId(String id){
+        this.id = id;
+    }
 
     /**
      * メソッドを取得します。

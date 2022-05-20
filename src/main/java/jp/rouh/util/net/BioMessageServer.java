@@ -111,13 +111,13 @@ public class BioMessageServer implements MessageServer{
         }
 
         private void received(String message){
-            LOG.info("received from " + userId + " message=" + message);
+            //LOG.info("received from " + userId + " message=" + message);
             listeners.forEach(listener->listener.received(message));
         }
 
         @Override
         public void send(String message){
-            LOG.info("send to " + userId + " message=" + message);
+            //LOG.info("send to " + userId + " message=" + message);
             if(!socket.isClosed()){
                 messageWriter.println(message);
                 messageWriter.flush();

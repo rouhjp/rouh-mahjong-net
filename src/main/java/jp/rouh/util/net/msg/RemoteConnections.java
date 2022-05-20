@@ -9,8 +9,10 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 接続先オブジェクトでリモートメソッド呼び出しを行うためのユーティリティクラス。
@@ -68,6 +70,7 @@ public class RemoteConnections{
                     var returnValue = method.invoke(dispatchTo, args);
                     if(method.getReturnType()!=void.class){
                         var response = new RemoteResponse();
+                        response.setRequestId(request.getId());
                         response.setValue(returnValue);
                         var returnMessage = converter.encode(response);
                         connection.send(returnMessage);
@@ -81,6 +84,7 @@ public class RemoteConnections{
 
     private static class RemoteProxy implements InvocationHandler, MessageListener{
         private final BlockingDeque<Object> blockingDeque = new LinkedBlockingDeque<>();
+        private final AtomicReference<String> currentRequestId = new AtomicReference<>("");
         private final Class<?> remoteInterface;
         private final MessageConnection connection;
         private final MessageConverter converter;
@@ -96,10 +100,13 @@ public class RemoteConnections{
             try{
                 if(method.getDeclaringClass().isAssignableFrom(remoteInterface)){
                     var request = new RemoteRequest();
+                    var id = UUID.randomUUID().toString();
+                    request.setId(id);
                     request.setMethod(method);
                     request.setParameters(args==null? List.of():List.of(args));
                     connection.send(converter.encode(request));
                     if(method.getReturnType()!=void.class){
+                        currentRequestId.set(id);
                         return blockingDeque.take();
                     }
                     return null;
@@ -115,7 +122,11 @@ public class RemoteConnections{
         public void received(String message){
             var object = converter.decode(message);
             if(object instanceof RemoteResponse response){
-                blockingDeque.addLast(response.getValue());
+                if(response.getRequestId().equals(currentRequestId.get())){
+                    blockingDeque.addLast(response.getValue());
+                }else{
+                    LOG.info("response has ignored for id mismatch: "+message);
+                }
             }
         }
     }
