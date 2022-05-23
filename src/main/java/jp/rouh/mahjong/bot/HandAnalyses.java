@@ -343,7 +343,7 @@ final class HandAnalyses{
         if(tiles.size()<3) return Set.of();
         var melds = new HashSet<List<Tile>>(2);
         if(tiles.get(0).equalsIgnoreRed(tiles.get(2))){
-            melds.add(tiles.subList(0, 2));
+            melds.add(tiles.subList(0, 3));
         }
         var straight = new ArrayList<Tile>();
         straight.add(tiles.get(0));
