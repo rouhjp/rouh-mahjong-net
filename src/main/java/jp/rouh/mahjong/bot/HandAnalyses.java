@@ -260,7 +260,7 @@ final class HandAnalyses{
             var derivedBases = new ArrayList<>(bases);
             base.forEach(derivedRemaining::remove);
             derivedBases.add(base);
-            set.addAll(toMeldPatterns(derivedRemaining, skipped, derivedBases));
+            set.addAll(toBasePatterns(derivedRemaining, skipped, derivedBases));
         }
         var skipping = remaining.stream()
                 .filter(t->t.equalsIgnoreRed(remaining.get(0)))
@@ -269,7 +269,7 @@ final class HandAnalyses{
         var derivedSkipped = new ArrayList<>(skipped);
         skipping.forEach(derivedRemaining::remove);
         derivedSkipped.addAll(skipping);
-        set.addAll(toMeldPatterns(derivedRemaining, derivedSkipped, bases));
+        set.addAll(toBasePatterns(derivedRemaining, derivedSkipped, bases));
         return set;
     }
 
