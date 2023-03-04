@@ -29,7 +29,7 @@ final class FormattedHands{
      */
     static Set<FormattedHand> format(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context){
         var formattedHands = new HashSet<FormattedHand>();
-        for(var arranged: HandTiles.arrange(handTiles, winningTile)){
+        for(var arranged: HandTiles.arrangeAll(handTiles, winningTile)){
             var head = new Head(arranged.get(0));
             var tail = arranged.subList(1, arranged.size());
             if(head.containsIgnoreRed(winningTile)){

@@ -1,7 +1,7 @@
 package jp.rouh.mahjong.score;
 
 import jp.rouh.mahjong.tile.Tile;
-import jp.rouh.util.FlexList;
+import jp.rouh.util.Lists;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -125,7 +125,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
-                    && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
+                    && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds -> melds.stream().map(Meld::getTileType).distinct().count()==1
                             && melds.stream().map(Meld::getTilesSorted).flatMap(List::stream)
                             .mapToInt(Tile::suitNumber).distinct().count()==9);
@@ -139,7 +139,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
-                    && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
+                    && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds -> melds.stream().map(Meld::getTileType).distinct().count()==1
                             && melds.stream().map(Meld::getTilesSorted).flatMap(List::stream)
                             .mapToInt(Tile::suitNumber).distinct().count()==9);
@@ -153,7 +153,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
-                    && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
+                    && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
                             melds.stream().allMatch(Meld::isSequence)
                                     && melds.stream().map(Meld::getTileType).distinct().count()==3
@@ -168,7 +168,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
-                    && new FlexList<>(hand.getMelds()).combinationSizeOf(3)
+                    && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
                             melds.stream().allMatch(Meld::isSequence)
                                     && melds.stream().map(Meld::getTileType).distinct().count()==3
@@ -182,7 +182,7 @@ enum MeldBasedHandType implements BasicHandType{
     THREE_COLOR_TRIPLES("三色同刻", 2){
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
-            return new FlexList<>(hand.getMelds()).combinationSizeOf(3)
+            return Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
                             melds.stream().noneMatch(Meld::isSequence)
                                     && melds.stream().noneMatch(Meld::isHonor)
@@ -199,7 +199,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
-                    && new FlexList<>(hand.getMelds()).combinationSizeOf(2).stream()
+                    && Lists.combinationsOf(hand.getMelds(), 2).stream()
                     .filter(melds -> melds.stream().allMatch(Meld::isSequence)
                             && melds.get(0).getFirst().equalsIgnoreRed(melds.get(1).getFirst())).count()==1;
         }

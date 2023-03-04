@@ -49,7 +49,7 @@ class BotPerformanceTester{
                 if(!tiles.remove(tileOut)){
                     throw new IllegalStateException("bot selected invalid tile: "+tileOut+" from "+tiles);
                 }
-                if(HandTiles.isHandReady(tiles, List.of())){
+                if(HandTiles.isHandReady(tiles)){
                     successCount++;
                     break;
                 }

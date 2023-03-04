@@ -23,7 +23,7 @@ public enum IrregularFormatHandType implements BasicHandType{
     SEVEN_PAIR("七対子", 2){
         @Override
         boolean test(List<Tile> handTiles, Tile winningTile, ScoringContext context){
-            return context.isSelfMade() && HandTiles.isSevenPairs(handTiles, winningTile);
+            return context.isSelfMade() && HandTiles.isCompletedSevenPairs(handTiles, winningTile);
         }
     };
 

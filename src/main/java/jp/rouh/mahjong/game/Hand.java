@@ -60,7 +60,7 @@ class Hand{
     void discard(Tile tile){
         requireInTurn();
         remove(tile);
-        completingTiles = HandTiles.winningTilesOf(handTiles, openMelds);
+        completingTiles = HandTiles.winningTilesOf(handTiles);
         undiscardableTiles = null;
     }
 
@@ -73,7 +73,7 @@ class Hand{
         handTiles.add(tile);
         if(handTiles.size()==13){
             handTiles.sort(Comparator.naturalOrder());
-            completingTiles = HandTiles.winningTilesOf(handTiles, openMelds);
+            completingTiles = HandTiles.winningTilesOf(handTiles);
         }
     }
 
@@ -85,7 +85,7 @@ class Hand{
         requireOutOfTurn();
         remove(baseTiles);
         openMelds.add(Meld.ofCallSequence(baseTiles, claimedTile));
-        undiscardableTiles = HandTiles.waitingTilesOf(baseTiles);
+        undiscardableTiles = HandTiles.waitingTargetsOf(baseTiles);
         return openMelds.size() - 1;
     }
 
@@ -93,7 +93,7 @@ class Hand{
         requireOutOfTurn();
         remove(baseTiles);
         openMelds.add(Meld.ofCallTriple(baseTiles, claimedTile, source));
-        undiscardableTiles = HandTiles.waitingTilesOf(baseTiles);
+        undiscardableTiles = HandTiles.waitingTargetsOf(baseTiles);
         return openMelds.size() - 1;
     }
 
@@ -141,7 +141,7 @@ class Hand{
 
     boolean isThirteenOrphansHandReady(){
         requireOutOfTurn();
-        return HandTiles.isThirteenOrphansHandReady(handTiles);
+        return HandTiles.isHandReadyThirteenOrphans(handTiles);
     }
 
     boolean isCompleted(){
@@ -161,7 +161,7 @@ class Hand{
 
     Set<Tile> getReadyTiles(){
         requireInTurn();
-        return HandTiles.readyTilesOf(handTiles, drawnTile, openMelds);
+        return HandTiles.readyTilesOf(handTiles, drawnTile);
     }
 
     Set<Tile> getDiscardableTiles(){
@@ -177,29 +177,32 @@ class Hand{
     Set<Tile> getQuadTiles(){
         requireInTurn();
         var quadTiles = new HashSet<Tile>();
-        quadTiles.addAll(HandTiles.addQuadTilesOf(handTiles, drawnTile, openMelds));
-        quadTiles.addAll(HandTiles.selfQuadTilesOf(handTiles, drawnTile));
+        var meldTiles = openMelds.stream()
+                .map(Meld::getTilesSorted)
+                .toList();
+        quadTiles.addAll(HandTiles.addKanTargetsOf(handTiles, drawnTile, meldTiles));
+        quadTiles.addAll(HandTiles.selfKanTargetsOf(handTiles, drawnTile));
         return quadTiles;
     }
 
     boolean canReadyQuad(){
         requireInTurn();
         if(readyQuadTiles==null){
-            readyQuadTiles = HandTiles.readyQuadTilesOf(handTiles);
+            readyQuadTiles = HandTiles.readyKanTargetsOf(handTiles);
         }
         return readyQuadTiles.contains(drawnTile);
     }
 
     Set<List<Tile>> getQuadBaseOf(Tile claimableTile){
-        return HandTiles.quadBasesOf(handTiles, claimableTile);
+        return HandTiles.kanBasesOf(handTiles, claimableTile);
     }
 
     Set<List<Tile>> getTripleBasesOf(Tile claimableTile){
-        return HandTiles.tripleBasesOf(handTiles, claimableTile);
+        return HandTiles.ponBasesOf(handTiles, claimableTile);
     }
 
     Set<List<Tile>> getSequenceBasesOf(Tile claimableTile){
-        return HandTiles.sequenceBasesOf(handTiles, claimableTile);
+        return HandTiles.chiBasesOf(handTiles, claimableTile);
     }
 
     Tile getDrawnTile(){

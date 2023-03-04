@@ -4,10 +4,12 @@ import java.util.concurrent.Semaphore;
 
 /**
  * 別スレッドから値が設定されるまでスレッドをブロックして待機するクラス。
+ *
  * @param <T> 値の型
  * @author Rouh
  * @version 1.0
  */
+@SuppressWarnings("unused")
 public class Waiter<T>{
     private final Semaphore semaphore = new Semaphore(0);
     private volatile boolean waiting;

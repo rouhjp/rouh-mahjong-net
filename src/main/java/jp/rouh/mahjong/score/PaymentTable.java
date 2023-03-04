@@ -2,7 +2,7 @@ package jp.rouh.mahjong.score;
 
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Wind;
-import jp.rouh.util.FlexMap;
+import jp.rouh.util.Maps;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -83,7 +83,7 @@ public class PaymentTable{
      * 空の精算テーブルを生成します。
      */
     public PaymentTable(){
-        this.paymentMap = FlexMap.of(Wind.class, 0);
+        this.paymentMap = Maps.ofEnum(Wind.class, 0);
     }
 
     /**

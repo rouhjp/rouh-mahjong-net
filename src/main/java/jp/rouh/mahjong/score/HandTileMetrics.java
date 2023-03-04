@@ -2,17 +2,11 @@ package jp.rouh.mahjong.score;
 
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Tiles;
-import jp.rouh.util.FlexList;
+import jp.rouh.util.Lists;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Stream;
+import java.util.*;
 
-import static java.util.Collections.reverseOrder;
-import static java.util.stream.Collectors.toCollection;
-import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.*;
 
 /**
  * 手牌パターンの分析により手牌の立直/和了の判定を補助するユーティリティクラス。
@@ -91,111 +85,105 @@ import static java.util.stream.Collectors.toSet;
  * @author Rouh
  * @version 1.0
  */
-final class HandSections{
-    private HandSections(){
-        throw new AssertionError("no instance for you");
+final class HandTileMetrics{
+    private static final Set<BlockMetric> P3N1;
+    private static final Set<BlockMetric> P3N2;
+    static {
+        var p3n1 = new TreeSet<BlockMetric>();
+        p3n1.addAll(new BlockMetric(3, 3, 3, 2, 2).derived());
+        p3n1.addAll(new BlockMetric(3, 3, 2, 2).derived());
+        p3n1.addAll(new BlockMetric(3, 2, 2).derived());
+        p3n1.addAll(new BlockMetric(2, 2).derived());
+        p3n1.addAll(new BlockMetric(3, 3, 3, 3, 1).derived());
+        p3n1.addAll(new BlockMetric(3, 3, 3, 1).derived());
+        p3n1.addAll(new BlockMetric(3, 3, 1).derived());
+        p3n1.addAll(new BlockMetric(3, 1).derived());
+        p3n1.addAll(new BlockMetric(1).derived());
+        P3N1 = p3n1;
+        var p3n2 = new TreeSet<BlockMetric>();
+        p3n2.addAll(new BlockMetric(3, 3, 3, 3, 2).derived());
+        p3n2.addAll(new BlockMetric(3, 3, 3, 2).derived());
+        p3n2.addAll(new BlockMetric(3, 3, 2).derived());
+        p3n2.addAll(new BlockMetric(3, 2).derived());
+        p3n2.addAll(new BlockMetric(2).derived());
+        P3N2 = p3n2;
     }
+    private static final class BlockMetric implements Comparable<BlockMetric>{
+        private final List<Integer> blockSizes;
 
-    private static final class HandSection implements Comparable<HandSection>{
-        private final FlexList<Integer> values;
-
-        private HandSection(Integer... integers){
-            this(FlexList.of(integers));
+        private BlockMetric(Integer...blockSizes){
+            this(Arrays.asList(blockSizes));
         }
 
-        private HandSection(FlexList<Integer> values){
-            values.sort(reverseOrder());
-            this.values = values;
+        private BlockMetric(List<Integer> blockSizes){
+            this.blockSizes = blockSizes.stream()
+                    .sorted(Comparator.reverseOrder())
+                    .toList();
         }
 
-        private Set<HandSection> children(){
-            var patterns = new TreeSet<HandSection>();
-            patterns.add(this);
-            if(values.size()<2){
-                return patterns;
+        private Set<BlockMetric> derived(){
+            var metrics = new TreeSet<BlockMetric>();
+            metrics.add(this);
+            if (blockSizes.size()<2) return metrics;
+            for (var linkage: Lists.combinationsOf(blockSizes, 2)){
+                int linkedBlockSize = linkage.get(0) + linkage.get(1);
+                var derivedBlockSizes = Lists.added(Lists.removedEach(blockSizes, linkage), linkedBlockSize);
+                var derivedMetrics = new BlockMetric(derivedBlockSizes);
+                metrics.addAll(derivedMetrics.derived());
             }
-            for(var combination: values.combinationSizeOf(2)){
-                var childValue = new FlexList<>(values)
-                        .removedEach(combination)
-                        .added(combination.get(0) + combination.get(1));
-                var pattern = new HandSection(childValue);
-                if(patterns.add(pattern)){
-                    patterns.addAll(pattern.children());
-                }
-            }
-            return patterns;
-        }
-
-        private int getSize(){
-            return values.stream().mapToInt(i -> i).sum();
+            return metrics;
         }
 
         @Override
-        public boolean equals(Object o){
-            if(this==o) return true;
-            if(o==null || getClass()!=o.getClass()) return false;
-            HandSection that = (HandSection)o;
-            return Objects.equals(values, that.values);
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BlockMetric that = (BlockMetric) o;
+            return Objects.equals(blockSizes, that.blockSizes);
         }
 
         @Override
-        public int hashCode(){
-            return Objects.hash(values);
+        public int hashCode() {
+            return Objects.hash(blockSizes);
+        }
+
+        private int size(){
+            return blockSizes.stream().mapToInt(i->i).sum();
         }
 
         @Override
-        public int compareTo(HandSection o){
-            if(getSize()!=o.getSize()){
-                return getSize() - o.getSize();
-            }
-            for(int i = 0; i<values.size(); i++){
-                int comparison = values.get(i).compareTo(o.values.get(i));
-                if(comparison!=0) return comparison;
+        public int compareTo(BlockMetric o) {
+            if (size()!=o.size()) return size() - o.size();
+            for (int i = 0; i< blockSizes.size(); i++){
+                int comparison = blockSizes.get(i).compareTo(o.blockSizes.get(i));
+                if (comparison!=0) return comparison;
             }
             return 0;
         }
 
         @Override
-        public String toString(){
+        public String toString() {
             var sb = new StringBuilder("|");
-            for(Integer value: values){
-                int digit = String.valueOf(value).length();
-                sb.append(" ".repeat(Math.max(0, value - digit)));
-                sb.append(value);
-                sb.append(" ".repeat(value - 1));
+            for (int blockSize:blockSizes){
+                sb.append(" ".repeat(Math.max(0, blockSize - String.valueOf(blockSize).length())));
+                sb.append(blockSize);
+                sb.append(" ".repeat(blockSize - 1));
                 sb.append("|");
             }
             sb.append(" ");
             sb.append("... ");
-            sb.append(values);
+            sb.append(blockSizes);
             return sb.toString();
         }
+
+        private static BlockMetric of(List<Tile> handTiles){
+            var sorted = handTiles.stream().sorted().toList();
+            var blockSizes = Lists.split(sorted, (left, right)->!Tiles.isNeighbour(left, right))
+                    .stream().map(List::size).toList();
+            return new BlockMetric(blockSizes);
+        }
+
     }
-
-    private static final Set<HandSection> P3N1;
-    private static final Set<HandSection> P3N2;
-
-    static{
-        var p3n1 = new TreeSet<HandSection>();
-        p3n1.addAll(new HandSection(3, 3, 3, 2, 2).children());
-        p3n1.addAll(new HandSection(3, 3, 2, 2).children());
-        p3n1.addAll(new HandSection(3, 2, 2).children());
-        p3n1.addAll(new HandSection(2, 2).children());
-        p3n1.addAll(new HandSection(3, 3, 3, 3, 1).children());
-        p3n1.addAll(new HandSection(3, 3, 3, 1).children());
-        p3n1.addAll(new HandSection(3, 3, 1).children());
-        p3n1.addAll(new HandSection(3, 1).children());
-        p3n1.addAll(new HandSection(1).children());
-        P3N1 = p3n1;
-        var p3n2 = new TreeSet<HandSection>();
-        p3n2.addAll(new HandSection(3, 3, 3, 3, 2).children());
-        p3n2.addAll(new HandSection(3, 3, 3, 2).children());
-        p3n2.addAll(new HandSection(3, 3, 2).children());
-        p3n2.addAll(new HandSection(3, 2).children());
-        p3n2.addAll(new HandSection(2).children());
-        P3N2 = p3n2;
-    }
-
     /**
      * 手牌が面子手の聴牌形かどうか簡易検査します。
      *
@@ -209,7 +197,7 @@ final class HandSections{
      *         false この手牌が面子手の聴牌形でない場合
      */
     static boolean matchReady(List<Tile> handTiles){
-        return P3N1.contains(handSectionOf(handTiles));
+        return P3N1.contains(BlockMetric.of(handTiles));
     }
 
     /**
@@ -226,16 +214,8 @@ final class HandSections{
      * @throws IllegalArgumentException 長さが不正の場合
      */
     static boolean matchCompleted(List<Tile> handTiles, Tile winningTile){
-        return P3N2.contains(handSectionOf(FlexList.copyOf(handTiles).added(winningTile)));
-    }
-
-    private static HandSection handSectionOf(List<Tile> tiles){
-        var values = new FlexList<>(tiles).sorted()
-                .separateByDiff((t1, t2) -> !Tiles.isNeighbour(t1, t2))
-                .stream()
-                .map(List::size)
-                .collect(toCollection(FlexList::new));
-        return new HandSection(values);
+        var allTiles = Lists.added(handTiles, winningTile);
+        return P3N2.contains(BlockMetric.of(allTiles));
     }
 
     /**
@@ -262,22 +242,22 @@ final class HandSections{
      *   =>[1 2 3 4 5]                    ... {@code Set<Tile>}
      * </pre>
      * @param handTiles  手牌(長さ3n+1(n>=0))
-     * @param otherTiles 手牌中の純手牌以外の牌
      * @return 和了牌の候補のセット
      * @throws IllegalArgumentException 手牌のリストの長さが不正な場合
      */
-    static Set<Tile> winningTileCandidatesOf(List<Tile> handTiles, List<Tile> otherTiles){
-        return new FlexList<>(handTiles).sorted()
-                .separateByDiff((t1, t2) -> !Tiles.isNeighbour(t1, t2)).stream()
-                .filter(section -> section.size()%3!=0)
+    static Set<Tile> winningCandidatesOf(List<Tile> handTiles){
+        var exhaustedTiles = handTiles.stream()
+                .collect(groupingBy(Tile::tileNumber)).values().stream()
+                .filter(group->group.size()==4)
                 .flatMap(List::stream)
-                .flatMap(tile -> Tiles.aroundTilesOf(tile).stream())
-                .filter(tile -> Stream.concat(handTiles.stream(), otherTiles.stream())
-                        .filter(tile::equalsIgnoreRed).count()<4)
                 .collect(toSet());
-    }
-
-    static Set<Tile> winningTileCandidatesOf(List<Tile> handTiles){
-        return winningTileCandidatesOf(handTiles, List.of());
+        var sorted = handTiles.stream().sorted().toList();
+        return Lists.split(sorted, (left, right)->!Tiles.isNeighbour(left, right)).stream()
+                .filter(block->block.size()%3!=0)
+                .flatMap(List::stream)
+                .flatMap(tile->Tiles.aroundTilesOf(tile).stream())
+                .flatMap(tile->Tiles.colorTilesOf(tile).stream())
+                .filter(tile->!exhaustedTiles.contains(tile))
+                .collect(toSet());
     }
 }

@@ -1,7 +1,7 @@
 package jp.rouh.mahjong.bot;
 
 import jp.rouh.mahjong.tile.Tile;
-import jp.rouh.util.FlexList;
+import jp.rouh.util.Lists;
 
 import java.util.Comparator;
 import java.util.List;
@@ -42,7 +42,7 @@ public enum StandardDiscardingBot implements DiscardingBot{
         public Tile selectReady(List<Tile> allTiles, Set<Tile> readyTiles, TileCounter counter){
             var handTilesByReadyTile = readyTiles.stream()
                     .collect(Collectors.<Tile, Tile, List<Tile>>toMap(Function.identity(),
-                            t->new FlexList<>(allTiles).removed(t)));
+                            t->Lists.removed(allTiles, t)));
             return HandAnalyses.selectReadyTileByHighestWaitingTileCount(handTilesByReadyTile, counter);
         }
     }

@@ -3,7 +3,7 @@ package jp.rouh.mahjong.score;
 import jp.rouh.mahjong.tile.Side;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Tiles;
-import jp.rouh.util.FlexList;
+import jp.rouh.util.Lists;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,10 +47,8 @@ public class Meld implements HandComponent{
         this.claimedNullable = claimed;
         this.addedNullable = null;
         this.source = source;
-        this.sorted = new FlexList<>(base)
-                .added(claimed)
-                .sorted()
-                .toUnmodifiable();
+        this.sorted = Lists.added(base, claimed)
+                .stream().sorted().toList();
     }
 
     /**
@@ -65,11 +63,8 @@ public class Meld implements HandComponent{
         this.claimedNullable = claimed;
         this.addedNullable = added;
         this.source = source;
-        this.sorted = new FlexList<>(base)
-                .added(claimed)
-                .added(added)
-                .sorted()
-                .toUnmodifiable();
+        this.sorted = Lists.added(Lists.added(base, claimed), added)
+                .stream().sorted().toList();
     }
 
     /**
@@ -326,7 +321,7 @@ public class Meld implements HandComponent{
      * @return 明順
      */
     public static Meld ofCallSequence(List<Tile> base, Tile claimed){
-        if(!Tiles.isSequence(base, claimed)) throw new IllegalArgumentException("invalid tiles for call sequence: "+base+" "+claimed);
+        if(!Tiles.isStraight(base, claimed)) throw new IllegalArgumentException("invalid tiles for call sequence: "+base+" "+claimed);
         return new Meld(base, claimed, Side.LEFT);
     }
 
@@ -338,7 +333,7 @@ public class Meld implements HandComponent{
      * @return 面子
      */
     public static Meld ofHand(List<Tile> tiles){
-        if(!Tiles.isTriple(tiles) && !Tiles.isSequence(tiles))
+        if(!Tiles.isTriple(tiles) && !Tiles.isStraight(tiles))
             throw new IllegalArgumentException("invalid tiles for meld: "+tiles);
         return new Meld(tiles);
     }
@@ -352,7 +347,7 @@ public class Meld implements HandComponent{
      * @return 面子
      */
     public static Meld ofHand(List<Tile> base, Tile claimed){
-        if(!Tiles.isTriple(base, claimed) && !Tiles.isSequence(base, claimed))
+        if(!Tiles.isTriple(base, claimed) && !Tiles.isStraight(base, claimed))
             throw new IllegalArgumentException("invalid tiles for meld: " + base + " " + claimed);
         return new Meld(base, claimed, Side.SELF);
     }

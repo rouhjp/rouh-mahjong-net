@@ -3,7 +3,7 @@ package jp.rouh.mahjong.bot;
 import jp.rouh.mahjong.score.HandTiles;
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Tiles;
-import jp.rouh.util.FlexList;
+import jp.rouh.util.Lists;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,7 +27,7 @@ final class HandAnalyses{
     public static Tile selectDiscardTileByHighestReadyScore(List<Tile> allTiles, TileCounter counter){
         return allTiles.stream()
                 .distinct()
-                .max(Comparator.comparing(d->calculateReadyScore(new FlexList<>(allTiles).removed(d), counter)))
+                .max(Comparator.comparing(d->calculateReadyScore(Lists.removed(allTiles, d), counter)))
                 .orElseThrow();
     }
 
@@ -40,7 +40,7 @@ final class HandAnalyses{
     public static Tile selectReadyTileByHighestWaitingTileCount(Map<Tile, List<Tile>> handTilesByReadyTile, TileCounter counter){
         return handTilesByReadyTile.entrySet().stream()
                 .max(Comparator.comparing(entry->
-                        HandTiles.winningTilesOf(entry.getValue(), List.of()).stream()
+                        HandTiles.winningTilesOf(entry.getValue()).stream()
                                 .mapToInt(counter::count)
                                 .sum()))
                 .orElseThrow()
@@ -84,8 +84,7 @@ final class HandAnalyses{
         var effectiveTiles = new HashSet<Tile>();
         for(var acceptTile:acceptableTiles){
             for(var discardTile:discardTiles){
-                var derivedHandTiles = new FlexList<>(handTiles)
-                        .removed(discardTile).added(acceptTile);
+                var derivedHandTiles = Lists.added(Lists.removed(handTiles, discardTile), acceptTile);
                 if(minimumSwapToReadyOfHand(derivedHandTiles) < currentMsr){
                     effectiveTiles.add(acceptTile);
                     break;
@@ -192,7 +191,8 @@ final class HandAnalyses{
      * @return 手牌パターンのセット
      */
     static Set<List<List<Tile>>> toPattern(List<Tile> handTiles){
-        var sections = new FlexList<>(handTiles).sorted().separateByDiff((t1, t2)->!Tiles.isNeighbour(t1, t2));
+        var sorted = handTiles.stream().sorted().toList();
+        var sections = Lists.split(sorted, (t1, t2)->!Tiles.isNeighbour(t1, t2));
         return sections.stream()
                 .map(HandAnalyses::toMeldBasePattern)
                 .reduce(HandAnalyses::combine)
@@ -241,7 +241,7 @@ final class HandAnalyses{
         return basePattern.stream()
                 .filter(p1->basePattern.stream()
                         .filter(p2->p1!=p2)
-                        .noneMatch(p2->p2.subList(0, p2.size() - 1).containsAll(p1.subList(0, p1.size() - 1))))
+                        .noneMatch(p2->new HashSet<>(p2.subList(0, p2.size() - 1)).containsAll(p1.subList(0, p1.size() - 1))))
                 .collect(Collectors.toSet());
     }
 

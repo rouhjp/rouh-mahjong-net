@@ -13,6 +13,7 @@ import static jp.rouh.mahjong.tile.Tile.*;
 
 /**
  * 牌関連のユーティリティクラス。
+ *
  * @author Rouh
  * @version 1.0
  */
@@ -32,6 +33,7 @@ public final class Tiles{
 
     /**
      * 136枚の牌セットをシャッフルした可変のリストを取得します。
+     *
      * @return 牌のリスト
      */
     public static List<Tile> newShuffledTileSet(){
@@ -40,6 +42,7 @@ public final class Tiles{
 
     /**
      * 136枚の牌セットをシャッフルした可変のリストを取得します。
+     *
      * @param seed シャッフルの際に用いる乱数のシード値
      * @return 牌のリスト
      */
@@ -75,7 +78,7 @@ public final class Tiles{
      * @param tile 牌
      * @return 同種の牌のリスト
      */
-    public static List<Tile> sameValuesOf(Tile tile){
+    public static List<Tile> colorTilesOf(Tile tile){
         return switch(tile){
             case M5, M5R -> List.of(Tile.M5, M5R);
             case P5, P5R -> List.of(Tile.P5, P5R);
@@ -114,7 +117,7 @@ public final class Tiles{
             default -> tile;
         };
     }
-
+    
     /**
      * 与えられた牌の順子を構成する上で周囲の牌をリスト形式で返却します。
      * 返却されるリストには, 必ず与えられた牌が含まれますが,
@@ -185,10 +188,10 @@ public final class Tiles{
      * @return true 順子を構成する場合
      *         false 順子を構成しない場合
      */
-    public static boolean isSequence(List<Tile> baseTiles, Tile claimedTile){
+    public static boolean isStraight(List<Tile> baseTiles, Tile claimedTile){
         var tiles = new ArrayList<>(baseTiles);
         tiles.add(claimedTile);
-        return isSequence(tiles);
+        return isStraight(tiles);
     }
 
     /**
@@ -197,7 +200,7 @@ public final class Tiles{
      * @return true 順子を構成する場合
      *         false 順子を構成しない場合
      */
-    public static boolean isSequence(List<Tile> tiles){
+    public static boolean isStraight(List<Tile> tiles){
         if(tiles.size()!=3) return false;
         var sorted = tiles.stream().sorted().toList();
         return sorted.get(1).isNextOf(sorted.get(0)) &&

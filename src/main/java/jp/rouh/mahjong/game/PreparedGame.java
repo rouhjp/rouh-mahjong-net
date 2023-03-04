@@ -2,7 +2,7 @@ package jp.rouh.mahjong.game;
 
 import jp.rouh.mahjong.tile.DiceTwin;
 import jp.rouh.mahjong.tile.Wind;
-import jp.rouh.util.FlexMap;
+import jp.rouh.util.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +43,7 @@ public class PreparedGame implements GameAccessor{
      * @param wallGenerator 牌山生成器
      */
     PreparedGame(Map<Wind, Player> players, GameSpan span, WallGenerator wallGenerator){
-        this.gamePlayers = new FlexMap<>(players)
-                .mapValue((wind, player)->new GamePlayer(this, player, wind));
+        this.gamePlayers = Maps.mapValue(players, (wind, player)->new GamePlayer(this, player, wind));
         this.span = span;
         this.wallGenerator = wallGenerator;
     }

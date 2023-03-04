@@ -2,12 +2,11 @@ package jp.rouh.mahjong.score;
 
 import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.mahjong.tile.Tiles;
-import jp.rouh.util.FlexList;
+import jp.rouh.util.Lists;
 
 import java.util.*;
 
 import static java.util.Collections.emptySet;
-import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.*;
 
 /**
@@ -21,140 +20,136 @@ public final class HandTiles{
     }
 
     /**
-     * 純手牌の長さが正しいかどうか検査し, 不正であれば例外をスローします。
+     * 手牌の長さが正しいかどうか検査し, 不正であれば例外をスローします。
      *
-     * <p>自摸牌を独立した1枚と考えた場合, 門前の手牌(純手牌)は常に13枚であることが成立します。
-     * 副露した場合は, 基本的に純手牌の枚数は13 - 3*副露した数となります。
+     * <p>自摸牌を除く門前の手牌は常に13枚であることが成立します。
+     * 副露した場合は, 基本的に手牌の枚数は13 - 3*副露した数となります。
      * 例外的にポンもしくはチー副露直後の打牌前のみ手牌の枚数は1枚多い状態になります。
      * <p>このバリデーション処理では, 手牌が基本的な状態であることを検査し,
      * 後続の処理に例外的な値が渡らないことを保証します。
-     * @param handTiles 純手牌
-     * @throws IllegalArgumentException 純手牌の長さが不正の場合
+     * @param handTiles 手牌
+     * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    private static void validateHandTiles(List<Tile> handTiles){
+    private static void requireValidSize(List<Tile> handTiles){
         if(handTiles.isEmpty() || handTiles.size()%3!=1 || handTiles.size()>13){
             throw new IllegalArgumentException("illegal size of hand tiles");
         }
     }
 
     /**
-     * 与えられた牌のセットに, 対応する赤ドラ/非赤ドラ牌を追加します。
-     * @param set 牌のセット
-     * @return 赤ドラ拡張済みセット
-     */
-    private static Set<Tile> expand(Set<Tile> set){
-        return set.stream().map(Tiles::sameValuesOf).flatMap(List::stream).collect(toSet());
-    }
-
-    /**
-     * 純手牌と追加牌が和了形かどうか検査します。
+     * 手牌が九種九牌形であるかどうか検査します。
      *
-     * <p>この処理の結果は{@code winningTilesOf(handTiles).contains(winningTile)}と等価です。
-     * @param handTiles   純手牌
-     * @param winningTile 追加牌
-     * @return true  和了形の場合
-     *         false 和了形でない場合
+     * <p>手牌が副露によって13枚未満の場合は{@code false}が返されます。
+     * @param handTiles 手牌(自摸牌を含まない、長さが13以下の3N+1のリスト)
+     * @param drawnTile 自摸牌
+     * @return true  九種九牌形である場合
+     *         false 九種九牌形でない場合
+     * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static boolean isCompleted(List<Tile> handTiles, Tile winningTile){
-        validateHandTiles(handTiles);
-        if(isThirteenOrphans(handTiles, winningTile)) return true;
-        if(isSevenPairs(handTiles, winningTile)) return true;
-        if(!HandSections.matchCompleted(handTiles, winningTile)) return false;
-        return isMeldHandCompleted(handTiles, winningTile);
+    public static boolean isNineTiles(List<Tile> handTiles, Tile drawnTile){
+        requireValidSize(handTiles);
+        var allTiles = Lists.added(handTiles, drawnTile);
+        return allTiles.stream().filter(Tile::isOrphan).distinct().count()>=9;
     }
 
     /**
-     * 純手牌と追加牌が国士無双形かどうか検査します。
-     * @param handTiles   純手牌
-     * @param winningTile 追加牌
+     * 手牌が和了形であるかどうか検査します。
+     *
+     * <p>面子手(四面子一雀頭)のほかに、七対子形、国士無双形の場合も検査します。
+     * @param handTiles 手牌(自摸牌を含まない、長さが13以下の3N+1のリスト)
+     * @param drawnTile 自摸牌
+     * @return true  和了形である場合
+     *         false 和了形でない場合
+     * @throws IllegalArgumentException 手牌の長さが不正の場合
+     */
+    public static boolean isCompleted(List<Tile> handTiles, Tile drawnTile){
+        requireValidSize(handTiles);
+        if (isCompletedSevenPairs(handTiles, drawnTile)) return true;
+        if (isCompletedThirteenOrphans(handTiles, drawnTile)) return true;
+        if (!HandTileMetrics.matchCompleted(handTiles, drawnTile)) return false;
+        return isCompletedMeldHand(handTiles, drawnTile);
+    }
+
+    /**
+     * 手牌が国士無双形であるかどうか検査します。
+     *
+     * <p>手牌が副露によって13枚未満の場合は{@code false}が返されます。
+     * @param handTiles 手牌(自摸牌を含まない、長さが13以下の3N+1のリスト)
+     * @param drawnTile 自摸牌
      * @return true  国士無双形である場合
      *         false 国士無双形でない場合
-     *         手牌の長さが不正の場合
+     * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static boolean isThirteenOrphans(List<Tile> handTiles, Tile winningTile){
-        var completedHandTiles = FlexList.copyOf(handTiles).added(winningTile);
-        return handTiles.size()==13 && completedHandTiles.stream().allMatch(Tile::isOrphan)
-                && completedHandTiles.stream().distinct().count()==13;
+    public static boolean isCompletedThirteenOrphans(List<Tile> handTiles, Tile drawnTile){
+        requireValidSize(handTiles);
+        var tiles = Lists.added(handTiles, drawnTile).stream().distinct().sorted().toList();
+        return handTiles.size()==13 && Tiles.orphans().equals(tiles);
     }
 
     /**
-     * 純手牌と追加牌が七対子形かどうか検査します。
+     * 手牌が七対子形であるかどうか検査します。
      *
+     * <p>手牌が副露によって13枚未満の場合は{@code false}が返されます。
      * <p>同種牌4枚を含む手牌は検査に適合しません。
-     * @param handTiles   純手牌
-     * @param winningTile 追加牌
+     * @param handTiles 手牌(自摸牌を含まない、長さが13以下の3N+1のリスト)
+     * @param drawnTile 自摸牌
      * @return true  七対子形である場合
      *         false 七対子形でない場合
-     *         手牌の長さが不正の場合
+     * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static boolean isSevenPairs(List<Tile> handTiles, Tile winningTile){
-        return handTiles.size()==13 && FlexList.copyOf(handTiles).added(winningTile)
-                .stream().collect(groupingBy(Tile::tileNumber)).values().stream()
-                .allMatch(group -> group.size()==2);
+    public static boolean isCompletedSevenPairs(List<Tile> handTiles, Tile drawnTile){
+        requireValidSize(handTiles);
+        return handTiles.size()==13 && Lists.added(handTiles, drawnTile).stream()
+                .collect(groupingBy(Tile::tileNumber))
+                .values().stream()
+                .allMatch(group->group.size()==2);
     }
 
     /**
-     * 純手牌と自摸牌から立直宣言可能牌のセットを取得します。
-     * @param handTiles 純手牌
-     * @param drawnTile 自摸牌
-     * @param openMelds 副露(暗槓を含む)
-     * @return 立直宣言可能牌
-     * @see #isHandReady(List, List)
-     */
-    public static Set<Tile> readyTilesOf(List<Tile> handTiles, Tile drawnTile, List<Meld> openMelds){
-        validateHandTiles(handTiles);
-        var completedHandTiles = new FlexList<>(handTiles).added(drawnTile).sorted();
-        var readyTiles = new HashSet<Tile>();
-        for(var readyTile: Set.copyOf(completedHandTiles)){
-            var readyHandTiles = new FlexList<>(completedHandTiles).removed(readyTile);
-            if(isHandReady(readyHandTiles, openMelds)){
-                readyTiles.add(readyTile);
-            }
-        }
-        return readyTiles;
-    }
-
-    /**
-     * 純手牌が聴牌かどうか検査します。
+     * 手牌と自摸牌が面子手和了形かどうか検査します。
      *
-     * <p>この処理では面子手のみならず国士無双及び七対子の可能性も検査します。
-     * <p>この処理の結果は{@code !winningTilesOf(handTiles).isEmpty()}と等価です。
-     * <p>聴牌とは, 手牌が完成するための和了牌が存在する状態を指します。
-     * 手牌で既に4枚使用されている牌は和了牌にはなりません。
-     * @param handTiles 純手牌(長さ3n+1(n=0..4))
-     * @param openMelds 副露(暗槓を含む)
+     * <p>この処理では国士無双形および七対子形の和了形かどうかは検査されません。
+     * <p>この処理の結果は{@code !arrange(handTiles).isEmpty()}と等価です。
+     * @param handTiles 手牌(自摸牌を含まない、長さが13以下の3N+1のリスト)
+     * @param drawnTile 自摸牌
+     * @return true  面子手和了形である場合
+     *         false 面子手和了形でない場合
+     */
+    private static boolean isCompletedMeldHand(List<Tile> handTiles, Tile drawnTile){
+        var allTiles = Lists.added(handTiles, drawnTile);
+        return extractHeads(allTiles).stream()
+                .anyMatch(headTiles-> arrange(Lists.removedEach(allTiles, headTiles)).isPresent());
+    }
+
+    /**
+     * 手牌が聴牌かどうか検査します。
+     *
+     * <p>面子手(四面子一雀頭)のほかに、七対子形、国士無双形の聴牌の場合も検査します。
+     * <p>聴牌とは、手牌が完成するための和了牌が存在する状態を指します。
+     * 手牌中(副露は含めない)で4枚全て使われている牌は和了牌と認めません。
+     * @param handTiles 手牌(自摸牌を含まない、長さが13以下の3N+1のリスト)
      * @return true  聴牌である場合
      *         false 聴牌でない場合
      * @throws IllegalArgumentException 手牌の長さが不正の場合
-     * @see #winningTilesOf(List, List)
      */
-    public static boolean isHandReady(List<Tile> handTiles, List<Meld> openMelds){
-        validateHandTiles(handTiles);
-        if(!thirteenOrphansWinningTilesOf(handTiles).isEmpty()) return true;
-        if(!sevenPairsWinningTilesOf(handTiles).isEmpty()) return true;
-        if(!HandSections.matchReady(handTiles)) return false;
-        var otherTiles = openMelds.stream()
-                .map(Meld::getTilesSorted)
-                .flatMap(List::stream)
-                .collect(toList());
-        for(var winningTile: HandSections.winningTileCandidatesOf(handTiles, otherTiles)){
-            if(isMeldHandCompleted(handTiles, winningTile)){
-                return true;
-            }
-        }
-        return false;
+    public static boolean isHandReady(List<Tile> handTiles){
+        if (!winningTilesOfThirteenOrphans(handTiles).isEmpty()) return true;
+        if (!winningTilesOfSevenPairs(handTiles).isEmpty()) return true;
+        if (!HandTileMetrics.matchReady(handTiles)) return false;
+        return HandTileMetrics.winningCandidatesOf(handTiles).stream()
+                .anyMatch(winningTile -> isCompletedMeldHand(handTiles, winningTile));
     }
 
     /**
      * 手牌が国士無双形の聴牌かどうか判定します。
-     * @param handTiles 手牌(長さ3n+1(n=0..4))
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @return true  国士無双形聴牌である場合
      *         false 国士無双形聴牌でない場合
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static boolean isThirteenOrphansHandReady(List<Tile> handTiles){
-        validateHandTiles(handTiles);
-        return !thirteenOrphansWinningTilesOf(handTiles).isEmpty();
+    public static boolean isHandReadyThirteenOrphans(List<Tile> handTiles){
+        requireValidSize(handTiles);
+        return !winningTilesOfThirteenOrphans(handTiles).isEmpty();
     }
 
     /**
@@ -176,81 +171,72 @@ public final class HandTiles{
      *     [1 2 7 7 7 8 8 8 9 9] [[3 3 3 3]] ... {@code List<Tile>, List<Meld>}
      *     +->                               ... {@code Set<Tile>}
      * </pre>
-     * @param handTiles 純手牌(長さ3n+1(n=0..4))
-     * @param openMelds 副露(暗槓を含む)
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @return 和了牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<Tile> winningTilesOf(List<Tile> handTiles, List<Meld> openMelds){
-        validateHandTiles(handTiles);
+    public static Set<Tile> winningTilesOf(List<Tile> handTiles){
         var winningTiles = new HashSet<Tile>();
-        winningTiles.addAll(sevenPairsWinningTilesOf(handTiles));
-        winningTiles.addAll(thirteenOrphansWinningTilesOf(handTiles));
-        if(!HandSections.matchReady(handTiles)) return winningTiles;
-        var otherTiles = openMelds.stream()
-                .map(Meld::getTilesSorted)
-                .flatMap(List::stream)
-                .collect(toList());
-        for(var winningTile: HandSections.winningTileCandidatesOf(handTiles, otherTiles)){
-            if(isMeldHandCompleted(handTiles, winningTile)){
+        winningTiles.addAll(winningTilesOfSevenPairs(handTiles));
+        winningTiles.addAll(winningTilesOfThirteenOrphans(handTiles));
+        if (!HandTileMetrics.matchReady(handTiles)) return winningTiles;
+        for (var winningTile:HandTileMetrics.winningCandidatesOf(handTiles)){
+            if (isCompletedMeldHand(handTiles, winningTile)){
                 winningTiles.add(winningTile);
             }
         }
-        return expand(winningTiles);
+        return winningTiles;
     }
 
     /**
      * 手牌が国士無双形となるための和了牌を取得します。
      *
      * <p>手牌が国士無双形聴牌でない場合は空のセットが返されます。
-     * @param handTiles 手牌
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @return 和了牌のセット(長さ0..1, 13)
      */
-    private static Set<Tile> thirteenOrphansWinningTilesOf(List<Tile> handTiles){
-        if(handTiles.size()!=13) return emptySet();
-        if(!handTiles.stream().allMatch(Tile::isOrphan)) return emptySet();
-        var required = FlexList.copyOf(Tiles.orphans()).removedEach(handTiles);
-        if(required.isEmpty()) return Set.copyOf(Tiles.orphans());
-        if(required.size()==1) return Set.of(required.get(0));
-        return emptySet();
+    private static Set<Tile> winningTilesOfThirteenOrphans(List<Tile> handTiles){
+        if (handTiles.size()!=13) return emptySet();
+        return Tiles.orphans().stream()
+                .filter(tile->isCompletedThirteenOrphans(handTiles, tile))
+                .collect(toSet());
     }
 
     /**
      * 手牌が七対子形となるための和了牌を取得します。
      *
      * <p>手牌が七対子形聴牌でない場合は空のセットが返されます。
-     * @param handTiles 手牌
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @return 和了牌のセット(長さ0..1)
      */
-    private static Set<Tile> sevenPairsWinningTilesOf(List<Tile> handTiles){
-        if(handTiles.size()!=13) return emptySet();
-        var nonPairTiles = handTiles.stream().collect(groupingBy(Tile::tileNumber)).values()
-                .stream().filter(group -> group.size()!=2).flatMap(List::stream).collect(toList());
-        if(nonPairTiles.size()==1) return Set.copyOf(nonPairTiles);
-        return emptySet();
+    private static Set<Tile> winningTilesOfSevenPairs(List<Tile> handTiles){
+        if (handTiles.size()!=13) return emptySet();
+        var nonPairTiles = handTiles.stream()
+                .filter(tile->handTiles.stream().filter(tile::equalsIgnoreRed).count()==1)
+                .toList();
+        if (nonPairTiles.size()!=1) return emptySet();
+        if (!isCompletedSevenPairs(handTiles, nonPairTiles.get(0))) return emptySet();
+        return Set.of(nonPairTiles.get(0));
     }
 
     /**
-     * 手牌と追加牌が面子手和了形かどうか検査します。
+     * 手牌と自摸牌から立直宣言可能牌のセットを取得します。
      *
-     * <p>この処理では国士無双形および七対子形の和了形かどうかは検査されません。
-     * <p>この処理の結果は{@code !arrange(handTiles).isEmpty()}と等価です。
-     * @param handTiles   手牌
-     * @param winningTile 追加牌
-     * @return true  面子手和了形である場合
-     *         false 面子手和了形でない場合
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
+     * @param drawnTile 自摸牌
+     * @return 立直宣言可能牌
      */
-    private static boolean isMeldHandCompleted(List<Tile> handTiles, Tile winningTile){
-        var completedHandTiles = new FlexList<>(handTiles).added(winningTile);
-        for(var headTiles: extractPairs(completedHandTiles)){
-            var tail = new FlexList<>(completedHandTiles).removedEach(headTiles);
-            if(!arrange(tail).isEmpty()) return true;
-        }
-        return false;
+    public static Set<Tile> readyTilesOf(List<Tile> handTiles, Tile drawnTile){
+        requireValidSize(handTiles);
+        var allTiles = Lists.added(handTiles, drawnTile);
+        return allTiles.stream()
+                .distinct()
+                .filter(tile->isHandReady(Lists.removed(allTiles, tile)))
+                .collect(toSet());
     }
 
     /**
-     * 手牌と追加牌を並べ替え, 雀頭と面子構成牌のリストに変換します。
+     * 手牌と和了牌を並べ替え, 雀頭と面子構成牌のリストに変換します。
      *
      * <p>与えられた牌のリストから1つの雀頭と0～4つの刻子または順子構成牌を抽出し,
      * 先頭の要素に雀頭構成牌を, それ以降の要素に面子構成牌を持つリストを取得します。
@@ -272,107 +258,102 @@ public final class HandTiles{
      *     [2 2 2 3 3 3 4 4 4 5 5 5 6] [9] ... {@code List<Tile>, Tile}
      *                                     ... {@code Set<List<List<Tile>>>}
      * </pre>
-     * @param handTiles   手牌(長さ3n+1(n=0..4))
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @param winningTile 和了牌
      * @return 面子のリストのセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<List<List<Tile>>> arrange(List<Tile> handTiles, Tile winningTile){
-        validateHandTiles(handTiles);
+    public static Set<List<List<Tile>>> arrangeAll(List<Tile> handTiles, Tile winningTile){
+        requireValidSize(handTiles);
+        var allTiles = Lists.added(handTiles, winningTile);
         var hands = new HashSet<List<List<Tile>>>();
-        var completedHandTiles = new FlexList<>(handTiles).added(winningTile);
-        for(var headTiles: extractPairs(completedHandTiles)){
-            var tail = new FlexList<>(completedHandTiles).removedEach(headTiles);
-            for(var melds: arrange(tail)){
-                var hand = new ArrayList<List<Tile>>();
-                hand.add(headTiles);
-                hand.addAll(melds);
-                hands.add(hand);
+        for (var headTiles:extractHeads(allTiles)){
+            var body = Lists.removedEach(allTiles, headTiles);
+            for (var melds: arrangeAll(body)){
+                var arrangedHand = new ArrayList<List<Tile>>(melds.size() + 1);
+                arrangedHand.add(headTiles);
+                arrangedHand.addAll(melds);
+                hands.add(arrangedHand);
             }
         }
         return hands;
     }
 
-    /**
-     * 牌のリストを並べ替え, 面子構成牌のリストに変換します。
-     *
-     * <p>与えられた牌のリストから刻子または順子構成牌を抽出し, 面子構成牌のリストを取得します。
-     * この並べ替えパターンは複数存在する可能性があるため, 結果はセットとして返されます。
-     * <p>牌のリストの長さは0以上の3の倍数である必要があります。
-     * 牌のリストの長さが0の場合は, 長さ0の面子構成牌のリストの単一のセットが返されます。
-     * 並べ替えの結果, 刻子構成牌にも順子構成牌にも解釈ができない牌が余った場合,
-     * 並べ替え不可として, 空のセットが返されます。
-     * <pre>
-     *     [1 1 1 2 2 2 3 3 3]         ... {@code List<Tile>}
-     *     +-> [[1 2 3][1 2 3][1 2 3]]
-     *     +-> [[1 1 1][2 2 2][3 3 3]] ... {@code Set<List<List<Tile>>>}
-     * </pre>
-     * <pre>
-     *     []       ... {@code List<Tile>}
-     *     +-> [[]] ... {@code Set<List<List<Tile>>>}
-     * </pre>
-     * <pre>
-     *     [1 1 1 2 2 2 3 3 4] ... {@code List<Tile>}
-     *                         ... {@code Set<List<List<Tile>>>}
-     * </pre>
-     * @param tiles 牌のリスト
-     * @return 面子のリストのセット
-     */
-    private static Set<List<List<Tile>>> arrange(List<Tile> tiles){
-        var patterns = new HashSet<List<List<Tile>>>();
-        var tail = new FlexList<>(tiles).sorted();
-        var melds = new FlexList<List<Tile>>(tail.size()/3);
-        while(tail.size()>0){
-            assert tail.size()%3==0;
+    private static Set<List<Tile>> extractHeads(List<Tile> tiles){
+        return tiles.stream()
+                .collect(groupingBy(Tile::tileNumber))
+                .values().stream()
+                .filter(group->group.size()>=2)
+                .map(group->group.subList(0, 2))
+                .collect(toSet());
+    }
+
+    private static Set<List<List<Tile>>> arrangeAll(List<Tile> bodyTiles){
+        var meldHands = arrange(bodyTiles);
+        return meldHands.map(HandTiles::rearrangeAll).orElse(Collections.emptySet());
+    }
+
+    private static Optional<List<List<Tile>>> arrange(List<Tile> bodyTiles){
+        var checkingTiles = new ArrayList<>(bodyTiles);
+        checkingTiles.sort(Comparator.naturalOrder());
+        var meldTiles = new ArrayList<List<Tile>>(bodyTiles.size()/3);
+        while(checkingTiles.size()>0){
+            assert checkingTiles.size()%3==0;
             var meld = new ArrayList<Tile>(3);
-            if(tail.get(0).equalsIgnoreRed(tail.get(2))){
+            if (checkingTiles.get(0).equalsIgnoreRed(checkingTiles.get(2))){
                 // 手牌から刻子構成牌を引き抜きます
-                meld.add(tail.remove(2));
-                meld.add(tail.remove(1));
-                meld.add(tail.remove(0));
+                meld.add(checkingTiles.remove(2));
+                meld.add(checkingTiles.remove(1));
+                meld.add(checkingTiles.remove(0));
             }else{
-                try{
+                try {
                     // 手牌から順子構成牌を引き抜きます
-                    meld.add(tail.remove(0));
-                    meld.add(tail.remove(tail.indexOf(tile -> tile.isNextOf(meld.get(0)))));
-                    meld.add(tail.remove(tail.indexOf(tile -> tile.isNextOf(meld.get(1)))));
-                }catch(IndexOutOfBoundsException ignored){
+                    meld.add(checkingTiles.remove(0));
+                    meld.add(checkingTiles.remove(Lists.indexOf(checkingTiles, tile -> tile.isNextOf(meld.get(0)))));
+                    meld.add(checkingTiles.remove(Lists.indexOf(checkingTiles, tile -> tile.isNextOf(meld.get(1)))));
+                }catch (IndexOutOfBoundsException e){
                     // 順子構成牌が手牌に存在しない場合
                     // リストの削除操作でIndexOutOfBoundsException例外がスローされます。
                     // この場合, 指定した牌のリストでは面子への並び替えは不可能として
-                    // 空のセットを返却します。
-                    return emptySet();
+                    // 空のOptionalを返却します。
+                    return Optional.empty();
                 }
             }
-            melds.add(meld);
+            meldTiles.add(meld);
         }
-        melds.sort(meldsPatternComparator());
-        patterns.add(melds);
-        if(melds.size()>=3){
-            // 三連刻形であれば三盃口形へ変換したパターンを追加します
-            // [1 1 1][2 2 2][3 3 3] => [1 2 3][1 2 3][1 2 3]
-            combination:
-            for(var triples: melds.combinationSizeOf(3)){
-                if(triples.stream().anyMatch(not(Tiles::isTriple))) continue;
-                var theOthers = new FlexList<>(melds).removedEach(triples);
-                var straights = new ArrayList<List<Tile>>();
-                for(int i = 0; i<3; i++){
-                    var straight = new ArrayList<Tile>(3);
-                    straight.add(triples.get(0).get(i));
-                    straight.add(triples.get(1).get(i));
-                    straight.add(triples.get(2).get(i));
-                    if(!Tiles.isSequence(straight)) continue combination;
-                    straights.add(straight);
-                }
-                straights.addAll(theOthers);
-                straights.sort(meldsPatternComparator());
-                patterns.add(straights);
-            }
-        }
-        return patterns;
+        meldTiles.sort(meldComparator());
+        return Optional.of(meldTiles);
     }
 
-    private static Comparator<List<Tile>> meldsPatternComparator(){
+    private static Set<List<List<Tile>>> rearrangeAll(List<List<Tile>> melds){
+        if (melds.size()>=3){
+            var meldHands = new HashSet<List<List<Tile>>>();
+            meldHands.add(melds);
+            combinations: for (var threeMelds:Lists.combinationsOf(melds, 3)){
+                if (threeMelds.stream().allMatch(Tiles::isTriple)){
+                    var otherMelds = Lists.removedEach(melds, threeMelds);
+                    var arrangedMeldHand = new ArrayList<List<Tile>>();
+                    for (int i = 0; i<3; i++){
+                        var straight = new ArrayList<Tile>(3);
+                        straight.add(threeMelds.get(0).get(i));
+                        straight.add(threeMelds.get(1).get(i));
+                        straight.add(threeMelds.get(2).get(i));
+                        if (!Tiles.isStraight(straight)){
+                            continue combinations;
+                        }
+                        arrangedMeldHand.add(straight);
+                    }
+                    arrangedMeldHand.addAll(otherMelds);
+                    arrangedMeldHand.sort(meldComparator());
+                    meldHands.add(arrangedMeldHand);
+                }
+            }
+            return meldHands;
+        }
+        return Set.of(melds);
+    }
+
+    private static Comparator<List<Tile>> meldComparator(){
         return (o1, o2) -> {
             if(o1.size()!=o2.size()){
                 return o1.size() - o2.size();
@@ -385,36 +366,6 @@ public final class HandTiles{
             }
             return 0;
         };
-    }
-
-    /**
-     * 牌のリストから対子を抽出します。
-     *
-     * <p>与えられた牌のリストに2枚以上重複のある牌がある場合,
-     * うち2枚をリストとして結果のセットに格納します。
-     * <p>赤ドラ牌は通常の牌と同様に扱われ, 同種の牌の組み合わせに
-     * 赤ドラ牌を含む2枚とそうでない2枚の二種類がある場合は,
-     * どちらか一つが結果のセットに格納されます。
-     * <p>牌のリスト中に1つも2枚以上重複のある牌がない場合は空のセットが返されます。
-     * <pre>
-     *     [1 2 3 4 4 4 5 5 5 5R] ... {@code List<Tile>}
-     *     +-> [4 4]
-     *     +-> [5 5]              ... {@code Set<List<Tile>>}
-     * </pre>
-     * <pre>
-     *     [1 2 3 4 5 6 7 8 9] ... {@code List<Tile>}
-     *                         ... {@code Set<List<Tile>>}
-     * </pre>
-     * @param tiles 牌のリスト
-     * @return 対子のセット
-     */
-    private static Set<List<Tile>> extractPairs(List<Tile> tiles){
-        return tiles.stream()
-                .collect(groupingBy(Tile::tileNumber))
-                .values().stream()
-                .filter(duplicated -> duplicated.size()>=2)
-                .map(duplicated -> duplicated.subList(0, 2))
-                .collect(toSet());
     }
 
     /**
@@ -445,62 +396,72 @@ public final class HandTiles{
      *     +-> 8
      *     +-> 9 ... {@code Set<Tile>}
      * </pre>
-     * @param handTiles 手牌(長さ3n+1(n=0..4))
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @return カン可能牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<Tile> readyQuadTilesOf(List<Tile> handTiles){
-        validateHandTiles(handTiles);
+    public static Set<Tile> readyKanTargetsOf(List<Tile> handTiles){
+        requireValidSize(handTiles);
         var tripleTiles = handTiles.stream()
-                .collect(groupingBy(Tile::tileNumber)).values().stream()
-                .filter(duplicated -> duplicated.size()>=3)
-                .map(triple -> triple.get(0))
+                .collect(groupingBy(Tile::tileNumber))
+                .values().stream()
+                .filter(group->group.size()==3)
+                .map(group->group.get(0))
                 .collect(toSet());
-        if(tripleTiles.isEmpty()) return emptySet();
-        var patterns = HandSections.winningTileCandidatesOf(handTiles).stream()
-                .map(winningTile -> arrange(handTiles, winningTile)).flatMap(Set::stream).collect(toSet());
-        var readyQuadTiles = tripleTiles.stream().filter(tripleTile ->
-                        patterns.stream().allMatch(melds ->
-                                melds.stream()
-                                        .filter(Tiles::isTriple)
-                                        .map(triple -> triple.get(0))
-                                        .anyMatch(tripleTile::equalsIgnoreRed)))
+        if (tripleTiles.isEmpty()) return Collections.emptySet();
+        var arrangedHands = HandTileMetrics.winningCandidatesOf(handTiles).stream()
+                .flatMap(winningTile->arrangeAll(handTiles, winningTile).stream())
+                .toList();
+        var triplesAppearedAtLeastOnePattern = arrangedHands.stream()
+                .flatMap(List::stream)
+                .filter(Tiles::isTriple)
                 .collect(toSet());
-        return expand(readyQuadTiles);
+        var triplesAppearedEveryPattern = triplesAppearedAtLeastOnePattern.stream()
+                .filter(triple->arrangedHands.stream().allMatch(hand->hand.contains(triple)))
+                .collect(toSet());
+        return triplesAppearedEveryPattern.stream()
+                .flatMap(List::stream)
+                .distinct()
+                .flatMap(tile->Tiles.colorTilesOf(tile).stream())
+                .collect(toSet());
     }
 
     /**
      * 手牌と自摸牌から暗槓可能な牌のセットを取得します。
-     * @param handTiles 手牌(長さ3n+1(n=0..4))
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @param drawnTile 自摸牌
      * @return 暗槓可能牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<Tile> selfQuadTilesOf(List<Tile> handTiles, Tile drawnTile){
-        validateHandTiles(handTiles);
-        var addedHandTiles = new FlexList<>(handTiles).added(drawnTile);
-        return addedHandTiles.stream().distinct()
-                .filter(tile -> addedHandTiles.countIf(tile::equalsIgnoreRed)==4)
+    public static Set<Tile> selfKanTargetsOf(List<Tile> handTiles, Tile drawnTile){
+        requireValidSize(handTiles);
+        var allTiles = Lists.added(handTiles, drawnTile);
+        return allTiles.stream()
+                .collect(groupingBy(Tile::tileNumber))
+                .values().stream()
+                .filter(group->group.size()==4)
+                .flatMap(List::stream)
                 .collect(toSet());
     }
 
     /**
      * 手牌と自摸牌から加槓可能な牌のセットを取得します。
-     * @param handTiles 手牌(長さ3n+1(n=0..4))
+     *
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @param drawnTile 自摸牌
-     * @param openMelds 副露面子
+     * @param melds 副露面子
      * @return 加槓可能牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<Tile> addQuadTilesOf(List<Tile> handTiles, Tile drawnTile, List<Meld> openMelds){
-        validateHandTiles(handTiles);
-        var completedHandTiles = new FlexList<>(handTiles).added(drawnTile);
-        var tripleTiles = openMelds.stream()
-                .filter(Meld::isTriple)
-                .map(Meld::getFirst)
-                .collect(toList());
-        return completedHandTiles.stream()
-                .filter(tile -> tripleTiles.stream().anyMatch(tile::equalsIgnoreRed))
+    public static Set<Tile> addKanTargetsOf(List<Tile> handTiles, Tile drawnTile, List<List<Tile>> melds){
+        requireValidSize(handTiles);
+        var allTiles = Lists.added(handTiles, drawnTile);
+        var tripleTiles = melds.stream()
+                .filter(Tiles::isTriple)
+                .map(triple->triple.get(0))
+                .toList();
+        return allTiles.stream()
+                .filter(tile->tripleTiles.stream().anyMatch(tile::equalsIgnoreRed))
                 .collect(toSet());
     }
 
@@ -510,16 +471,19 @@ public final class HandTiles{
      * <p>可能なカン構成牌が存在しない場合は空のセットが返されます。
      * カン構成牌のセットは1つの打牌に対して1つのみしか存在しないため,
      * カン構成牌が存在する場合, 結果で返されるセットのサイズは1となります。
-     * @param handTiles     手牌(長さ3n+1(n=0..4))
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @param discardedTile 打牌
      * @return カン構成牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<List<Tile>> quadBasesOf(List<Tile> handTiles, Tile discardedTile){
-        validateHandTiles(handTiles);
-        var target = handTiles.stream().filter(discardedTile::equalsIgnoreRed).collect(toList());
-        if(target.size()!=3) return emptySet();
-        return Set.of(target);
+    public static Set<List<Tile>> kanBasesOf(List<Tile> handTiles, Tile discardedTile){
+        requireValidSize(handTiles);
+        var targetTiles = handTiles.stream()
+                .filter(discardedTile::equalsIgnoreRed)
+                .sorted()
+                .toList();
+        if(targetTiles.size()!=3) return emptySet();
+        return Set.of(targetTiles);
     }
 
     /**
@@ -534,18 +498,20 @@ public final class HandTiles{
      *     +-> [5 5R]
      *     +-> [5 5]      ... {@code Set<List<Tile>>}
      * </pre>
-     * @param handTiles     手牌(長さ3n+1(n=0..4))
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @param discardedTile 打牌
      * @return ポン構成牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<List<Tile>> tripleBasesOf(List<Tile> handTiles, Tile discardedTile){
-        validateHandTiles(handTiles);
-        var target = handTiles.stream().filter(discardedTile::equalsIgnoreRed)
-                .sorted().collect(toCollection(FlexList::new));
-        if(target.size()<2) return emptySet();
-        if(target.size()==2) return Set.of(target);
-        return Set.copyOf(target.combinationSizeOf(2));
+    public static Set<List<Tile>> ponBasesOf(List<Tile> handTiles, Tile discardedTile){
+        requireValidSize(handTiles);
+        var targetTiles = handTiles.stream()
+                .filter(discardedTile::equalsIgnoreRed)
+                .sorted()
+                .toList();
+        if(targetTiles.size()<2) return emptySet();
+        if(targetTiles.size()==2) return Set.of(targetTiles);
+        return Set.copyOf(Lists.combinationsOf(targetTiles, 2));
     }
 
     /**
@@ -573,66 +539,53 @@ public final class HandTiles{
      *     [4 5 6 6] [3] ... {@code List<Tile>, Tile}
      *                   ... {@code Set<List<Tile>>}
      * </pre>
-     * @param handTiles     手牌(長さ3n+1(n=0..4))
+     * @param handTiles 手牌(自摸牌を含まない、長さ3n+1(n=0..4))
      * @param discardedTile 打牌
      * @return チー構成牌のセット
      * @throws IllegalArgumentException 手牌の長さが不正の場合
      */
-    public static Set<List<Tile>> sequenceBasesOf(List<Tile> handTiles, Tile discardedTile){
-        validateHandTiles(handTiles);
-        var tilesOperable = FlexList.copyOf(handTiles);
-        return sequenceBasesOf(discardedTile).stream()
-                .filter(tilesOperable::containsWhole)
-                .filter(base -> {
-                    //全手牌喰い替え牌の事前防止
-                    var calledHandTiles = new FlexList<>(handTiles).removedEach(base);
-                    return !waitingTilesOf(base).containsAll(calledHandTiles);
-                })
+    public static Set<List<Tile>> chiBasesOf(List<Tile> handTiles, Tile discardedTile){
+        requireValidSize(handTiles);
+        return chiBasesOf(discardedTile).stream()
+                .flatMap(base->colorBasesOf(base).stream())
+                .filter(base->Lists.containsEach(handTiles, base))
+                .filter(base->!waitingTargetsOf(base) //全手牌喰い替え牌の事前防止
+                        .containsAll(Lists.removedEach(handTiles, base)))
                 .collect(toSet());
     }
 
-    /**
-     * 打牌に対するチー可能な搭子のセットを返します。
-     *
-     * <p>結果で返されるセットには, 赤ドラ/非赤ドラ牌の両方を含みます。
-     * <pre>
-     *     [3]        ... {@code Tile}
-     *     +-> [1 2]
-     *     +-> [2 4]
-     *     +-> [4 5]
-     *     +-> [4 5R] ... {@code Set<List<Tile>>}
-     * </pre>
-     * <pre>
-     *     [W] ... {@code Tile}
-     *         ... {@code Set<List<Tile>>}
-     * </pre>
-     * @param tile 打牌
-     * @return 塔子のセット
-     */
-    private static Set<List<Tile>> sequenceBasesOf(Tile tile){
-        if(tile.isHonor()) return emptySet();
+
+    private static Set<List<Tile>> colorBasesOf(List<Tile> base){
+        var expandedBases = new HashSet<List<Tile>>();
+        for (var first:Tiles.colorTilesOf(base.get(0))){
+            for (var second:Tiles.colorTilesOf(base.get(1))){
+                expandedBases.add(List.of(first, second));
+            }
+        }
+        return expandedBases;
+    }
+
+    private static Set<List<Tile>> chiBasesOf(Tile tile){
+        if (tile.isHonor()) return Collections.emptySet();
         var bases = new HashSet<List<Tile>>();
-        if(tile.hasNext()){
+        if (tile.hasNext()){
             var second = tile.next();
-            if(second.hasNext()){
+            if (second.hasNext()){
                 var third = second.next();
                 bases.add(List.of(second, third));
-                bases.add(List.of(Tiles.toPrisedRedIfExists(second), Tiles.toPrisedRedIfExists(third)));
             }
         }
-        if(tile.hasPrevious()){
+        if (tile.hasPrevious()){
             var second = tile.previous();
-            if(second.hasPrevious()){
+            if (second.hasPrevious()){
                 var first = second.previous();
                 bases.add(List.of(first, second));
-                bases.add(List.of(Tiles.toPrisedRedIfExists(first), Tiles.toPrisedRedIfExists(second)));
             }
         }
-        if(tile.hasPrevious() && tile.hasNext()){
+        if (tile.hasPrevious() && tile.hasNext()){
             var first = tile.previous();
             var third = tile.next();
             bases.add(List.of(first, third));
-            bases.add(List.of(Tiles.toPrisedRedIfExists(first), Tiles.toPrisedRedIfExists(third)));
         }
         return bases;
     }
@@ -659,44 +612,36 @@ public final class HandTiles{
      *     [1 3]   ... {@code List<Tile>}
      *     +-> 2 ... {@code Set<Tile>}
      * </pre>
-     * @param base 搭子
+     * @param base 搭子(長さ2)
      * @return 待ち牌のセット
      * @throws IllegalArgumentException 搭子構成牌が不正の場合
      */
-    public static Set<Tile> waitingTilesOf(List<Tile> base){
-        if(base.size()!=2){
-            throw new IllegalArgumentException("invalid base size: " + base);
+    public static Set<Tile> waitingTargetsOf(List<Tile> base){
+        if (base.size()!=2){
+            throw new IllegalArgumentException("invalid size of base: "+base);
         }
-        var sorted = new FlexList<>(base).sorted();
-        if(sorted.get(0).equalsIgnoreRed(sorted.get(1))){
-            return expand(Set.of(sorted.get(0)));
+        var sorted = base.stream().sorted().toList();
+        var lower = sorted.get(0);
+        var upper = sorted.get(1);
+        //対子
+        if (upper.equalsIgnoreRed(lower)){
+            return Set.copyOf(Tiles.colorTilesOf(upper));
         }
-        if(sorted.get(1).isNextOf(sorted.get(0))){
-            var waitingTiles = new HashSet<Tile>();
-            if(sorted.get(0).hasPrevious()) waitingTiles.add(sorted.get(0).previous());
-            if(sorted.get(1).hasNext()) waitingTiles.add(sorted.get(1).next());
-            return expand(waitingTiles);
+        //両面塔子 辺張塔子
+        if (upper.isNextOf(lower)){
+            var waitingTiles = new HashSet<Tile>(2);
+            if (lower.hasPrevious()) waitingTiles.addAll(Tiles.colorTilesOf(lower.previous()));
+            if (upper.hasNext()) waitingTiles.addAll(Tiles.colorTilesOf(upper.next()));
+            return waitingTiles;
         }
-        if(sorted.get(0).hasNext()){
-            var middleTile = sorted.get(0).next();
-            if(sorted.get(1).isNextOf(middleTile)){
-                return expand(Set.of(middleTile));
+        //嵌張塔子
+        if (upper.hasPrevious() && lower.hasNext()){
+            var middleTile = upper.previous();
+            if (middleTile.equalsIgnoreRed(lower.next())){
+                return Set.copyOf(Tiles.colorTilesOf(middleTile));
             }
         }
         return Set.of();
     }
 
-    /**
-     * 手牌と自摸牌が九種九牌形であるか検査します。
-     * @param handTiles 手牌(長さ3n+1(n=0..4))
-     * @param drawnTile 自摸牌
-     * @return true  九種九牌形である場合
-     *         false 九種九牌形でない場合
-     * @throws IllegalArgumentException 手牌の長さが不正の場合
-     */
-    public static boolean isNineTiles(List<Tile> handTiles, Tile drawnTile){
-        validateHandTiles(handTiles);
-        return new FlexList<>(handTiles).added(drawnTile)
-                .stream().filter(Tile::isOrphan).distinct().count()>=9;
-    }
 }

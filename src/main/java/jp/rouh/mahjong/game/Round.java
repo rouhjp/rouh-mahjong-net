@@ -3,7 +3,7 @@ package jp.rouh.mahjong.game;
 import jp.rouh.mahjong.game.event.*;
 import jp.rouh.mahjong.score.PaymentTable;
 import jp.rouh.mahjong.tile.*;
-import jp.rouh.util.FlexMap;
+import jp.rouh.util.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -290,8 +290,8 @@ public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     }
 
     private void paymentNotified(PaymentTable table){
-        var beforeRankMap = FlexMap.of(Wind.class, wind->getPlayerAt(wind).getRank());
-        var beforeScoreMap = FlexMap.of(Wind.class, wind->getPlayerAt(wind).getScore());
+        var beforeRankMap = Maps.ofEnum(Wind.class, wind->getPlayerAt(wind).getRank());
+        var beforeScoreMap = Maps.ofEnum(Wind.class, wind->getPlayerAt(wind).getScore());
         roundPlayers.forEach((wind, player)->player.applyScore(table.paymentOf(wind)));
         var dataMap = new HashMap<Wind, PaymentData>();
         for(var wind:Wind.values()){
