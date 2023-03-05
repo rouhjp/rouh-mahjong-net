@@ -6,7 +6,7 @@ package jp.rouh.mahjong.score;
  * @author Rouh
  * @version 1.0
  */
-public interface BasicHandType extends HandType{
+interface BasicHandType extends HandType{
 
     /**
      * 役の飜数を取得します。

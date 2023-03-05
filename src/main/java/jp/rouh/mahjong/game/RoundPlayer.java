@@ -167,7 +167,7 @@ public class RoundPlayer extends ForwardingTableStrategy implements WinningPlaye
      * @param baseTiles 副露先塔子
      */
     void declareChi(Tile claimedTile, List<Tile> baseTiles){
-        int index = hand.makeCallSequence(claimedTile, baseTiles);
+        int index = hand.makeCallStraight(claimedTile, baseTiles);
         master.declared(seatWind, Declaration.CHI);
         master.tiltMeldAdded(seatWind, Side.LEFT, hand.getOpenMelds().get(index).getTilesFormed());
         master.handUpdated(seatWind, hand.getAllTiles(), false);
@@ -306,8 +306,8 @@ public class RoundPlayer extends ForwardingTableStrategy implements WinningPlaye
                     choices.add(CallAction.ofPon(tripleBase.get(0), tripleBase.get(1)));
                 }
                 if(Side.LEFT.of(seatWind)==discarder){
-                    for(var sequenceBase: hand.getSequenceBasesOf(discarded)){
-                        choices.add(CallAction.ofChi(sequenceBase.get(0), sequenceBase.get(1)));
+                    for(var straightBase: hand.getStraightBasesOf(discarded)){
+                        choices.add(CallAction.ofChi(straightBase.get(0), straightBase.get(1)));
                     }
                 }
             }

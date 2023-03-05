@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static jp.rouh.mahjong.score.HandTiles.*;
@@ -279,89 +280,89 @@ public class HandTilesTest{
             assertEquals(expected, result);
         }
     }
-//
-//    @Nested
-//    class TestArrange {
-//
-//        private Optional<List<List<Tile>>> arrange(List<Tile> bodyTiles) {
-//            try {
-//                var method = HandTiles.class.getDeclaredMethod("arrange", List.class);
-//                method.setAccessible(true);
-//                @SuppressWarnings("unchecked")
-//                var result = (Optional<List<List<Tile>>>) method.invoke(null, bodyTiles);
-//                return result;
-//            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
-//
-//        @Test
-//        void testNotCompleted(){
-//            var bodyTiles = List.of(M1, M2, M3, M4, M5, M6, M7, M8, M8);
-//            var expected = Optional.empty();
-//            var result = arrange(bodyTiles);
-//            assertEquals(expected, result);
-//        }
-//
-//        @Test
-//        void testTriplesAndStraightAdjusted(){
-//            var bodyTiles = List.of(M1, M2, M2, M2, M2, M3, M3, M4, M5);
-//            var expected = Optional.of(List.of(List.of(M1, M2, M3), List.of(M2, M2, M2), List.of(M3, M4, M5)));
-//            var result = arrange(bodyTiles);
-//            assertEquals(expected, result);
-//        }
-//
-//        @Test
-//        void testDualStraight(){
-//            var bodyTiles = List.of(M1, M1, M2, M2, M3, M3, M3, M4, M5);
-//            var expected = Optional.of(List.of(List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M3, M4, M5)));
-//            var result = arrange(bodyTiles);
-//            assertEquals(expected, result);
-//        }
-//    }
-//
-//    @Nested
-//    class TestRearrangeAll {
-//
-//        private Set<List<List<Tile>>> rearrangeAll(List<List<Tile>> melds){
-//            try {
-//                var method = HandTiles.class.getDeclaredMethod("rearrangeAll", List.class);
-//                method.setAccessible(true);
-//                @SuppressWarnings("unchecked")
-//                var result = (Set<List<List<Tile>>>) method.invoke(null, melds);
-//                return result;
-//            }catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e){
-//                throw new RuntimeException(e);
-//            }
-//        }
-//
-//        @Test
-//        void testNoConsecutiveMelds(){
-//            var melds = List.of(List.of(M1, M1, M1), List.of(M2, M2, M2), List.of(M4, M4, M4), List.of(M5, M5, M5));
-//            var expected = Set.of(melds);
-//            var result = rearrangeAll(melds);
-//            assertEquals(expected, result);
-//        }
-//
-//        @Test
-//        void testSingleConsecutiveMelds(){
-//            var melds = List.of(List.of(M1, M1, M1), List.of(M2, M2, M2), List.of(M3, M3, M3), List.of(DW, DW, DW));
-//            var expected = Set.of(melds,
-//                    List.of(List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(DW, DW, DW)));
-//            var result = rearrangeAll(melds);
-//            assertEquals(expected, result);
-//        }
-//
-//        @Test
-//        void testMultipleConsecutiveMelds(){
-//            var melds = List.of(List.of(M1, M1, M1), List.of(M2, M2, M2), List.of(M3, M3, M3), List.of(M4, M4, M4));
-//            var expected = Set.of(melds,
-//                    List.of(List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M4, M4, M4)),
-//                    List.of(List.of(M1, M1, M1), List.of(M2, M3, M4), List.of(M2, M3, M4), List.of(M2, M3, M4)));
-//            var result = rearrangeAll(melds);
-//            assertEquals(expected, result);
-//        }
-//    }
+
+    @Nested
+    class TestArrange {
+
+        private Optional<List<List<Tile>>> arrange(List<Tile> bodyTiles) {
+            try {
+                var method = HandTiles.class.getDeclaredMethod("arrange", List.class);
+                method.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                var result = (Optional<List<List<Tile>>>) method.invoke(null, bodyTiles);
+                return result;
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Test
+        void testNotCompleted(){
+            var bodyTiles = List.of(M1, M2, M3, M4, M5, M6, M7, M8, M8);
+            var expected = Optional.empty();
+            var result = arrange(bodyTiles);
+            assertEquals(expected, result);
+        }
+
+        @Test
+        void testTriplesAndStraightAdjusted(){
+            var bodyTiles = List.of(M1, M2, M2, M2, M2, M3, M3, M4, M5);
+            var expected = Optional.of(List.of(List.of(M1, M2, M3), List.of(M2, M2, M2), List.of(M3, M4, M5)));
+            var result = arrange(bodyTiles);
+            assertEquals(expected, result);
+        }
+
+        @Test
+        void testDualStraight(){
+            var bodyTiles = List.of(M1, M1, M2, M2, M3, M3, M3, M4, M5);
+            var expected = Optional.of(List.of(List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M3, M4, M5)));
+            var result = arrange(bodyTiles);
+            assertEquals(expected, result);
+        }
+    }
+
+    @Nested
+    class TestRearrangeAll {
+
+        private Set<List<List<Tile>>> rearrangeAll(List<List<Tile>> melds){
+            try {
+                var method = HandTiles.class.getDeclaredMethod("rearrangeAll", List.class);
+                method.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                var result = (Set<List<List<Tile>>>) method.invoke(null, melds);
+                return result;
+            }catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e){
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Test
+        void testNoConsecutiveMelds(){
+            var melds = List.of(List.of(M1, M1, M1), List.of(M2, M2, M2), List.of(M4, M4, M4), List.of(M5, M5, M5));
+            var expected = Set.of(melds);
+            var result = rearrangeAll(melds);
+            assertEquals(expected, result);
+        }
+
+        @Test
+        void testSingleConsecutiveMelds(){
+            var melds = List.of(List.of(M1, M1, M1), List.of(M2, M2, M2), List.of(M3, M3, M3), List.of(DW, DW, DW));
+            var expected = Set.of(melds,
+                    List.of(List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(DW, DW, DW)));
+            var result = rearrangeAll(melds);
+            assertEquals(expected, result);
+        }
+
+        @Test
+        void testMultipleConsecutiveMelds(){
+            var melds = List.of(List.of(M1, M1, M1), List.of(M2, M2, M2), List.of(M3, M3, M3), List.of(M4, M4, M4));
+            var expected = Set.of(melds,
+                    List.of(List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M1, M2, M3), List.of(M4, M4, M4)),
+                    List.of(List.of(M1, M1, M1), List.of(M2, M3, M4), List.of(M2, M3, M4), List.of(M2, M3, M4)));
+            var result = rearrangeAll(melds);
+            assertEquals(expected, result);
+        }
+    }
 
     @Nested
     class TestMeldComparator {

@@ -81,10 +81,10 @@ class Hand{
         tiles.forEach(this::distributed);
     }
 
-    int makeCallSequence(Tile claimedTile, List<Tile> baseTiles){
+    int makeCallStraight(Tile claimedTile, List<Tile> baseTiles){
         requireOutOfTurn();
         remove(baseTiles);
-        openMelds.add(Meld.ofCallSequence(baseTiles, claimedTile));
+        openMelds.add(Meld.ofCallStraight(baseTiles, claimedTile));
         undiscardableTiles = HandTiles.waitingTargetsOf(baseTiles);
         return openMelds.size() - 1;
     }
@@ -201,7 +201,7 @@ class Hand{
         return HandTiles.ponBasesOf(handTiles, claimableTile);
     }
 
-    Set<List<Tile>> getSequenceBasesOf(Tile claimableTile){
+    Set<List<Tile>> getStraightBasesOf(Tile claimableTile){
         return HandTiles.chiBasesOf(handTiles, claimableTile);
     }
 

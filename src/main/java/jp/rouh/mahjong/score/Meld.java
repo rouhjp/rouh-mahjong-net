@@ -143,7 +143,7 @@ public class Meld implements HandComponent{
      * @return true 順子の場合
      *         false 順子でない場合
      */
-    public boolean isSequence(){
+    public boolean isStraight(){
         return !base.get(0).equalsIgnoreRed(base.get(1));
     }
 
@@ -229,7 +229,7 @@ public class Meld implements HandComponent{
      * @return 面子の符
      */
     int getMeldPoint(){
-        if(isSequence()) return 0;
+        if(isStraight()) return 0;
         return 2*(isQuad()?4:1)*(isConcealed()?2:1)*(isTerminal()?2:1);
     }
 
@@ -320,8 +320,8 @@ public class Meld implements HandComponent{
      * @throws IllegalArgumentException 副露元に自家が指定された場合
      * @return 明順
      */
-    public static Meld ofCallSequence(List<Tile> base, Tile claimed){
-        if(!Tiles.isStraight(base, claimed)) throw new IllegalArgumentException("invalid tiles for call sequence: "+base+" "+claimed);
+    public static Meld ofCallStraight(List<Tile> base, Tile claimed){
+        if(!Tiles.isStraight(base, claimed)) throw new IllegalArgumentException("invalid tiles for call straight: "+base+" "+claimed);
         return new Meld(base, claimed, Side.LEFT);
     }
 

@@ -83,7 +83,7 @@ enum Wait{
         if(!meld.containsIgnoreRed(winningTile)){
             throw new IllegalArgumentException("no winning tile found: " + winningTile + " " + meld);
         }
-        if(meld.isSequence()){
+        if(meld.isStraight()){
             if(meld.getTilesSorted().get(1).equalsIgnoreRed(winningTile)){
                 return MIDDLE_STRAIGHT;
             }

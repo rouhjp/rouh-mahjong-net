@@ -38,7 +38,7 @@ enum MeldBasedHandType implements BasicHandType{
     ALL_TRIPLES("対々和", 2){
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
-            return hand.getMelds().stream().noneMatch(Meld::isSequence);
+            return hand.getMelds().stream().noneMatch(Meld::isStraight);
         }
     },
 
@@ -50,7 +50,7 @@ enum MeldBasedHandType implements BasicHandType{
         boolean test(FormattedHand hand, ScoringContext context){
             return hand.getMelds().stream()
                     .filter(Meld::isConcealed)
-                    .filter(not(Meld::isSequence))
+                    .filter(not(Meld::isStraight))
                     .count()==3;
         }
     },
@@ -77,7 +77,7 @@ enum MeldBasedHandType implements BasicHandType{
             return context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
                     && hand.getComponents().stream().anyMatch(HandComponent::isHonor)
-                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
+                    && hand.getMelds().stream().anyMatch(Meld::isStraight);
         }
     },
 
@@ -90,7 +90,7 @@ enum MeldBasedHandType implements BasicHandType{
             return !context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
                     && hand.getComponents().stream().anyMatch(HandComponent::isHonor)
-                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
+                    && hand.getMelds().stream().anyMatch(Meld::isStraight);
         }
     },
 
@@ -102,7 +102,7 @@ enum MeldBasedHandType implements BasicHandType{
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isTerminal)
-                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
+                    && hand.getMelds().stream().anyMatch(Meld::isStraight);
         }
     },
 
@@ -114,7 +114,7 @@ enum MeldBasedHandType implements BasicHandType{
         boolean test(FormattedHand hand, ScoringContext context){
             return !context.isSelfMade()
                     && hand.getComponents().stream().allMatch(HandComponent::isTerminal)
-                    && hand.getMelds().stream().anyMatch(Meld::isSequence);
+                    && hand.getMelds().stream().anyMatch(Meld::isStraight);
         }
     },
 
@@ -155,7 +155,7 @@ enum MeldBasedHandType implements BasicHandType{
             return context.isSelfMade()
                     && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
-                            melds.stream().allMatch(Meld::isSequence)
+                            melds.stream().allMatch(Meld::isStraight)
                                     && melds.stream().map(Meld::getTileType).distinct().count()==3
                                     && melds.stream().map(Meld::getFirst).mapToInt(Tile::suitNumber).distinct().count()==1);
         }
@@ -170,7 +170,7 @@ enum MeldBasedHandType implements BasicHandType{
             return !context.isSelfMade()
                     && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
-                            melds.stream().allMatch(Meld::isSequence)
+                            melds.stream().allMatch(Meld::isStraight)
                                     && melds.stream().map(Meld::getTileType).distinct().count()==3
                                     && melds.stream().map(Meld::getFirst).mapToInt(Tile::suitNumber).distinct().count()==1);
         }
@@ -184,7 +184,7 @@ enum MeldBasedHandType implements BasicHandType{
         boolean test(FormattedHand hand, ScoringContext context){
             return Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
-                            melds.stream().noneMatch(Meld::isSequence)
+                            melds.stream().noneMatch(Meld::isStraight)
                                     && melds.stream().noneMatch(Meld::isHonor)
                                     && melds.stream().map(Meld::getTileType).distinct().count()==3
                                     && melds.stream().map(Meld::getFirst)
@@ -200,7 +200,7 @@ enum MeldBasedHandType implements BasicHandType{
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
                     && Lists.combinationsOf(hand.getMelds(), 2).stream()
-                    .filter(melds -> melds.stream().allMatch(Meld::isSequence)
+                    .filter(melds -> melds.stream().allMatch(Meld::isStraight)
                             && melds.get(0).getFirst().equalsIgnoreRed(melds.get(1).getFirst())).count()==1;
         }
     },
@@ -212,7 +212,7 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
-                    && hand.getMelds().stream().allMatch(Meld::isSequence)
+                    && hand.getMelds().stream().allMatch(Meld::isStraight)
                     && hand.getMelds().stream().map(Meld::getFirst)
                     .collect(groupingBy(Tile::tileNumber))
                     .values().stream().allMatch(melds -> melds.size()==2);
