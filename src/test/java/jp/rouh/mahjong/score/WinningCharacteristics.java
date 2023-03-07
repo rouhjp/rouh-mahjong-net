@@ -75,6 +75,7 @@ public enum WinningCharacteristics{
      * <p>この項が成立する場合, 必然的に{@code QUAD_TILE_CALL_WIN}は成立しません。
      */
     LAST_TILE_DRAW_WIN,
+
     /**
      * 槍槓和了。
      * <p>他家のカン宣言に対し, ロン和了をした場合に成立します。

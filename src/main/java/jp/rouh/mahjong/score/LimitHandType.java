@@ -66,7 +66,7 @@ public enum LimitHandType implements HandType{
     /**
      * 国士無双十三面待ち
      */
-    THIRTEEN_ORPHANS13("国士無双十三面", 2){
+    THIRTEEN_ORPHANS_13_WAIT("国士無双十三面", 2){
         @Override
         boolean test(HandFeature feature, ScoringContext context){
             return context.isSelfMade() && feature.getTileDistinctCount()==13
@@ -91,7 +91,7 @@ public enum LimitHandType implements HandType{
     /**
      * 純正九蓮宝燈
      */
-    NINE_GATES9("純正九蓮宝燈", 2){
+    NINE_GATES_9_WAIT("純正九蓮宝燈", 2){
         @Override
         boolean test(HandFeature feature, ScoringContext context){
             return context.isSelfMade() && feature.getQuadCount()==0
@@ -192,7 +192,7 @@ public enum LimitHandType implements HandType{
     /**
      * 四暗刻単騎待ち
      */
-    FOUR_CONCEALED_TRIPLES1("四暗刻単騎", 2){
+    FOUR_CONCEALED_TRIPLES_1_WAIT("四暗刻単騎", 2){
         @Override
         boolean test(HandFeature feature, ScoringContext context){
             return context.isSelfMade()

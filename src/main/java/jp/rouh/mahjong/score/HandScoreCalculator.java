@@ -23,4 +23,11 @@ public interface HandScoreCalculator{
      */
     HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context);
 
+    /**
+     * 役の固有名をもとに役のインスタンスを検索し, 取得します。
+     * @param uniqueName 固有名
+     * @return 役
+     */
+    HandType forName(String uniqueName);
+
 }

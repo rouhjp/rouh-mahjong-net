@@ -101,7 +101,7 @@ class HandFeature{
                 count(fullTiles, context.getLowerPrisedTiles()):0;
         this.redPrisedTileCount = (int)fullTiles.stream()
                 .filter(Tile::isPrisedRed).count();
-        this.quadCount = fourteenTiles.size() - 14;
+        this.quadCount = fullTiles.size() - 14;
     }
 
     private static int count(List<Tile> tiles, List<Tile> prisedTiles){

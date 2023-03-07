@@ -178,6 +178,9 @@ public enum TileBasedHandType implements BasicHandType{
         }
     };
 
+    private static final List<TileBasedHandType> CALL_SENSITIVE = List.of(
+            HALF_SINGLE_COLOR, FULL_SINGLE_COLOR);
+
     private final String name;
     private final int doubles;
 
@@ -209,6 +212,14 @@ public enum TileBasedHandType implements BasicHandType{
 
     @Override
     public String getName(){
+        return name;
+    }
+
+    @Override
+    public String getUniqueName(){
+        if(CALL_SENSITIVE.contains(this)){
+            return "門前"+ name;
+        }
         return name;
     }
 

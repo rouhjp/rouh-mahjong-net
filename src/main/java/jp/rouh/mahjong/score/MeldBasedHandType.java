@@ -219,8 +219,9 @@ enum MeldBasedHandType implements BasicHandType{
         }
     };
 
-    private static final List<MeldBasedHandType> CALL_SENSITIVE =
-            List.of(HALF_TERMINAL_SETS, FULL_TERMINAL_SETS, FULL_STRAIGHTS, THREE_COLOR_STRAIGHTS);
+    private static final List<MeldBasedHandType> CALL_SENSITIVE = List.of(
+            HALF_TERMINAL_SETS, FULL_TERMINAL_SETS, FULL_STRAIGHTS, THREE_COLOR_STRAIGHTS);
+
     private final String name;
     private final int doubles;
     MeldBasedHandType(String name, int doubles){

@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * 標準点数計算クラス。
@@ -76,6 +77,62 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
         }
         LOG.debug("--end calculating score--");
         return score;
+    }
+
+    @Override
+    public HandType forName(String uniqueName){
+        for(var handType:LimitHandType.values()){
+            if(handType.getUniqueName().equals(uniqueName)){
+                return handType;
+            }
+        }
+        for(var handType:EnvironmentBasedHandType.values()){
+            if(handType.getUniqueName().equals(uniqueName)){
+                return handType;
+            }
+        }
+        for(var handType:TileBasedHandType.values()){
+            if(handType.getUniqueName().equals(uniqueName)){
+                return handType;
+            }
+        }
+        for(var handType:MeldBasedHandType.values()){
+            if(handType.getUniqueName().equals(uniqueName)){
+                return handType;
+            }
+        }
+        for(var handType:IrregularFormatHandType.values()){
+            if(handType.getUniqueName().equals(uniqueName)){
+                return handType;
+            }
+        }
+        for(var handType:FixedScoreHandType.values()){
+            if(handType.getUniqueName().equals(uniqueName)){
+                return handType;
+            }
+        }
+        if(uniqueName.equals("ドラ")){
+            return PrisedTileHandTypes.of(1);
+        }
+        if(uniqueName.matches("ドラ[0-9]+")){
+            int count = Integer.parseInt(uniqueName.substring(2));
+            return PrisedTileHandTypes.of(count);
+        }
+        if(uniqueName.equals("裏ドラ")){
+            return PrisedTileHandTypes.ofHidden(1);
+        }
+        if(uniqueName.matches("裏ドラ[0-9]+")){
+            int count = Integer.parseInt(uniqueName.substring(3));
+            return PrisedTileHandTypes.ofHidden(count);
+        }
+        if(uniqueName.equals("赤ドラ")){
+            return PrisedTileHandTypes.ofRed(1);
+        }
+        if(uniqueName.matches("赤ドラ[0-9]+")){
+            int count = Integer.parseInt(uniqueName.substring(3));
+            return PrisedTileHandTypes.ofRed(count);
+        }
+        throw new NoSuchElementException("hand type not found: "+uniqueName);
     }
 
     /**
