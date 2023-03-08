@@ -49,15 +49,22 @@ class Head implements HandComponent{
      * @param roundWind 場風
      * @return 雀頭の符
      */
-    int getHeadPoint(Wind seatWind, Wind roundWind){
-        if(!isHonor()) return 0;
-        if(isDragon()) return 2;
-        int point = 0;
-        if(isWind()){
-            if(getFirst().equalsIgnoreRed(seatWind.toTile())) point += 2;
-            if(getFirst().equalsIgnoreRed(roundWind.toTile())) point += 2;
+    PointType getHeadPoint(Wind seatWind, Wind roundWind){
+        if(isDragon()){
+            return PointType.VALUABLE_HEAD;
         }
-        return point;
+        if(isWind()){
+            boolean seatWindHead = getFirst().equalsIgnoreRed(seatWind.toTile());
+            boolean roundWindHead = getFirst().equalsIgnoreRed(roundWind.toTile());
+            if(seatWindHead && roundWindHead){
+                return PointType.DOUBLE_VALUABLE_HEAD;
+            }
+            if(seatWindHead || roundWindHead){
+                return PointType.VALUABLE_HEAD;
+            }
+            return PointType.HEAD;
+        }
+        return PointType.HEAD;
     }
 
     @Override

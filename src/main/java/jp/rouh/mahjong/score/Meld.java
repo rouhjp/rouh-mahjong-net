@@ -228,9 +228,8 @@ public class Meld implements HandComponent{
      * </table>
      * @return 面子の符
      */
-    int getMeldPoint(){
-        if(isStraight()) return 0;
-        return 2*(isQuad()?4:1)*(isConcealed()?2:1)*(isTerminal()?2:1);
+    PointType getMeldPointType(){
+        return PointType.ofMeld(this);
     }
 
     @Override

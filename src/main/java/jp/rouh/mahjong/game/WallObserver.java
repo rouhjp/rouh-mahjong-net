@@ -8,7 +8,7 @@ import jp.rouh.mahjong.tile.Wind;
  * @author Rouh
  * @version 1.0
  */
-public interface WallObserver{
+interface WallObserver{
 
     /**
      * 指定された位置の牌が自摸されたことを通知します。

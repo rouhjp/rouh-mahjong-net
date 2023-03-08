@@ -1,7 +1,5 @@
 package jp.rouh.mahjong.score;
 
-import java.util.NoSuchElementException;
-
 /**
  * 役を表すインターフェース。
  * <p>役は得点の方法から以下の三種類に大別されます。

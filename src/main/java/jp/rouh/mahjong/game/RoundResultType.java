@@ -5,7 +5,7 @@ package jp.rouh.mahjong.game;
  * @author Rouh
  * @version 1.0
  */
-public enum RoundResultType{
+enum RoundResultType{
 
     /**
      * 親優位流局

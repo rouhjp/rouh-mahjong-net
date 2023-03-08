@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  * @author Rouh
  * @version 1.0
  */
-public class FormattedHand{
+class FormattedHand{
     private final Head head;
     private final List<Meld> melds;
     private final Wait wait;

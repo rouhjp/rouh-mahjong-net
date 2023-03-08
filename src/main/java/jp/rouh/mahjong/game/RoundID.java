@@ -7,7 +7,7 @@ import jp.rouh.mahjong.tile.Wind;
  * @param wind 局の場風
  * @param count 局数(1..4)
  */
-public record RoundID(Wind wind, int count){
+record RoundID(Wind wind, int count){
 
     public RoundID{
         if(count<=0 || count>4){

@@ -19,12 +19,14 @@ import java.util.List;
 public class HandScore implements Comparable<HandScore>{
     private final Score score;
     private final List<HandType> handTypes;
+    private final List<PointType> pointTypes;
     private final boolean handLimit;
     private final boolean dealer;
 
     private HandScore(FixedScoreHandType handType, boolean dealer){
         this.score = new Score(handType.getFixedLimit());
         this.handTypes = List.of(handType);
+        this.pointTypes = List.of();
         this.handLimit = score.getLimit().isHandLimit();
         this.dealer = dealer;
     }
@@ -33,14 +35,17 @@ public class HandScore implements Comparable<HandScore>{
         int multiplier = handTypes.stream().mapToInt(LimitHandType::getMultiplier).sum();
         this.score = new Score(multiplier);
         this.handTypes = List.copyOf(handTypes);
+        this.pointTypes = List.of();
         this.handLimit = true;
         this.dealer = dealer;
     }
 
-    private HandScore(int point, List<BasicHandType> handTypes, boolean dealer){
+    private HandScore(List<PointType> pointTypes, List<BasicHandType> handTypes, boolean dealer){
         int doubles = handTypes.stream().mapToInt(BasicHandType::getDoubles).sum();
+        int point = pointOf(pointTypes);
         this.score = new Score(point, doubles);
         this.handTypes = List.copyOf(handTypes);
+        this.pointTypes = List.copyOf(pointTypes);
         this.handLimit = false;
         this.dealer = dealer;
     }
@@ -86,12 +91,28 @@ public class HandScore implements Comparable<HandScore>{
         return score.getScore(dealer);
     }
 
+    public int getDoubles(){
+        return score.getDoubles();
+    }
+
+    public int getPoint(){
+        return score.getPoint();
+    }
+
     /**
      * 役をリスト形式で取得します。
      * @return 役のリスト
      */
     public List<HandType> getHandTypes(){
         return handTypes;
+    }
+
+    /**
+     * 符の詳細をリスト形式で取得します。
+     * @return 符の詳細のリスト
+     */
+    public List<PointType> getPointTypes(){
+        return pointTypes;
     }
 
     /**
@@ -139,25 +160,24 @@ public class HandScore implements Comparable<HandScore>{
         return Integer.compare(handTypes.size(), o.handTypes.size());
     }
 
-    /**
-     * 空の得点オブジェクトを生成します。
-     * @return 空の得点
-     */
-    public static HandScore ofEmpty(){
-        return new HandScore(20, List.of(), false);
+    private static int pointOf(List<PointType> pointTypes){
+        var totalPoint = pointTypes.stream().mapToInt(PointType::getPoint).sum();
+        //七対子25符固定の場合は切り上げ不要
+        if(totalPoint==25) return totalPoint;
+        return (int)Math.ceil(totalPoint/10d)*10;
     }
 
     /**
      * 得点オブジェクトを生成します。
      * <p>与えられる役のリストは順序が保持されるため, 呼び出し側で考慮する必要があります。
      * また, 重複がないことやドラのみの役とならないよう呼び出し側が保証する必要があります。
-     * @param point     符
+     * @param pointTypes 符の詳細のリスト
      * @param handTypes 通常役のリスト(順序が保持されます)
      * @param dealer    親かどうか
      * @return 得点
      */
-    public static HandScore of(int point, List<BasicHandType> handTypes, boolean dealer){
-        return new HandScore(point, handTypes, dealer);
+    public static HandScore of(List<PointType> pointTypes, List<BasicHandType> handTypes, boolean dealer){
+        return new HandScore(pointTypes, handTypes, dealer);
     }
 
     /**

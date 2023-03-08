@@ -204,7 +204,6 @@ public enum LimitHandType implements HandType{
 
     private final String text;
     private final int multiplier;
-
     LimitHandType(String text, int multiplier){
         this.text = text;
         this.multiplier = multiplier;

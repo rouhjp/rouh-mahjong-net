@@ -6,7 +6,7 @@ package jp.rouh.mahjong.game;
  * @version 1.0
  */
 @FunctionalInterface
-public interface WallGenerator{
+interface WallGenerator{
 
     /**
      * 牌山を生成します。

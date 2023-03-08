@@ -62,9 +62,9 @@ enum MeldBasedHandType implements BasicHandType{
         @Override
         boolean test(FormattedHand hand, ScoringContext context){
             return context.isSelfMade()
-                    && hand.getHead().getHeadPoint(context.getSeatWind(), context.getRoundWind())
-                    + hand.getMelds().stream().mapToInt(Meld::getMeldPoint).sum()
-                    + hand.getWait().getWaitPoint()==0;
+                    && hand.getHead().getHeadPoint(context.getSeatWind(), context.getRoundWind()).getPoint()
+                    + hand.getMelds().stream().map(Meld::getMeldPointType).mapToInt(PointType::getPoint).sum()
+                    + hand.getWait().getWaitPointType().getPoint()==0;
         }
     },
 

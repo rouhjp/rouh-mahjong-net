@@ -106,7 +106,6 @@ final class PrisedTileHandTypes{
                 return count==1?"裏ドラ":"裏ドラ"+count;
             }
 
-
             @Override
             public String toString(){
                 return "HIDDEN_PRISED_TILE("+count+")";

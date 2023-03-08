@@ -9,7 +9,7 @@ import java.util.List;
  * @author Rouh
  * @version 1.0
  */
-public interface Wall{
+interface Wall{
 
     /**
      * 牌山オブザーバを登録します。

@@ -19,7 +19,7 @@ import static jp.rouh.mahjong.game.RoundResultType.*;
  * @author Rouh
  * @version 1.0
  */
-public class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
+class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     private static final Logger LOG = LoggerFactory.getLogger(Round.class);
     private final Map<Wind, RoundPlayer> roundPlayers;
     private final WallGenerator wallGenerator;

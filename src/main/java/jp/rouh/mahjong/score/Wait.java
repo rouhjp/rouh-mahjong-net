@@ -12,33 +12,27 @@ enum Wait{
     /**
      * 両面待ち
      */
-    DOUBLE_SIDE_STRAIGHT(0),
+    DOUBLE_SIDE_STRAIGHT,
 
     /**
      * 辺張待ち
      */
-    SINGLE_SIDE_STRAIGHT(2),
+    SINGLE_SIDE_STRAIGHT,
 
     /**
      * 嵌張待ち
      */
-    MIDDLE_STRAIGHT(2),
+    MIDDLE_STRAIGHT,
 
     /**
      * 双碰待ち
      */
-    EITHER_HEAD(0),
+    EITHER_HEAD,
 
     /**
      * 単騎待ち
      */
-    SINGLE_HEAD(2);
-
-    private final int point;
-
-    Wait(int point){
-        this.point = point;
-    }
+    SINGLE_HEAD;
 
     /**
      * この待ちの符を返します。
@@ -67,8 +61,8 @@ enum Wait{
      * </table>
      * @return 符
      */
-    int getWaitPoint(){
-        return point;
+    PointType getWaitPointType(){
+        return PointType.ofWait(this);
     }
 
     /**
