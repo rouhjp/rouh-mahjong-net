@@ -184,6 +184,7 @@ final class HandTileMetrics{
         }
 
     }
+
     /**
      * 手牌が面子手の聴牌形かどうか簡易検査します。
      *

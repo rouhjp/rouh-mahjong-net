@@ -12,10 +12,9 @@ import java.util.*;
  * @version 1.0
  */
 public final class StandardHandScoreCalculator implements HandScoreCalculator{
-    private static final StandardHandScoreCalculator INSTANCE = new StandardHandScoreCalculator();
     private static final Logger LOG = LoggerFactory.getLogger(StandardHandScoreCalculator.class);
 
-    private StandardHandScoreCalculator(){
+    public StandardHandScoreCalculator(){
     }
 
     @Override
@@ -194,13 +193,5 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
             return PrisedTileHandTypes.ofRed(count);
         }
         throw new NoSuchElementException("hand type not found: "+uniqueName);
-    }
-
-    /**
-     * このクラスのシングルトン・インスタンスを取得します。
-     * @return インスタンス
-     */
-    public static HandScoreCalculator getInstance(){
-        return INSTANCE;
     }
 }

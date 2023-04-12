@@ -14,7 +14,7 @@ import java.util.Set;
 import static java.util.function.Predicate.not;
 
 class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccessor{
-    private final HandScoreCalculator calculator = StandardHandScoreCalculator.getInstance();
+    private final HandScoreCalculator calculator = new StandardHandScoreCalculator();
     private final RoundAccessor round;
     private final TableMaster master;
     private final GamePlayerAccessor gamePlayer;

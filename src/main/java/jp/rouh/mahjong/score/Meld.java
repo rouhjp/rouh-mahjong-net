@@ -250,10 +250,16 @@ public class Meld implements HandComponent{
 
     @Override
     public String toString(){
-        if(isHandMeld()) return "HandMeld"+sorted+(isConcealed()?"C":"E");
-        if(isSelfQuad()) return "SelfQuad"+getTilesFormed()+"C";
-        if(isAddQuad()) return "AddQuad"+getTilesFormed()+"E";
-        return "CallMeld"+getTilesFormed()+"E";
+        var tiles = getTilesFormed();
+        var firstTileRotated = source==Side.LEFT;
+        var firstTile = (firstTileRotated?"(":"[")+tiles.get(0)+(firstTileRotated?")":"]");
+        var secondTileRotated = source==Side.ACROSS;
+        var secondTile = (secondTileRotated?"(":"[")+tiles.get(1)+(secondTileRotated?")":"]");
+        var thirdTileRotated = (source==Side.RIGHT & isTriple());
+        var thirdTile = (thirdTileRotated?"(":"[")+tiles.get(2)+(thirdTileRotated?")":"]");
+        var fourthTileRotated = (source==Side.RIGHT & isQuad()) || (isAddQuad());
+        var fourthTile = isQuad()?((fourthTileRotated?"(":"[")+tiles.get(3)+(fourthTileRotated?")":"]")):"";
+        return (isConcealed()?"[":"(") + firstTile + secondTile + thirdTile + fourthTile + (isConcealed()?"]":")");
     }
 
     /**

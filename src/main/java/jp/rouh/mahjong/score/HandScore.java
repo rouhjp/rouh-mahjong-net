@@ -91,10 +91,18 @@ public class HandScore implements Comparable<HandScore>{
         return score.getScore(dealer);
     }
 
+    /**
+     * 飜数を取得します。
+     * @return 飜数
+     */
     public int getDoubles(){
         return score.getDoubles();
     }
 
+    /**
+     * 符数を取得します。
+     * @return 符
+     */
     public int getPoint(){
         return score.getPoint();
     }

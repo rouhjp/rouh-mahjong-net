@@ -15,7 +15,7 @@ import static jp.rouh.mahjong.tile.Tile.*;
 import static jp.rouh.mahjong.tile.Wind.*;
 
 class HandScoreCalculatorTest{
-    private final HandScoreCalculator calculator = StandardHandScoreCalculator.getInstance();
+    private final HandScoreCalculator calculator = new StandardHandScoreCalculator();
 
     @SafeVarargs
     private List<Meld> toMeld(List<Tile>...melds){
