@@ -86,6 +86,10 @@ class RoundResultViewPanel extends TablePanel{
     }
 
     private void displayHand(List<Tile> handTiles, Tile winningTile, List<List<Tile>> openMelds, List<Side> tiltSides, boolean tsumo){
+        var openMeldsReversed = new ArrayList<List<Tile>>(openMelds.size());
+        for(int i = 0; i<openMelds.size(); i++){
+            openMeldsReversed.add(openMelds.get(openMelds.size() - i - 1));
+        }
         int margin = 2;
         int handWidth = (handTiles.size() + 1)*TILE_WIDTH + margin +
                 openMelds.stream().mapToInt(m->m.size()*TILE_WIDTH + margin).sum();
@@ -108,8 +112,8 @@ class RoundResultViewPanel extends TablePanel{
         add(winningTileLabel);
         //面子描画(傾けなし)
         int openMeldsWidthOffset = winningTileWidthOffset + TILE_WIDTH + margin;
-        for(int meldIndex = 0, totalTileIndex = 0; meldIndex<openMelds.size(); meldIndex++){
-            var meld = openMelds.get(meldIndex);
+        for(int meldIndex = 0, totalTileIndex = 0; meldIndex<openMeldsReversed.size(); meldIndex++){
+            var meld = openMeldsReversed.get(meldIndex);
             var meldLabels = new ArrayList<TileLabel>(4);
             if(tiltSides.get(meldIndex)==Side.SELF){
                 meldLabels.add(TileLabel.ofFaceDown(Direction.TOP));

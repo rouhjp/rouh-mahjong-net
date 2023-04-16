@@ -27,7 +27,7 @@ class WinningResult{
     }
 
     HandScoreData getHandScoreData(){
-        var openMeldTiles = openMelds.stream().map(Meld::getTilesFormed).toList();
+        var openMeldTiles = openMelds.stream().map(Meld::getTilesSorted).toList();
         var meldTiltSides = openMelds.stream().map(Meld::getSourceSide).toList();
         var handTypeNames = handScore.getHandTypes().stream().map(HandType::getName).toList();
         var handTypeGrades = handScore.getHandTypes().stream().map(HandType::getGradeCode).toList();
