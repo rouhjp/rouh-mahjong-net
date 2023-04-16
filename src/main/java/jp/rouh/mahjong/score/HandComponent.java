@@ -6,7 +6,9 @@ import jp.rouh.mahjong.tile.TileType;
 import java.util.List;
 
 /**
- * 面子形の手牌を構成する要素を表すインターフェース。
+ * 手牌構成要素インターフェース。
+ *
+ * <p>手牌の構成要素には雀頭と面子があります。
  * @author Rouh
  * @version 1.0
  */

@@ -7,8 +7,9 @@ import java.util.List;
 
 /**
  * 雀頭クラス。
+ *
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
 class Head implements HandComponent{
     private final List<Tile> tiles;
@@ -50,21 +51,7 @@ class Head implements HandComponent{
      * @return 雀頭の符
      */
     PointType getHeadPoint(Wind seatWind, Wind roundWind){
-        if(isDragon()){
-            return PointType.VALUABLE_HEAD;
-        }
-        if(isWind()){
-            boolean seatWindHead = getFirst().equalsIgnoreRed(seatWind.toTile());
-            boolean roundWindHead = getFirst().equalsIgnoreRed(roundWind.toTile());
-            if(seatWindHead && roundWindHead){
-                return PointType.DOUBLE_VALUABLE_HEAD;
-            }
-            if(seatWindHead || roundWindHead){
-                return PointType.VALUABLE_HEAD;
-            }
-            return PointType.HEAD;
-        }
-        return PointType.HEAD;
+        return PointType.ofHead(this, seatWind, roundWind);
     }
 
     @Override

@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 /**
  * 整形済み手牌クラス。
+ *
  * <p>面子構成及び待ちを確定させた状態の手牌を表します。
  * <p>七対子形および国士無双形などの特殊形はこの型に適合しません。
  * @author Rouh

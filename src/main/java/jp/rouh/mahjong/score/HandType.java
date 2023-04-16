@@ -1,15 +1,11 @@
 package jp.rouh.mahjong.score;
 
 /**
- * 役を表すインターフェース。
- * <p>役は得点の方法から以下の三種類に大別されます。
- * <ul>
- *   <li>通常役 ... 符と飜数で得点を計算します。</li>
- *   <li>役満役 ... 一倍や二倍など倍数で得点を計算します。</li>
- *   <li>流し満貫 ... 満貫固定となります。</li>
- * </ul>
+ * 役インターフェース。
+ *
+ * <p>役は通常役、役満役、満貫役(流し満願)の三種類があります。
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
 public interface HandType{
 
@@ -20,29 +16,38 @@ public interface HandType{
     String getName();
 
     /**
-     * 役の固有名を取得します。
-     * <p>基本的に{@link #getName}と同じです。
-     * <p>ただし食い下がりの発生する役は, 門前と食い下がりの役を
-     * 区別するために, 門前の場合は先頭に「門前」を付けた役名を
-     * 取得します。
-     * @return 役名
+     * 役が役満もしくは流し満願かどうか検査します。
+     * @return true 役満の場合
+     *         true 流し満貫の場合
+     *         false 通常役の場合
      */
-    default String getUniqueName(){
-        return getName();
-    }
+    boolean isLimit();
 
     /**
-     * 役の等級を取得します。
-     * @return 役の等級
+     * 飜数を取得します。
+     *
+     * <p>役満の場合は0を返します。
+     * @return 飜数 通常役の場合
+     *         0 役満の場合
      */
-    HandTypeGrade getGrade();
+    int getDoubles();
 
     /**
-     * この手が役満手かどうか検査します。
-     * @return true 役満手の場合
-     *         false 役満手でない場合
+     * 役満の倍数を取得します。
+     *
+     * <p>通常役の場合は0を返します。
+     * @return 0 通常役の場合
+     *         1 シングル役満の場合
+     *         2 ダブル役満の場合
      */
-    default boolean isLimit(){
-        return getGrade().isLimit();
+    int getLimitMultiplier();
+
+
+    default String getGradeCode(){
+        if(isLimit()){
+            return "";
+        }
+        return Integer.toString(getDoubles());
     }
+
 }

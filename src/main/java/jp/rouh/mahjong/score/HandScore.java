@@ -1,11 +1,17 @@
 package jp.rouh.mahjong.score;
 
+import jp.rouh.mahjong.tile.Side;
+import jp.rouh.mahjong.tile.Wind;
+
 import java.util.List;
+import java.util.stream.IntStream;
+
+import static java.util.function.Predicate.not;
 
 /**
- * 得点を表すクラス。
- * <p>ある手牌に対する得点, 点数区分, 役を提供します。
- * 得点には詰み符や供託を含ません。
+ * 得点クラス。
+ *
+ * <p>ある手牌に対する得点, 点数区分, 役を提供します。得点には詰み符や供託を含ません。
  * <p>例えば, 子の30符4飜の手は,
  * 基本点{@link #getBaseScore}が 30*2^(2 + 4) となり1920点,
  * 得点{@link #getScore}が 1920*4 を100の位で切り上げた7700点,
@@ -14,40 +20,58 @@ import java.util.List;
  * ツモ時の子の基本支払額が 1920*1 を100の位で切り上げた2000点
  * となります。
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
 public class HandScore implements Comparable<HandScore>{
-    private final Score score;
-    private final List<HandType> handTypes;
+    private final int point;
+    private final int doubles;
+    private final LimitType limit;
     private final List<PointType> pointTypes;
-    private final boolean handLimit;
-    private final boolean dealer;
+    private final List<HandType> handTypes;
+    private final List<Side> completerSides;
+    private final Side supplierSide;
+    private final Wind winnerWind;
 
-    private HandScore(FixedScoreHandType handType, boolean dealer){
-        this.score = new Score(handType.getFixedLimit());
-        this.handTypes = List.of(handType);
-        this.pointTypes = List.of();
-        this.handLimit = score.getLimit().isHandLimit();
-        this.dealer = dealer;
-    }
-
-    private HandScore(List<LimitHandType> handTypes, boolean dealer){
-        int multiplier = handTypes.stream().mapToInt(LimitHandType::getMultiplier).sum();
-        this.score = new Score(multiplier);
-        this.handTypes = List.copyOf(handTypes);
-        this.pointTypes = List.of();
-        this.handLimit = true;
-        this.dealer = dealer;
-    }
-
-    private HandScore(List<PointType> pointTypes, List<BasicHandType> handTypes, boolean dealer){
-        int doubles = handTypes.stream().mapToInt(BasicHandType::getDoubles).sum();
-        int point = pointOf(pointTypes);
-        this.score = new Score(point, doubles);
-        this.handTypes = List.copyOf(handTypes);
+    private HandScore(List<HandType> handTypes, List<PointType> pointTypes, Wind winnerWind, Side supplierSide){
+        this.point = pointOf(pointTypes);
+        this.doubles = handTypes.stream().mapToInt(HandType::getDoubles).sum();
+        this.limit = LimitType.of(point, doubles);
         this.pointTypes = List.copyOf(pointTypes);
-        this.handLimit = false;
-        this.dealer = dealer;
+        this.handTypes = List.copyOf(handTypes);
+        this.completerSides = List.of();
+        this.supplierSide = supplierSide;
+        this.winnerWind = winnerWind;
+    }
+
+    private HandScore(List<HandType> handTypes, Wind winnerWind, Side supplierSide, List<Side> completerSides){
+        this.point = 0;
+        this.doubles = 0;
+        this.pointTypes = List.of();
+        this.handTypes = List.copyOf(handTypes);
+        this.limit = LimitType.ofMultiplier(handTypes.stream().mapToInt(HandType::getLimitMultiplier).sum());
+        this.completerSides = List.copyOf(completerSides);
+        this.supplierSide = supplierSide;
+        this.winnerWind = winnerWind;
+    }
+
+    private HandScore(HandType handType, LimitType limit, Wind winnerWind){
+        this.point = 0;
+        this.doubles = 0;
+        this.limit = limit;
+        this.pointTypes = List.of();
+        this.handTypes = List.of(handType);
+        this.completerSides = List.of();
+        this.supplierSide = Side.SELF;
+        this.winnerWind = winnerWind;
+    }
+
+    private static int pointOf(List<PointType> pointTypes){
+        int totalPoint = pointTypes.stream().mapToInt(PointType::getPoint).sum();
+        if(totalPoint==25){
+            //七対子25符の場合のみ切り上げ不要
+            return totalPoint;
+        }
+        return (int)Math.ceil(totalPoint/10d)*10;
     }
 
     /**
@@ -61,11 +85,56 @@ public class HandScore implements Comparable<HandScore>{
      * ツモ和了となった場合, 大四喜の点数のみ包による責任払いが発生します。
      * @return 分割した得点オブジェクトのリスト
      */
-    List<HandScore> disorganize(){
-        if(!handLimit) return List.of(this);
-        return handTypes.stream()
-                .map(handType->HandScore.ofLimit(List.of((LimitHandType)handType), dealer))
+    List<HandScore> divide(){
+        if(!isHandLimit()) return List.of(this);
+        return IntStream.range(0, handTypes.size())
+                .mapToObj(i->new HandScore(List.of(handTypes.get(i)), winnerWind, supplierSide, List.of(completerSides.get(i))))
                 .toList();
+    }
+
+    /**
+     * 役満包の方向を取得します。
+     * <p>複合役満の場合は, {@code Side.SELF}を返します。
+     * <p>複合役満の場合は, {@link #divide()}した後で呼び出す必要があります。
+     * <p>役満包がない場合, {@code Side.SELF}を返します。
+     * <p>役満でない場合, {@code Side.SELF}を返します。
+     * @return SELF 役満でない場合
+     *         SELF 複合役満の場合
+     *         SELF 包が存在しない場合
+     *         包の方向
+     */
+    Side getCompleterSide(){
+        if(completerSides.size()==1){
+            return completerSides.get(0);
+        }
+        return Side.SELF;
+    }
+
+    /**
+     * 放銃者もしくは大明槓責任払いの方向を取得します。
+     * <p>放銃者もしくは大明槓責任払いが存在しない場合は, {@code Side.SELF}を返します。
+     * @return SELF 放銃者もしくは大明槓責任払いが存在しない場合
+     *         放銃者もしくは大明槓責任払いの方向
+     */
+    Side getSupplierSide(){
+        return supplierSide;
+    }
+
+    /**
+     * 和了者の自風牌を取得します。
+     * @return 和了者の自風牌
+     */
+    public Wind getWinnerWind(){
+        return winnerWind;
+    }
+
+    /**
+     * 和了者が親かどうか検査します。
+     * @return true 和了者が親の場合
+     *         false 和了者が子の場合
+     */
+    public boolean isDealer(){
+        return winnerWind==Wind.EAST;
     }
 
     /**
@@ -76,7 +145,10 @@ public class HandScore implements Comparable<HandScore>{
      * @return 基本点
      */
     public int getBaseScore(){
-        return score.getBaseScore();
+        if(!limit.isEmpty()){
+            return limit.getBaseScore();
+        }
+        return Math.min(2000, point*(int)Math.pow(2, doubles + 2));
     }
 
     /**
@@ -88,7 +160,7 @@ public class HandScore implements Comparable<HandScore>{
      * @return 点数
      */
     public int getScore(){
-        return score.getScore(dealer);
+        return (int)Math.ceil(((isDealer()? 6:4)*getBaseScore())/100d)*100;
     }
 
     /**
@@ -96,7 +168,7 @@ public class HandScore implements Comparable<HandScore>{
      * @return 飜数
      */
     public int getDoubles(){
-        return score.getDoubles();
+        return doubles;
     }
 
     /**
@@ -104,7 +176,7 @@ public class HandScore implements Comparable<HandScore>{
      * @return 符
      */
     public int getPoint(){
-        return score.getPoint();
+        return point;
     }
 
     /**
@@ -129,7 +201,7 @@ public class HandScore implements Comparable<HandScore>{
      *         false 役満(数え役満を除く)でない場合
      */
     public boolean isHandLimit(){
-        return handLimit;
+        return limit.isHandLimit();
     }
 
     /**
@@ -146,8 +218,9 @@ public class HandScore implements Comparable<HandScore>{
      * @return 得点を表す文字列
      */
     public String getScoreExpression(){
-        return (score.hasPointAndDoubles()?score.getPoint()+"符 "+score.getDoubles()+"翻 ":"")
-                + (score.getLimit().isEmpty()?"":score.getLimit().getText()+" ")+getScore()+"点";
+        return (point>0?point+"符 "+doubles+"飜 ":"")
+                + (limit.isEmpty()?"":limit.getName()+" ")
+                + (getScore()+"点");
     }
 
     /**
@@ -159,20 +232,11 @@ public class HandScore implements Comparable<HandScore>{
      */
     @Override
     public int compareTo(HandScore o){
-        int comparingScore = Integer.compare(getBaseScore(), o.getBaseScore());
-        if(comparingScore!=0) return comparingScore;
-        int comparingDoubles = Integer.compare(score.getDoubles(), o.score.getDoubles());
-        if(comparingDoubles!=0) return comparingDoubles;
-        int comparingPoint = Integer.compare(score.getPoint(), o.score.getPoint());
-        if(comparingPoint!=0) return comparingPoint;
+        int result;
+        if((result = Integer.compare(getBaseScore(), o.getBaseScore()))!=0) return result;
+        if((result = Integer.compare(doubles, o.doubles))!=0) return result;
+        if((result = Integer.compare(point, o.point))!=0) return result;
         return Integer.compare(handTypes.size(), o.handTypes.size());
-    }
-
-    private static int pointOf(List<PointType> pointTypes){
-        var totalPoint = pointTypes.stream().mapToInt(PointType::getPoint).sum();
-        //七対子25符固定の場合は切り上げ不要
-        if(totalPoint==25) return totalPoint;
-        return (int)Math.ceil(totalPoint/10d)*10;
     }
 
     /**
@@ -181,29 +245,63 @@ public class HandScore implements Comparable<HandScore>{
      * また, 重複がないことやドラのみの役とならないよう呼び出し側が保証する必要があります。
      * @param pointTypes 符の詳細のリスト
      * @param handTypes 通常役のリスト(順序が保持されます)
-     * @param dealer    親かどうか
+     * @param winnerWind 和了者の自風牌
+     * @param supplierSide 放銃者(もしくは大明槓責任払い)の方向
      * @return 得点
+     * @throws IllegalArgumentException 役満の役を渡した場合
      */
-    public static HandScore of(List<PointType> pointTypes, List<BasicHandType> handTypes, boolean dealer){
-        return new HandScore(pointTypes, handTypes, dealer);
+    public static HandScore of(List<PointType> pointTypes, List<HandType> handTypes, Wind winnerWind, Side supplierSide){
+        if(handTypes.stream().anyMatch(HandType::isLimit)){
+            throw new IllegalArgumentException("limit hand type found: "+handTypes);
+        }
+        if(pointTypes.isEmpty()){
+            throw new IllegalArgumentException("point types is empty");
+        }
+        return new HandScore(handTypes, pointTypes, winnerWind, supplierSide);
     }
 
     /**
      * 役満(数え役満を除く)の得点オブジェクトを生成します。
-     * @param limitHandTypes 役満役のリスト
-     * @param dealer         親かどうか
+     * @param handTypes 役満役と役満包の方向(なければ{@code Side.SELF})のマップ
+     * @param winnerWind 和了者の自風牌
+     * @param supplierSide 放銃者(もしくは大明槓責任払い)の方向
      * @return 得点
+     * @throws IllegalArgumentException 役満以外の役を渡した場合
      */
-    public static HandScore ofLimit(List<LimitHandType> limitHandTypes, boolean dealer){
-        return new HandScore(limitHandTypes, dealer);
+    public static HandScore ofHandLimit(List<HandType> handTypes, Wind winnerWind, Side supplierSide, List<Side> completerSides){
+        if(handTypes.stream().anyMatch(not(HandType::isLimit))){
+            throw new IllegalArgumentException("non limit hand found: "+handTypes);
+        }
+        return new HandScore(handTypes, winnerWind, supplierSide, completerSides);
     }
 
     /**
      * 流し満貫の得点オブジェクトを生成します。
-     * @param dealer 親かどうか
+     * @param winnerWind 和了者の自風牌
      * @return 得点
      */
-    public static HandScore ofRiverJackpot(boolean dealer){
-        return new HandScore(FixedScoreHandType.RIVER_JACKPOT, dealer);
+    public static HandScore ofRiverLimit(Wind winnerWind){
+        var handType = new HandType(){
+            @Override
+            public String getName(){
+                return "流し満貫";
+            }
+
+            @Override
+            public boolean isLimit(){
+                return true;
+            }
+
+            @Override
+            public int getDoubles(){
+                return 0;
+            }
+
+            @Override
+            public int getLimitMultiplier(){
+                return 0;
+            }
+        };
+        return new HandScore(handType, LimitType.LIMIT, winnerWind);
     }
 }

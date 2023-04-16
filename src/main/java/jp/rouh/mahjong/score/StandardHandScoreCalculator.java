@@ -8,6 +8,7 @@ import java.util.*;
 
 /**
  * 標準点数計算クラス。
+ *
  * @author Rouh
  * @version 1.0
  */
@@ -18,52 +19,43 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
     }
 
     @Override
-    public HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context){
+    public HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningSituation situation){
         LOG.debug("--start calculating score--");
         LOG.debug(handTiles + " " + openMelds + " " + winningTile);
-        var fullTiles = new ArrayList<>(handTiles);
-        var fourteenTiles = new ArrayList<>(handTiles);
-        fullTiles.add(winningTile);
-        fourteenTiles.add(winningTile);
-        openMelds.stream().map(Meld::getTilesSorted).forEach(fullTiles::addAll);
-        openMelds.stream().map(Meld::getTilesTruncated).forEach(fourteenTiles::addAll);
-        var feature = new HandFeature(fullTiles, fourteenTiles, winningTile, context);
-        var limitHandTypes = LimitHandType.testAll(feature, context);
+        var feature = new HandFeature(handTiles, openMelds, winningTile, situation);
+        var limitHandTypes = LimitHandType.testAll(feature, situation);
         if(!limitHandTypes.isEmpty()){
-            return HandScore.ofLimit(limitHandTypes, context.isDealer());
+            var completerSides = limitHandTypes.stream().map(handType->((LimitHandType)handType).getCompleterSide(openMelds)).toList();
+            return HandScore.ofHandLimit(limitHandTypes, situation.getSeatWind(), situation.getSupplierSide(), completerSides);
         }
-        var environmentBasedHandTypes = EnvironmentBasedHandType.testAll(context);
-        var tileBasedHandTypes = TileBasedHandType.testAll(feature, context);
-        var prisedTileHandTypes = PrisedTileHandTypes.testAll(feature);
+        var nonMeldBaseHandTypes = NonMeldBasedHandType.testAll(feature, situation);
+        var prisedTileHandTypes = prisedTileHandTypes(feature);
         var handScores = new ArrayList<HandScore>();
-        if(IrregularFormatHandType.SEVEN_PAIR.test(handTiles, winningTile, context)){
+        if(HandTiles.isCompletedSevenPairs(handTiles, winningTile)){
             var pointTypes = List.of(PointType.SEVEN_PAIR_BASE);
-            var handTypes = new ArrayList<BasicHandType>();
-            handTypes.addAll(environmentBasedHandTypes);
-            handTypes.addAll(tileBasedHandTypes);
-            handTypes.add(IrregularFormatHandType.SEVEN_PAIR);
+            var handTypes = new ArrayList<>(nonMeldBaseHandTypes);
+            handTypes.add(handTypeOf("七対子", 2));
             handTypes.addAll(prisedTileHandTypes);
-            handScores.add(HandScore.of(pointTypes, handTypes, context.isDealer()));
+            handScores.add(HandScore.of(pointTypes, handTypes, situation.getSeatWind(), situation.getSupplierSide()));
             LOG.debug("case--> Irregular");
             for(var handType: handTypes){
-                LOG.debug("        " + handType.getUniqueName());
+                LOG.debug("        " + handType.getName());
             }
         }
-        var formattedHands = format(handTiles, openMelds, winningTile, context);
+        var formattedHands = format(handTiles, openMelds, winningTile, situation);
         for(var formattedHand: formattedHands){
-            var pointTypes = pointTypesOf(formattedHand, context);
-            var meldBasedHandTypes = MeldBasedHandType.testAll(formattedHand, context);
-            var handTypes = new ArrayList<BasicHandType>();
-            handTypes.addAll(environmentBasedHandTypes);
-            handTypes.addAll(tileBasedHandTypes);
+            var pointTypes = pointTypesOf(formattedHand, feature, situation);
+            var meldBasedHandTypes = MeldBasedHandType.testAll(formattedHand, feature, situation);
+            var handTypes = new ArrayList<HandType>();
+            handTypes.addAll(nonMeldBaseHandTypes);
             handTypes.addAll(meldBasedHandTypes);
             if(!handTypes.isEmpty()){
                 handTypes.addAll(prisedTileHandTypes);
             }
-            handScores.add(HandScore.of(pointTypes, handTypes, context.isDealer()));
+            handScores.add(HandScore.of(pointTypes, handTypes, situation.getSeatWind(), situation.getSupplierSide()));
             LOG.debug("case--> " + formattedHand);
             for(var handType: handTypes){
-                LOG.debug("        " + handType.getUniqueName());
+                LOG.debug("        " + handType.getName());
             }
         }
         if(handScores.isEmpty()){
@@ -74,7 +66,7 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
         var score = handScores.stream().max(Comparator.naturalOrder()).get();
         LOG.debug("result: " + score.getScoreExpression());
         for(var handType: score.getHandTypes()){
-            LOG.debug(handType.getUniqueName() + " " + handType.getGrade().getCode());
+            LOG.debug(handType.getName());
         }
         LOG.debug("--end calculating score--");
         return score;
@@ -86,10 +78,10 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
      * @param handTiles   純手牌
      * @param openMelds   公開面子
      * @param winningTile 和了牌
-     * @param context     和了状況
+     * @param situation   和了状況
      * @return 整形済み手牌のセット
      */
-    private static Set<FormattedHand> format(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context){
+    private static Set<FormattedHand> format(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningSituation situation){
         var formattedHands = new HashSet<FormattedHand>();
         for(var arranged: HandTiles.arrangeAll(handTiles, winningTile)){
             var head = new Head(arranged.get(0));
@@ -108,7 +100,7 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
                 if(targetTile.isPresent()){
                     var melds = new ArrayList<Meld>(4);
                     for(int k = 0; k<tail.size(); k++){
-                        if(!context.isTsumo() && k==i){
+                        if(!situation.isTsumo() && k==i){
                             var base = new ArrayList<>(tail.get(k));
                             base.remove(targetTile.get());
                             melds.add(Meld.ofHand(base, targetTile.get()));
@@ -125,73 +117,52 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
         return formattedHands;
     }
 
-    private static List<PointType> pointTypesOf(FormattedHand hand, ScoringContext context){
+    private static List<PointType> pointTypesOf(FormattedHand hand, HandFeature feature, WinningSituation situation){
         var pointTypes = new ArrayList<PointType>();
         pointTypes.add(hand.getWait().getWaitPointType());
-        pointTypes.add(hand.getHead().getHeadPoint(context.getSeatWind(), context.getRoundWind()));
+        pointTypes.add(hand.getHead().getHeadPoint(situation.getSeatWind(), situation.getRoundWind()));
         pointTypes.addAll(hand.getMelds().stream().map(Meld::getMeldPointType).toList());
-        boolean concealedNoPoint = pointTypes.isEmpty() && context.isSelfMade();
-        boolean calledNoPoint = pointTypes.isEmpty() && !context.isSelfMade();
-        if(context.isTsumo() && !concealedNoPoint) pointTypes.add(PointType.TSUMO);
-        if(context.isSelfMade() && !context.isTsumo()) pointTypes.add(PointType.SELF_MADE);
+        boolean concealedNoPoint = pointTypes.isEmpty() && feature.getCallCount()==0;
+        boolean calledNoPoint = pointTypes.isEmpty() && feature.getCallCount()>0;
+        if(situation.isTsumo() && !concealedNoPoint) pointTypes.add(PointType.TSUMO);
+        if(feature.getCallCount()==0 && !situation.isTsumo()) pointTypes.add(PointType.SELF_MADE);
         if(calledNoPoint) pointTypes.add(PointType.CALLED_NO_POINT);
         pointTypes.add(PointType.BASE);
         return pointTypes.stream().sorted().toList();
     }
 
-    @Override
-    public HandType forName(String uniqueName){
-        for(var handType:LimitHandType.values()){
-            if(handType.getUniqueName().equals(uniqueName)){
-                return handType;
+    private static HandType handTypeOf(String name, int doubles){
+        return new HandType(){
+            @Override
+            public String getName(){
+                return name;
             }
-        }
-        for(var handType:EnvironmentBasedHandType.values()){
-            if(handType.getUniqueName().equals(uniqueName)){
-                return handType;
+
+            @Override
+            public boolean isLimit(){
+                return false;
             }
-        }
-        for(var handType:TileBasedHandType.values()){
-            if(handType.getUniqueName().equals(uniqueName)){
-                return handType;
+
+            @Override
+            public int getDoubles(){
+                return doubles;
             }
-        }
-        for(var handType:MeldBasedHandType.values()){
-            if(handType.getUniqueName().equals(uniqueName)){
-                return handType;
+
+            @Override
+            public int getLimitMultiplier(){
+                return 0;
             }
-        }
-        for(var handType:IrregularFormatHandType.values()){
-            if(handType.getUniqueName().equals(uniqueName)){
-                return handType;
-            }
-        }
-        for(var handType:FixedScoreHandType.values()){
-            if(handType.getUniqueName().equals(uniqueName)){
-                return handType;
-            }
-        }
-        if(uniqueName.equals("ドラ")){
-            return PrisedTileHandTypes.of(1);
-        }
-        if(uniqueName.matches("ドラ[0-9]+")){
-            int count = Integer.parseInt(uniqueName.substring(2));
-            return PrisedTileHandTypes.of(count);
-        }
-        if(uniqueName.equals("裏ドラ")){
-            return PrisedTileHandTypes.ofHidden(1);
-        }
-        if(uniqueName.matches("裏ドラ[0-9]+")){
-            int count = Integer.parseInt(uniqueName.substring(3));
-            return PrisedTileHandTypes.ofHidden(count);
-        }
-        if(uniqueName.equals("赤ドラ")){
-            return PrisedTileHandTypes.ofRed(1);
-        }
-        if(uniqueName.matches("赤ドラ[0-9]+")){
-            int count = Integer.parseInt(uniqueName.substring(3));
-            return PrisedTileHandTypes.ofRed(count);
-        }
-        throw new NoSuchElementException("hand type not found: "+uniqueName);
+        };
+    }
+
+    private static List<HandType> prisedTileHandTypes(HandFeature feature){
+        var handTypes = new ArrayList<HandType>(3);
+        int count = feature.getPrisedTileCount();
+        if(count>0) handTypes.add(handTypeOf("ドラ"+count, count));
+        int redCount = feature.getRedPrisedTileCount();
+        if(redCount>0) handTypes.add(handTypeOf("赤ドラ"+redCount, redCount));
+        int hiddenCount = feature.getHiddenPrisedTileCount();
+        if(hiddenCount>0) handTypes.add(handTypeOf("裏ドラ"+hiddenCount, hiddenCount));
+        return handTypes;
     }
 }

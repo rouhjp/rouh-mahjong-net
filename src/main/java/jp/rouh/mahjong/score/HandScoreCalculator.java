@@ -6,8 +6,9 @@ import java.util.List;
 
 /**
  * 点数計算機能インターフェース。
+ *
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
 public interface HandScoreCalculator{
 
@@ -17,17 +18,10 @@ public interface HandScoreCalculator{
      * @param handTiles   手牌(和了牌を含めない)
      * @param openMelds   公開面子
      * @param winningTile 和了牌
-     * @param context     和了状況
+     * @param situation   和了状況
      * @return 得点
      * @throws IllegalArgumentException 手牌が完成形でない場合
      */
-    HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, ScoringContext context);
-
-    /**
-     * 役の固有名をもとに役のインスタンスを検索し, 取得します。
-     * @param uniqueName 固有名
-     * @return 役
-     */
-    HandType forName(String uniqueName);
+    HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningSituation situation);
 
 }

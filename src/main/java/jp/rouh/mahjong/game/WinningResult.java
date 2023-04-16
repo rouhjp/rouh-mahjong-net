@@ -3,47 +3,57 @@ package jp.rouh.mahjong.game;
 import jp.rouh.mahjong.game.event.HandScoreData;
 import jp.rouh.mahjong.game.event.RiverScoreData;
 import jp.rouh.mahjong.score.*;
+import jp.rouh.mahjong.tile.Tile;
+
+import java.util.List;
 
 class WinningResult{
     private final HandScore handScore;
-    private final WinningContext context;
+    private final List<Tile> handTiles;
+    private final List<Meld> openMelds;
+    private final Tile winningTile;
+    private final WinningSituation situation;
 
-    WinningResult(HandScore handScore, WinningContext context){
+    public WinningResult(HandScore handScore, List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningSituation situation){
         this.handScore = handScore;
-        this.context = context;
+        this.handTiles = handTiles;
+        this.openMelds = openMelds;
+        this.winningTile = winningTile;
+        this.situation = situation;
     }
 
-    HandScore getHandScore(){
+    public HandScore getHandScore(){
         return handScore;
     }
 
-    WinningContext getWinningContext(){
-        return context;
-    }
-
     HandScoreData getHandScoreData(){
+        var openMeldTiles = openMelds.stream().map(Meld::getTilesFormed).toList();
+        var meldTiltSides = openMelds.stream().map(Meld::getSourceSide).toList();
+        var handTypeNames = handScore.getHandTypes().stream().map(HandType::getName).toList();
+        var handTypeGrades = handScore.getHandTypes().stream().map(HandType::getGradeCode).toList();
+
         var data = new HandScoreData();
-        data.setHandTiles(context.getHandTiles());
-        data.setWinningTile(context.getWinningTile());
-        data.setOpenMelds(context.getOpenMelds().stream()
-                .map(Meld::getTilesSorted).toList());
-        data.setMeldTiltSides(context.getOpenMelds().stream()
-                .map(Meld::getSourceSide).toList());
-        data.setTsumo(context.isTsumo());
-        data.setUpperIndicators(context.getUpperIndicators());
-        data.setLowerIndicators(context.getLowerIndicators());
-        data.setHandTypeNames(handScore.getHandTypes().stream()
-                .map(HandType::getName).toList());
-        data.setHandTypeGrades(handScore.getHandTypes().stream()
-                .map(HandType::getGrade)
-                .map(HandTypeGrade::getCode).toList());
+        data.setHandTiles(handTiles);
+        data.setWinningTile(winningTile);
+        data.setOpenMelds(openMeldTiles);
+        data.setMeldTiltSides(meldTiltSides);
+        data.setUpperIndicators(situation.getUpperIndicators());
+        data.setLowerIndicators(situation.getLowerIndicators());
+        data.setHandTypeNames(handTypeNames);
+        data.setHandTypeGrades(handTypeGrades);
         data.setScoreExpression(handScore.getScoreExpression());
+        data.setTsumo(situation.isTsumo());
         return data;
     }
 
     RiverScoreData getRiverScoreData(){
-        var handType = handScore.getHandTypes().get(0);
-        return new RiverScoreData(handType.getName(), handType.getGrade().getCode(), handScore.getScoreExpression());
-    }
+        var handTypeNames = handScore.getHandTypes().get(0).getName();
+        var handTypeGrade = handScore.getHandTypes().get(0).getGradeCode();
 
+        var data = new RiverScoreData();
+        data.setHandTypeName(handTypeNames);
+        data.setHandTypeGrade(handTypeGrade);
+        data.setScoreExpression(handScore.getScoreExpression());
+        return data;
+    }
 }

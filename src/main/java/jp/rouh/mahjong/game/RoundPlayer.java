@@ -13,7 +13,7 @@ import java.util.Set;
 
 import static java.util.function.Predicate.not;
 
-class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccessor{
+class RoundPlayer extends ForwardingTableStrategy{
     private final HandScoreCalculator calculator = new StandardHandScoreCalculator();
     private final RoundAccessor round;
     private final TableMaster master;
@@ -196,26 +196,27 @@ class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccess
         }
     }
 
-    WinningResult declareOrphanRiver(boolean secondary){
-        var score = HandScore.ofRiverJackpot(seatWind==Wind.EAST);
-        var context = new WinningContext(round, this, seatWind, null, false, false, secondary);
-        return new WinningResult(score, context);
+    WinningResult declareOrphanRiver(){
+        var score = HandScore.ofRiverLimit(seatWind);
+        return new WinningResult(score, null, null, null, null);
     }
 
-    WinningResult declareRon(Tile discarded, Wind discarder, boolean secondary){
-        var context = new WinningContext(round, this, discarder, discarded, false, false, secondary);
-        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discarded, context);
+    WinningResult declareRon(Tile discarded, Wind discarder){
+        var options = getWinningOptions(false, false);
+        var situation = new WinningSituation(round.getRoundWind(), seatWind, discarder.from(seatWind), round.getUpperIndicators(), ready?round.getLowerIndicators():List.of(), options);
+        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discarded, situation);
         master.declared(seatWind, Declaration.RON);
         master.handRevealed(seatWind, hand.getAllTiles(), false);
-        return new WinningResult(score, context);
+        return new WinningResult(score, hand.getHandTiles(), hand.getOpenMelds(), discarded, situation);
     }
 
-    WinningResult declareRonByQuad(Tile quadTile, Wind declarer, boolean secondary){
-        var context = new WinningContext(round, this, declarer, quadTile, true, false, secondary);
-        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), quadTile, context);
+    WinningResult declareRonByQuad(Tile quadTile, Wind declarer){
+        var options = getWinningOptions(false, true);
+        var situation = new WinningSituation(round.getRoundWind(), seatWind, declarer.from(seatWind), round.getUpperIndicators(), ready?round.getLowerIndicators():List.of(), options);
+        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), quadTile, situation);
         master.declared(seatWind, Declaration.RON);
         master.handRevealed(seatWind, hand.getAllTiles(), false);
-        return new WinningResult(score, context);
+        return new WinningResult(score, hand.getHandTiles(), hand.getOpenMelds(), quadTile, situation);
     }
 
     void declareNineTiles(){
@@ -223,11 +224,42 @@ class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccess
     }
 
     WinningResult declareTsumo(boolean afterQuad){
-        var context = new WinningContext(round, this, seatWind, hand.getDrawnTile(), false, afterQuad, false);
-        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), context);
+        var options = getWinningOptions(afterQuad, false);
+        var situation = new WinningSituation(round.getRoundWind(), seatWind, Side.SELF, round.getUpperIndicators(), ready?round.getLowerIndicators():List.of(), options);
+        var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), situation);
         master.declared(seatWind, Declaration.TSUMO);
         master.handRevealed(seatWind, hand.getAllTiles(), true);
-        return new WinningResult(score, context);
+        return new WinningResult(score, hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), situation);
+    }
+
+    private List<WinningOption> getWinningOptions(boolean afterQuad, boolean quadGrab){
+        var options = new ArrayList<WinningOption>();
+        if(round.isFirstAround()){
+            options.add(WinningOption.FIRST_AROUND_WIN);
+        }
+        if(round.isLastTurn()){
+            options.add(WinningOption.LAST_TILE_WIN);
+        }
+        if(ready){
+            options.add(WinningOption.READY);
+        }
+        if(readyAround){
+            options.add(WinningOption.READY_AROUND_WIN);
+        }
+        if(firstAroundReady){
+            options.add(WinningOption.FIRST_AROUND_READY);
+        }
+        if(afterQuad){
+            options.add(WinningOption.QUAD_TURN_WIN);
+        }
+        if(quadGrab){
+            options.add(WinningOption.QUAD_TILE_WIN);
+        }
+        return options;
+    }
+
+    boolean isReady(){
+        return ready;
     }
 
     boolean isHandReady(){
@@ -262,8 +294,9 @@ class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccess
                     choices.add(TurnAction.ofNineTiles());
                 }
                 if(hand.isCompleted()){
-                    var context = new WinningContext(round, this, seatWind, hand.getDrawnTile(), false, afterQuad, false);
-                    var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), context);
+                    var options = getWinningOptions(afterQuad, false);
+                    var situation = new WinningSituation(round.getRoundWind(), seatWind, Side.SELF, round.getUpperIndicators(), ready?round.getLowerIndicators():List.of(), options);
+                    var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), hand.getDrawnTile(), situation);
                     if(!score.isEmpty()){
                         choices.add(TurnAction.ofTsumo());
                     }
@@ -273,7 +306,8 @@ class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccess
                         choices.add(TurnAction.ofKan(quadTile));
                     }
                 }
-                if(getCallCount()==0 && !round.isLastAround() && gamePlayer.getScore()>=1000){
+                int callCount = (int)hand.getOpenMelds().stream().filter(not(Meld::isConcealed)).count();
+                if(callCount==0 && !round.isLastAround() && gamePlayer.getScore()>=1000){
                     for(var readyTile: hand.getReadyTiles()){
                         choices.add(TurnAction.ofReadyAndDiscard(readyTile));
                     }
@@ -292,8 +326,9 @@ class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccess
             }
         }else{
             if(hand.isCompletedBy(discarded) && !riverLock && !aroundLock){
-                var context = new WinningContext(round, this, discarder, discarded, false, false, false);
-                var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discarded, context);
+                var options = getWinningOptions(false, false);
+                var situation = new WinningSituation(round.getRoundWind(), seatWind, discarder.from(seatWind), round.getUpperIndicators(), ready?round.getLowerIndicators():List.of(), options);
+                var score = calculator.calculate(hand.getHandTiles(), hand.getOpenMelds(), discarded, situation);
                 if(!score.isEmpty()){
                     choices.add(CallAction.ofRon());
                 }
@@ -354,33 +389,4 @@ class RoundPlayer extends ForwardingTableStrategy implements WinningPlayerAccess
         gamePlayer.applyScore(score);
     }
 
-    @Override
-    public List<Tile> getHandTiles(){
-        return hand.getHandTiles();
-    }
-
-    @Override
-    public List<Meld> getOpenMelds(){
-        return hand.getOpenMelds();
-    }
-
-    @Override
-    public boolean isReady(){
-        return ready;
-    }
-
-    @Override
-    public int getCallCount(){
-        return (int)hand.getOpenMelds().stream().filter(not(Meld::isConcealed)).count();
-    }
-
-    @Override
-    public boolean isFirstAroundReady(){
-        return firstAroundReady;
-    }
-
-    @Override
-    public boolean isReadyAround(){
-        return readyAround;
-    }
 }

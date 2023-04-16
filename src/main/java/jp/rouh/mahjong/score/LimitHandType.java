@@ -1,11 +1,14 @@
 package jp.rouh.mahjong.score;
 
+import jp.rouh.mahjong.tile.Side;
+
 import java.util.List;
 import java.util.stream.Stream;
 
 /**
  * 役満役クラス。
- * <p>役{@link HandType}インターフェースを実装します。
+ *
+ * <p>役{@link HandType}のうち、役満となる役。
  * <p>該当する役は以下の通りです。
  * <ol><li><h2>環境役:手牌の構成牌に依存しない成立条件の役</h2>
  *         <ul><li>天和</li>
@@ -26,7 +29,7 @@ import java.util.stream.Stream;
  *     <li><h2>面子役:高点法上別の解釈パターンより優先される役</h2>
  *         <ul><li>四暗刻</li></ul></li></ol>
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
 public enum LimitHandType implements HandType{
 
@@ -35,9 +38,9 @@ public enum LimitHandType implements HandType{
      */
     BLESSING_OF_HEAVEN("天和", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isFirstAroundWin() && context.isDealer()
-                    && context.isTsumo();
+        boolean test(HandFeature feature, WinningSituation situation){
+            return situation.isFirstAroundWin() && situation.isDealer()
+                    && situation.isTsumo();
         }
     },
 
@@ -46,9 +49,9 @@ public enum LimitHandType implements HandType{
      */
     BLESSING_OF_EARTH("地和", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isFirstAroundWin() && !context.isDealer()
-                    && context.isTsumo();
+        boolean test(HandFeature feature, WinningSituation situation){
+            return situation.isFirstAroundWin() && !situation.isDealer()
+                    && situation.isTsumo();
         }
     },
 
@@ -57,8 +60,8 @@ public enum LimitHandType implements HandType{
      */
     THIRTEEN_ORPHANS("国士無双", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isSelfMade() && feature.getTileDistinctCount()==13
+        boolean test(HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0 && feature.getTileDistinctCount()==13
                     && feature.getOrphanCount()==14 && feature.getWinningTileCount()==1;
         }
     },
@@ -68,8 +71,8 @@ public enum LimitHandType implements HandType{
      */
     THIRTEEN_ORPHANS_13_WAIT("国士無双十三面", 2){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isSelfMade() && feature.getTileDistinctCount()==13
+        boolean test(HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0 && feature.getTileDistinctCount()==13
                     && feature.getOrphanCount()==14 && feature.getWinningTileCount()==2;
         }
     },
@@ -79,8 +82,8 @@ public enum LimitHandType implements HandType{
      */
     NINE_GATES("九蓮宝燈", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isSelfMade() && feature.getQuadCount()==0
+        boolean test(HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0 && feature.getQuadCount()==0
                     && feature.getSuitTypeCount()==1 && feature.getTileDistinctCount()==9
                     && feature.getHonorCount()==0
                     && feature.getTerminalCount()==(feature.getLargestDuplicationCount()==4? 7:6)
@@ -93,8 +96,8 @@ public enum LimitHandType implements HandType{
      */
     NINE_GATES_9_WAIT("純正九蓮宝燈", 2){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isSelfMade() && feature.getQuadCount()==0
+        boolean test(HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0 && feature.getQuadCount()==0
                     && feature.getSuitTypeCount()==1 && feature.getTileDistinctCount()==9
                     && feature.getHonorCount()==0
                     && feature.getTerminalCount()==(feature.getLargestDuplicationCount()==4? 7:6)
@@ -107,8 +110,23 @@ public enum LimitHandType implements HandType{
      */
     FOUR_QUADS("四槓子", 2){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
+        boolean test(HandFeature feature, WinningSituation situation){
             return feature.getQuadCount()==4;
+        }
+
+        @Override
+        Side getCompleterSide(List<Meld> openMelds){
+            int count = 0;
+            for(var meld:openMelds){
+                if(meld.isQuad()){
+                    if(++count==4){
+                        if(meld.isCallQuad()){
+                            return meld.getSourceSide();
+                        }
+                    }
+                }
+            }
+            return Side.SELF;
         }
     },
 
@@ -117,8 +135,21 @@ public enum LimitHandType implements HandType{
      */
     BIG_THREE("大三元", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
+        boolean test(HandFeature feature, WinningSituation situation){
             return feature.getDragonCount()==9;
+        }
+
+        @Override
+        Side getCompleterSide(List<Meld> openMelds){
+            int count = 0;
+            for(var meld:openMelds){
+                if(meld.isDragon()){
+                    if(++count==3){
+                        return meld.getSourceSide();
+                    }
+                }
+            }
+            return Side.SELF;
         }
     },
 
@@ -127,7 +158,7 @@ public enum LimitHandType implements HandType{
      */
     SMALL_WIND("小四喜", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
+        boolean test(HandFeature feature, WinningSituation situation){
             return feature.getWindCount()==11;
         }
     },
@@ -137,9 +168,21 @@ public enum LimitHandType implements HandType{
      */
     BIG_WIND("大四喜", 2){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
+        boolean test(HandFeature feature, WinningSituation situation){
             return feature.getWindCount()==12;
+        }
 
+        @Override
+        Side getCompleterSide(List<Meld> openMelds){
+            int count = 0;
+            for(var meld:openMelds){
+                if(meld.isWind()){
+                    if(++count==4){
+                        return meld.getSourceSide();
+                    }
+                }
+            }
+            return Side.SELF;
         }
     },
 
@@ -148,7 +191,7 @@ public enum LimitHandType implements HandType{
      */
     ALL_HONORS("字一色", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
+        boolean test(HandFeature feature, WinningSituation situation){
             return feature.getHonorCount()==14;
 
         }
@@ -159,7 +202,7 @@ public enum LimitHandType implements HandType{
      */
     ALL_TERMINALS("清老頭", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
+        boolean test(HandFeature feature, WinningSituation situation){
             return feature.getTerminalCount()==14;
 
         }
@@ -170,7 +213,7 @@ public enum LimitHandType implements HandType{
      */
     ALL_GREENS("緑一色", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
+        boolean test(HandFeature feature, WinningSituation situation){
             return feature.getGreenTileCount()==14;
         }
     },
@@ -180,12 +223,12 @@ public enum LimitHandType implements HandType{
      */
     FOUR_CONCEALED_TRIPLES("四暗刻", 1){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && feature.getTileDistinctCount()==5
                     && feature.getLargestDuplicationCount()==3
                     && feature.getWinningTileCount()==3
-                    && context.isTsumo();
+                    && situation.isTsumo();
         }
     },
 
@@ -194,18 +237,18 @@ public enum LimitHandType implements HandType{
      */
     FOUR_CONCEALED_TRIPLES_1_WAIT("四暗刻単騎", 2){
         @Override
-        boolean test(HandFeature feature, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && feature.getTileDistinctCount()==5
                     && feature.getLargestDuplicationCount()==3
                     && feature.getWinningTileCount()==2;
         }
     };
 
-    private final String text;
+    private final String name;
     private final int multiplier;
-    LimitHandType(String text, int multiplier){
-        this.text = text;
+    LimitHandType(String name, int multiplier){
+        this.name = name;
         this.multiplier = multiplier;
     }
 
@@ -213,35 +256,30 @@ public enum LimitHandType implements HandType{
      * 成立する役満役をリスト形式で取得します。
      * <p>成立する役満役がない場合は空のリストが返されます。
      * @param feature 手牌の特徴量
-     * @param context 和了状況
+     * @param situation 和了状況
      * @return 役満役のリスト
      */
-    static List<LimitHandType> testAll(HandFeature feature, ScoringContext context){
-        return Stream.of(values()).filter(handType -> handType.test(feature, context)).toList();
+    static List<HandType> testAll(HandFeature feature, WinningSituation situation){
+        return Stream.of(values()).filter(handType -> handType.test(feature, situation)).map(HandType.class::cast).toList();
     }
 
     /**
      * 与えられた和了状況と手牌の特徴量でこの役が成立するか検査します。
      * @param feature 手牌の特徴量
-     * @param context 和了状況
+     * @param situation 和了状況
      * @return true この役が与えられた和了状況で成立する場合
      *         false この役が与えられた和了状況で成立しない場合
      */
-    abstract boolean test(HandFeature feature, ScoringContext context);
+    abstract boolean test(HandFeature feature, WinningSituation situation);
 
-    /**
-     * 役満の倍数を取得します。
-     * <p>例えばシングル役満であれば1を,
-     * ダブル役満であれば2を返します。
-     * @return 倍数
-     */
-    public int getMultiplier(){
-        return multiplier;
+
+    Side getCompleterSide(List<Meld> openMelds){
+        return Side.SELF;
     }
 
     @Override
     public String getName(){
-        return text;
+        return name;
     }
 
     @Override
@@ -250,7 +288,12 @@ public enum LimitHandType implements HandType{
     }
 
     @Override
-    public HandTypeGrade getGrade(){
-        return HandTypeGrade.ofLimit(multiplier);
+    public int getDoubles(){
+        return 0;
+    }
+
+    @Override
+    public int getLimitMultiplier(){
+        return multiplier;
     }
 }

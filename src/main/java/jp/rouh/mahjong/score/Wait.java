@@ -3,7 +3,8 @@ package jp.rouh.mahjong.score;
 import jp.rouh.mahjong.tile.Tile;
 
 /**
- * 手牌の待ちを表すクラス。
+ * 手牌の待ちクラス。
+ *
  * @author Rouh
  * @version 1.0
  */

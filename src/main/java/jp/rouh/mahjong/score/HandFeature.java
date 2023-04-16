@@ -2,6 +2,7 @@ package jp.rouh.mahjong.score;
 
 import jp.rouh.mahjong.tile.Tile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.function.Predicate.not;
@@ -9,9 +10,10 @@ import static java.util.stream.Collectors.groupingBy;
 
 /**
  * 手牌特徴量クラス。
+ *
  * <p>手牌から役判定に有用な値を計算し保持します。
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
 class HandFeature{
     private final int dragonWhiteCount;
@@ -29,28 +31,32 @@ class HandFeature{
     private final int largestDuplicationCount;
     private final int tileDistinctCount;
     private final int suitTypeCount;
-    private final int openPrisedTileCount;
+    private final int prisedTileCount;
     private final int hiddenPrisedTileCount;
     private final int redPrisedTileCount;
     private final int quadCount;
+    private final int callCount;
 
     /**
      * 手牌特徴量のコンストラクタ。
-     * @param fullTiles     槓子構成牌及び和了牌を含むすべての手牌のリスト(14..18枚)
-     * @param fourteenTiles 槓子構成牌を3枚に切り詰めた計14枚の手牌のリスト
-     * @param winningTile   和了牌
-     * @param context       勝利状況
-     * @throws IllegalArgumentException 手牌の枚数が不正の場合
+     * @param handTiles 手牌(和了牌を含まない)
+     * @param openMelds 公開面子
+     * @param winningTile 和了牌
+     * @param situation 和了状況
      */
-    HandFeature(List<Tile> fullTiles, List<Tile> fourteenTiles, Tile winningTile, ScoringContext context){
-        if(fullTiles.size()<14 || fullTiles.size()>18){
-            throw new IllegalArgumentException("invalid full tiles length: " + fullTiles);
+    HandFeature(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningSituation situation){
+        var hand14 = new ArrayList<Tile>(14);
+        var hand18 = new ArrayList<Tile>(18);
+        hand14.addAll(handTiles);
+        hand18.addAll(handTiles);
+        for(var meld:openMelds){
+            hand14.addAll(meld.getTilesTruncated());
+            hand18.addAll(meld.getTilesSorted());
         }
-        if(fourteenTiles.size()!=14){
-            throw new IllegalArgumentException("invalid fourteen tiles length: " + fourteenTiles);
-        }
-        var roundWindTile = context.getRoundWind().toTile();
-        var seatWindTile = context.getSeatWind().toTile();
+        hand14.add(winningTile);
+        hand18.add(winningTile);
+        var roundWindTile = situation.getRoundWind().toTile();
+        var seatWindTile = situation.getSeatWind().toTile();
         int dragonWhiteCount = 0;
         int dragonGreenCount = 0;
         int dragonRedCount = 0;
@@ -63,7 +69,7 @@ class HandFeature{
         int honorCount = 0;
         int orphanCount = 0;
         int greenTileCount = 0;
-        for(var tile: fourteenTiles){
+        for(var tile: hand14){
             if(tile==Tile.DW) dragonWhiteCount++;
             if(tile==Tile.DG) dragonGreenCount++;
             if(tile==Tile.DR) dragonRedCount++;
@@ -89,31 +95,16 @@ class HandFeature{
         this.honorCount = honorCount;
         this.orphanCount = orphanCount;
         this.greenTileCount = greenTileCount;
-        this.largestDuplicationCount = fourteenTiles.stream()
-                .collect(groupingBy(Tile::tileNumber)).values().stream()
-                .mapToInt(List::size).max().orElseThrow();
-        this.tileDistinctCount = (int)fullTiles.stream()
-                .mapToInt(Tile::tileNumber).distinct().count();
-        this.suitTypeCount = fullTiles.stream().filter(not(Tile::isHonor))
-                .collect(groupingBy(Tile::tileType)).size();
-        this.openPrisedTileCount = count(fullTiles, context.getUpperPrisedTiles());
-        this.hiddenPrisedTileCount = context.isReady()?
-                count(fullTiles, context.getLowerPrisedTiles()):0;
-        this.redPrisedTileCount = (int)fullTiles.stream()
-                .filter(Tile::isPrisedRed).count();
-        this.quadCount = fullTiles.size() - 14;
-    }
-
-    private static int count(List<Tile> tiles, List<Tile> prisedTiles){
-        var count = 0;
-        for(var prisedTile: prisedTiles){
-            for(var tile: tiles){
-                if(tile.equalsIgnoreRed(prisedTile)){
-                    count++;
-                }
-            }
-        }
-        return count;
+        this.largestDuplicationCount = hand14.stream().collect(groupingBy(Tile::tileNumber)).values().stream().mapToInt(List::size).max().orElseThrow();
+        this.tileDistinctCount = (int)hand18.stream().mapToInt(Tile::tileNumber).distinct().count();
+        this.suitTypeCount = hand18.stream().filter(not(Tile::isHonor)).collect(groupingBy(Tile::tileType)).size();
+        this.prisedTileCount = situation.getUpperPrisedTiles().stream()
+                        .mapToInt(prisedTile->(int)hand18.stream().filter(tile->tile.equalsIgnoreRed(prisedTile)).count()).sum();
+        this.hiddenPrisedTileCount = situation.isReady()?situation.getLowerPrisedTiles().stream()
+                .mapToInt(prisedTile->(int)hand18.stream().filter(tile->tile.equalsIgnoreRed(prisedTile)).count()).sum():0;
+        this.redPrisedTileCount = (int)hand18.stream().filter(Tile::isPrisedRed).count();
+        this.quadCount = hand18.size() - 14;
+        this.callCount = (int)openMelds.stream().filter(not(Meld::isConcealed)).count();
     }
 
     /**
@@ -261,8 +252,8 @@ class HandFeature{
      * 手牌中の表ドラの数を取得します。
      * @return 表ドラの数
      */
-    int getOpenPrisedTileCount(){
-        return openPrisedTileCount;
+    int getPrisedTileCount(){
+        return prisedTileCount;
     }
 
     /**
@@ -288,5 +279,13 @@ class HandFeature{
      */
     int getQuadCount(){
         return quadCount;
+    }
+
+    /**
+     * 副露(暗槓を含まない)の数を取得します。
+     * @return 副露の数
+     */
+    int getCallCount(){
+        return callCount;
     }
 }

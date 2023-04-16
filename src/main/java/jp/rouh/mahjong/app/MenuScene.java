@@ -3,6 +3,9 @@ package jp.rouh.mahjong.app;
 import jp.rouh.mahjong.app.view.TableScene;
 import jp.rouh.mahjong.game.GameTable;
 import jp.rouh.mahjong.bot.TableStrategyMock;
+import jp.rouh.mahjong.game.PreparedGame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,6 +21,7 @@ public class MenuScene extends Scene{
     private final JTextField joinPortField = new JTextField();
     private final JTextField joinHostField = new JTextField();
     private final JTextField hostPortField = new JTextField();
+    private static final Logger LOG = LoggerFactory.getLogger(MenuScene.class);
 
     /**
      * メニュー画面を生成します。
@@ -104,13 +108,17 @@ public class MenuScene extends Scene{
             tableScene.setBackScene(MenuScene.class);
             var executor = Executors.newSingleThreadExecutor();
             executor.submit(()->{
-                var table = new GameTable();
-                var name = nameField.getText().isBlank()? "you":nameField.getText();
-                table.addPlayer(name, tableScene.getTableView());
-                table.addPlayer("guest1", TableStrategyMock.DISCARD);
-                table.addPlayer("guest2", TableStrategyMock.DISCARD);
-                table.addPlayer("guest3", TableStrategyMock.DISCARD);
-                table.start();
+                try{
+                    var table = new GameTable();
+                    var name = nameField.getText().isBlank()? "you":nameField.getText();
+                    table.addPlayer(name, tableScene.getTableView());
+                    table.addPlayer("guest1", TableStrategyMock.DISCARD);
+                    table.addPlayer("guest2", TableStrategyMock.DISCARD);
+                    table.addPlayer("guest3", TableStrategyMock.DISCARD);
+                    table.start();
+                }catch(Exception e){
+                    LOG.error("エラー発生", e);
+                }
             });
             executor.shutdown();
         }));

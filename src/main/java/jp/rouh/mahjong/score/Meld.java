@@ -12,6 +12,7 @@ import java.util.Objects;
 
 /**
  * 面子クラス。
+ *
  * <p>副露や暗槓によって作成される公開面子の表現, および
  * 役判定のために手牌を並べ替えて作成される門前面子の表現に用います。
  * @author Rouh
@@ -122,19 +123,6 @@ public class Meld implements HandComponent{
      * @return 副露元の相対方位
      */
     public Side getSourceSide(){
-        return source;
-    }
-
-    /**
-     * 副露元の相対方位を返します。
-     * <p>副露されたものでない場合, {@code Side.SELF}を返します。
-     * <p>暗槓もしくは加槓の場合は, {@code Side.SELF}を返します。
-     * @return 副露元の相対位置
-     */
-    public Side getDirectSourceSide(){
-        if(isAddQuad()){
-            return Side.SELF;
-        }
         return source;
     }
 

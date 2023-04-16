@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.*;
 
 /**
  * 手牌に関する操作を扱うユーティリティクラス。
+ *
  * @author Rouh
  * @version 1.0
  */

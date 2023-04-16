@@ -4,7 +4,6 @@ import jp.rouh.mahjong.tile.Tile;
 import jp.rouh.util.Lists;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.function.Predicate.not;
@@ -12,8 +11,8 @@ import static java.util.stream.Collectors.groupingBy;
 
 /**
  * 面子ベース通常役クラス。
- * <p>通常役{@link BasicHandType}のうち,
- * 手牌の面子構成を確定させた後に初めて評価が可能な役を表します。
+ *
+ * <p>通常役のうち, 手牌の面子構成を確定させた後に初めて評価が可能な役。
  * <p>該当する役は以下の通りです。
  * <ul>
  *   <li>対々和</li>
@@ -28,16 +27,16 @@ import static java.util.stream.Collectors.groupingBy;
  *   <li>二盃口</li>
  * </ul>
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
-enum MeldBasedHandType implements BasicHandType{
+enum MeldBasedHandType implements HandType{
 
     /**
      * 対々和
      */
     ALL_TRIPLES("対々和", 2){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
             return hand.getMelds().stream().noneMatch(Meld::isStraight);
         }
     },
@@ -47,7 +46,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     THREE_CONCEALED_TRIPLES("三暗刻", 2){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
             return hand.getMelds().stream()
                     .filter(Meld::isConcealed)
                     .filter(not(Meld::isStraight))
@@ -60,9 +59,9 @@ enum MeldBasedHandType implements BasicHandType{
      */
     NO_POINT("平和", 1){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return context.isSelfMade()
-                    && hand.getHead().getHeadPoint(context.getSeatWind(), context.getRoundWind()).getPoint()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
+                    && hand.getHead().getHeadPoint(situation.getSeatWind(), situation.getRoundWind()).getPoint()
                     + hand.getMelds().stream().map(Meld::getMeldPointType).mapToInt(PointType::getPoint).sum()
                     + hand.getWait().getWaitPointType().getPoint()==0;
         }
@@ -73,8 +72,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     HALF_TERMINAL_SETS("混全帯么九", 2){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
                     && hand.getComponents().stream().anyMatch(HandComponent::isHonor)
                     && hand.getMelds().stream().anyMatch(Meld::isStraight);
@@ -86,8 +85,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_HALF_TERMINAL_SETS("混全帯么九", 1){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return !context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()>0
                     && hand.getComponents().stream().allMatch(HandComponent::isOrphan)
                     && hand.getComponents().stream().anyMatch(HandComponent::isHonor)
                     && hand.getMelds().stream().anyMatch(Meld::isStraight);
@@ -99,8 +98,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     FULL_TERMINAL_SETS("純全帯么九", 3){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && hand.getComponents().stream().allMatch(HandComponent::isTerminal)
                     && hand.getMelds().stream().anyMatch(Meld::isStraight);
         }
@@ -111,8 +110,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_FULL_TERMINAL_SETS("純全帯么九", 2){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return !context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()>0
                     && hand.getComponents().stream().allMatch(HandComponent::isTerminal)
                     && hand.getMelds().stream().anyMatch(Meld::isStraight);
         }
@@ -123,8 +122,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     FULL_STRAIGHTS("一気通貫", 2){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds -> melds.stream().map(Meld::getTileType).distinct().count()==1
                             && melds.stream().map(Meld::getTilesSorted).flatMap(List::stream)
@@ -137,8 +136,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_FULL_STRAIGHTS("一気通貫", 1){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return !context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()>0
                     && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds -> melds.stream().map(Meld::getTileType).distinct().count()==1
                             && melds.stream().map(Meld::getTilesSorted).flatMap(List::stream)
@@ -151,8 +150,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     THREE_COLOR_STRAIGHTS("三色同順", 2){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
                             melds.stream().allMatch(Meld::isStraight)
@@ -166,8 +165,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     CALLED_THREE_COLOR_STRAIGHTS("三色同順", 1){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return !context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()>0
                     && Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
                             melds.stream().allMatch(Meld::isStraight)
@@ -181,7 +180,7 @@ enum MeldBasedHandType implements BasicHandType{
      */
     THREE_COLOR_TRIPLES("三色同刻", 2){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
             return Lists.combinationsOf(hand.getMelds(), 3)
                     .stream().anyMatch(melds ->
                             melds.stream().noneMatch(Meld::isStraight)
@@ -197,8 +196,8 @@ enum MeldBasedHandType implements BasicHandType{
      */
     DUAL_STRAIGHTS("一盃口", 1){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && Lists.combinationsOf(hand.getMelds(), 2).stream()
                     .filter(melds -> melds.stream().allMatch(Meld::isStraight)
                             && melds.get(0).getFirst().equalsIgnoreRed(melds.get(1).getFirst())).count()==1;
@@ -210,17 +209,14 @@ enum MeldBasedHandType implements BasicHandType{
      */
     DOUBLE_DUAL_STRAIGHTS("二盃口", 3){
         @Override
-        boolean test(FormattedHand hand, ScoringContext context){
-            return context.isSelfMade()
+        boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation){
+            return feature.getCallCount()==0
                     && hand.getMelds().stream().allMatch(Meld::isStraight)
                     && hand.getMelds().stream().map(Meld::getFirst)
                     .collect(groupingBy(Tile::tileNumber))
                     .values().stream().allMatch(melds -> melds.size()==2);
         }
     };
-
-    private static final List<MeldBasedHandType> CALL_SENSITIVE = List.of(
-            HALF_TERMINAL_SETS, FULL_TERMINAL_SETS, FULL_STRAIGHTS, THREE_COLOR_STRAIGHTS);
 
     private final String name;
     private final int doubles;
@@ -232,23 +228,21 @@ enum MeldBasedHandType implements BasicHandType{
     /**
      * 適合する面子ベース通常役をすべてリスト形式で取得する。
      * @param hand    整形済み手牌
-     * @param context 和了状況
+     * @param situation 和了状況
      * @return 通常役のリスト
      */
-    static List<BasicHandType> testAll(FormattedHand hand, ScoringContext context){
-        return Stream.of(values())
-                .filter(handType -> handType.test(hand, context))
-                .collect(Collectors.<BasicHandType>toList());
+    static List<HandType> testAll(FormattedHand hand, HandFeature feature, WinningSituation situation){
+        return Stream.of(values()).filter(handType -> handType.test(hand, feature, situation)).map(HandType.class::cast).toList();
     }
 
     /**
      * 与えられた整形済み手牌と和了状況でこの面子ベース通常役が成立するか検査します。
      * @param hand    整形済み手牌
-     * @param context 和了状況
+     * @param situation 和了状況
      * @return true 役が成立する場合
      *         false 役が成立しない場合
      */
-    abstract boolean test(FormattedHand hand, ScoringContext context);
+    abstract boolean test(FormattedHand hand, HandFeature feature, WinningSituation situation);
 
     @Override
     public String getName(){
@@ -256,15 +250,17 @@ enum MeldBasedHandType implements BasicHandType{
     }
 
     @Override
-    public String getUniqueName(){
-        if(CALL_SENSITIVE.contains(this)){
-            return "門前"+ name;
-        }
-        return name;
+    public boolean isLimit(){
+        return false;
     }
 
     @Override
     public int getDoubles(){
         return doubles;
+    }
+
+    @Override
+    public int getLimitMultiplier(){
+        return 0;
     }
 }

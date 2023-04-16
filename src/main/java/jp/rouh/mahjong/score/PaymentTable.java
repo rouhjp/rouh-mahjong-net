@@ -7,10 +7,10 @@ import jp.rouh.util.Maps;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.stream.IntStream;
 
 /**
  * プレイヤー間の支払い額を保持する精算テーブルクラス。
+ *
  * <h2>和了時の決済</h2>
  * <h3>和了手の精算</h3>
  * <p>和了時の決済では一般に, ロンの場合, 放銃者がその得点の全額を,
@@ -52,7 +52,7 @@ import java.util.stream.IntStream;
  * 150点を切り上げた200点をそれぞれが支払います。
  * <p>ダブロンが発生した場合, 供託を二重に支給してしまうと
  * 開局時と終局時の得点の合計値が不一致となってしまうため注意が必要です。
- * 二度目の支払額を算出する際は{@link PaymentContext#getTotalDepositCount()}の値を0にする必要があります。
+ * 二度目の支払額を算出する際は{@code depositCount}の値を0にする必要があります。
  * <h2>流局時の決済</h2>
  * <p>流局時はノーテン罰符の支払いが発生します。ノーテン罰符による点数移動は以下の通りです。
  * <ul>
@@ -63,7 +63,7 @@ import java.util.stream.IntStream;
  *   <li>全員が聴牌の場合, 点数移動は発生しません。</li>
  * </ul>
  * @author Rouh
- * @version 1.0
+ * @version 2.0
  */
 public class PaymentTable{
 
@@ -100,100 +100,57 @@ public class PaymentTable{
      * 精算テーブルに和了結果を計上します。
      * <p>既に精算テーブルに値が設定されている場合は合算されます。
      * @param handScore 和了点数結果
-     * @param context 精算コンテクスト
      */
-    public void apply(HandScore handScore, PaymentContext context){
-        var seatWind = context.getSeatWind();
-        var responsiblePlayerWinds = new HashSet<Wind>();
-        var winningTileSupplier = (Wind)null;
-        if(!context.isTsumo()){
-            //放銃責任
-            winningTileSupplier = context.getWinningSide().of(seatWind);
-            responsiblePlayerWinds.add(winningTileSupplier);
-        }else if(context.isQuadTileDrawWin() && context.getQuadSide()!=Side.SELF){
-            //大明槓責任
-            winningTileSupplier = context.getQuadSide().of(seatWind);
-            responsiblePlayerWinds.add(winningTileSupplier);
-        }
-        for(var subHandScore: handScore.disorganize()){
-            //役満包責任
-            var completingTileSupplier = (Wind)null;
-            if(subHandScore.isHandLimit()){
-                var handType = (LimitHandType)subHandScore.getHandTypes().get(0);
-                var openMelds = context.getOpenMelds();
-                switch(handType){
-                    case BIG_THREE -> {
-                        //大三元の構成面子がすべて公開面子にある場合
-                        if(openMelds.stream().filter(Meld::isDragon).count()>=3){
-                            var lastDragonMeld = IntStream.iterate(openMelds.size(), i->i - 1)
-                                    .mapToObj(openMelds::get).filter(Meld::isDragon).findFirst().orElseThrow();
-                            //大三元の最後の公開面子が他家からの副露である場合
-                            if(lastDragonMeld.isCallQuad()){
-                                completingTileSupplier = lastDragonMeld.getSourceSide().of(seatWind);
-                                responsiblePlayerWinds.add(completingTileSupplier);
-                            }
-                        }
-                    }
-                    case BIG_WIND -> {
-                        //大四喜の構成面子がすべて公開面子にある場合
-                        if(openMelds.stream().filter(Meld::isWind).count()>=4){
-                            //大四喜の最後の公開面子が他家からの副露である場合
-                            if(context.getQuadSide()!=Side.SELF){
-                                completingTileSupplier = context.getQuadSide().of(seatWind);
-                                responsiblePlayerWinds.add(completingTileSupplier);
-                            }
-                        }
-                    }
-                    case FOUR_QUADS -> {
-                        //四槓子の最後の公開面子が他家からの副露である場合
-                        if(context.getQuadSide()!=Side.LEFT){
-                            completingTileSupplier = context.getQuadSide().of(seatWind);
-                            responsiblePlayerWinds.add(completingTileSupplier);
-                        }
-                    }
-                }
-            }
+    public void apply(HandScore handScore, int depositCount, int streakCount){
+        var seatWind = handScore.getWinnerWind();
+        var responsibleWinds = new HashSet<Wind>();
+        var supplierSide = handScore.getSupplierSide();
+        var supplierWind = supplierSide.of(seatWind);
+        responsibleWinds.add(supplierWind);
+        for(var subHandScore:handScore.divide()){
+            var completerSide = handScore.getCompleterSide();
+            var completerWind = completerSide.of(seatWind);
+            responsibleWinds.add(completerWind);
             int score = subHandScore.getScore();
-            if(completingTileSupplier!=null){
-                if(winningTileSupplier!=null){
-                    //ロン 包あり or ツモ 大明槓あり 包あり
-                    //包:放銃者:他=50:50:0
-                    //包・放銃者:他:他=100:0:0
-                    if(winningTileSupplier==completingTileSupplier){
-                        paymentMap.merge(winningTileSupplier, -score, Integer::sum);
+            if(completerSide!=Side.SELF){
+                if(supplierSide!=Side.SELF){
+                    //(ロンor大明槓責任ツモ) 包あり
+                    if(supplierWind==completerWind){
+                        //(包and放銃者):他:他=100:0:0
+                        paymentMap.merge(supplierWind, -score, Integer::sum);
                         paymentMap.merge(seatWind, score, Integer::sum);
                     }else{
-                        paymentMap.merge(winningTileSupplier, -1*ceil(score/2), Integer::sum);
-                        paymentMap.merge(completingTileSupplier, -1*ceil(score/2), Integer::sum);
+                        //包:放銃者:他=50:50:0
+                        paymentMap.merge(supplierWind, -1*ceil(score/2), Integer::sum);
+                        paymentMap.merge(completerWind, -1*ceil(score/2), Integer::sum);
                         paymentMap.merge(seatWind, ceil(score/2)*2, Integer::sum);
                     }
                 }else{
                     //ツモ 包あり
                     //包:他:他=100:0:0
-                    paymentMap.merge(completingTileSupplier, -score, Integer::sum);
+                    paymentMap.merge(completerWind, -score, Integer::sum);
                     paymentMap.merge(seatWind, score, Integer::sum);
                 }
             }else{
-                if(winningTileSupplier!=null){
-                    //ロン or 大明槓あり
+                if(supplierSide!=Side.SELF){
+                    //(ロンor大明槓責任ツモ)
                     //放銃者:他:他=100:0:0
-                    paymentMap.merge(winningTileSupplier, -score, Integer::sum);
+                    paymentMap.merge(supplierWind, -score, Integer::sum);
                     paymentMap.merge(seatWind, score, Integer::sum);
                 }else{
                     //ツモ
-                    //子:子:子=33:33:33
-                    //親:子:子=50:25:25
-                    if(context.isDealer()){
+                    if(seatWind==Wind.EAST){
+                        //子:子:子=33:33:33
                         for(var side: Side.SELF.others()){
                             paymentMap.merge(side.of(seatWind), -1*ceil(score/3), Integer::sum);
                             paymentMap.merge(seatWind, ceil(score/3), Integer::sum);
                         }
                     }else{
+                        //親:子:子=50:25:25
                         for(var side: Side.SELF.others()){
                             if(side.of(seatWind)==Wind.EAST){
                                 paymentMap.merge(side.of(seatWind), -1*ceil(score/2), Integer::sum);
                                 paymentMap.merge(seatWind, ceil(score/2), Integer::sum);
-
                             }else{
                                 paymentMap.merge(side.of(seatWind), -1*ceil(score/4), Integer::sum);
                                 paymentMap.merge(seatWind, ceil(score/4), Integer::sum);
@@ -204,18 +161,18 @@ public class PaymentTable{
             }
         }
         //供託・詰み符
-        int depositScore = context.getTotalDepositCount()*DEPOSIT_SCORE;
-        int streakScore = context.getRoundStreakCount()*STREAK_SCORE;
-        paymentMap.merge(seatWind, depositScore, Integer::sum);
-        if(responsiblePlayerWinds.isEmpty()){
+        int totalDepositScore = depositCount*DEPOSIT_SCORE;
+        int totalStreakScore = streakCount*STREAK_SCORE;
+        paymentMap.merge(seatWind, totalDepositScore, Integer::sum);
+        if(responsibleWinds.isEmpty()){
             for(var side:Side.SELF.others()){
-                paymentMap.merge(side.of(seatWind), -1*ceil(streakScore/3), Integer::sum);
-                paymentMap.merge(seatWind, ceil(streakScore/3), Integer::sum);
+                paymentMap.merge(side.of(seatWind), -1*ceil(totalStreakScore/3), Integer::sum);
+                paymentMap.merge(seatWind, ceil(totalStreakScore/3), Integer::sum);
             }
         }else{
-            for(var responsiblePlayerWind:responsiblePlayerWinds){
-                paymentMap.merge(responsiblePlayerWind, -1*ceil(streakScore/responsiblePlayerWinds.size()), Integer::sum);
-                paymentMap.merge(seatWind, ceil(streakScore/responsiblePlayerWinds.size()), Integer::sum);
+            for(var responsibleWind:responsibleWinds){
+                paymentMap.merge(responsibleWind, -1*ceil(totalStreakScore/responsibleWinds.size()), Integer::sum);
+                paymentMap.merge(seatWind, ceil(totalStreakScore/responsibleWinds.size()), Integer::sum);
             }
         }
     }

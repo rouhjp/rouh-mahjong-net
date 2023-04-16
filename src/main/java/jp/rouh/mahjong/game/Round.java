@@ -114,14 +114,16 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             var riverScores = new ArrayList<RiverScoreData>();
             boolean secondary = false;
             for(var orphanRiverWind:orphanRiverWinds){
-                var result = getPlayerAt(orphanRiverWind).declareOrphanRiver(secondary);
+                var result = getPlayerAt(orphanRiverWind).declareOrphanRiver();
                 riverScores.add(result.getRiverScoreData());
-                payments.apply(result.getHandScore(), result.getWinningContext());
+                int totalDepositCount = secondary?0:deposit + getReadyCount();
+                int streakCount = secondary?0:streak;
+                payments.apply(result.getHandScore(), totalDepositCount, streakCount);
                 secondary = true;
             }
             riverScoreNotified(riverScores);
             paymentNotified(payments);
-            resultType =  orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
+            resultType = orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
             return;
         }
         var handReadyWinds = Stream.of(Wind.values())
@@ -145,10 +147,13 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         switch(turnAction.type()){
             case TSUMO -> {
                 var result = turnPlayer.declareTsumo(afterQuad);
-                var payments = new PaymentTable();
-                payments.apply(result.getHandScore(), result.getWinningContext());
-                handScoreNotified(List.of(result.getHandScoreData()));
-                paymentNotified(payments);
+                var score = result.getHandScore();
+                var scoreData = result.getHandScoreData();
+
+                var paymentTable = new PaymentTable();
+                paymentTable.apply(score, deposit + getReadyCount(), streak);
+                handScoreNotified(List.of(scoreData));
+                paymentNotified(paymentTable);
                 resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
             }
             case NINE_TILES -> {
@@ -278,11 +283,13 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             if(ronActions.containsKey(side.of(turnWind))){
                 var winner = getPlayerAt(side.of(turnWind));
                 var result = againstQuad?
-                        winner.declareRonByQuad(winningTile, turnWind, secondary):
-                        winner.declareRon(winningTile, turnWind, secondary);
-                secondary = true;
-                payments.apply(result.getHandScore(), result.getWinningContext());
+                        winner.declareRonByQuad(winningTile, turnWind):
+                        winner.declareRon(winningTile, turnWind);
+                int totalDepositCount = secondary?0:deposit + getReadyCount();
+                int streakCount = secondary?0:streak;
+                payments.apply(result.getHandScore(), totalDepositCount, streakCount);
                 handScores.add(result.getHandScoreData());
+                secondary = true;
             }
         }
         handScoreNotified(handScores);
@@ -323,16 +330,6 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
     @Override
     public int getRoundCount(){
         return id.count();
-    }
-
-    @Override
-    public int getRoundStreakCount(){
-        return streak;
-    }
-
-    @Override
-    public int getRoundDepositCount(){
-        return deposit;
     }
 
     @Override

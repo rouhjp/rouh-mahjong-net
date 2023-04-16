@@ -103,6 +103,7 @@ public class PreparedGame implements GameAccessor{
             sum += deposit*1000;
             LOG.info("deposit="+deposit*1000);
             if(sum!=100000){
+                LOG.error("invalid score sum: "+sum);
                 throw new IllegalStateException("invalid score sum");
             }
 
