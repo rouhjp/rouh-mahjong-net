@@ -142,8 +142,11 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
         var turnPlayer = roundPlayers.get(turnWind);
         var turnChoices = turnPlayer.getTurnChoices(afterCall, afterQuad);
         LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selecting turn action from "+turnChoices);
-        var turnAction = turnPlayer.selectTurnAction(turnPlayer.getTurnChoices(afterCall, afterQuad));
+        var turnAction = turnPlayer.selectTurnAction(turnChoices);
         LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selected "+turnAction);
+        if(!turnChoices.contains(turnAction)){
+            throw new IllegalArgumentException("illegal action has been detected: choices:"+turnChoices+" the choice:"+turnAction);
+        }
         switch(turnAction.type()){
             case TSUMO -> {
                 var result = turnPlayer.declareTsumo(afterQuad);

@@ -213,10 +213,6 @@ class Hand{
         return openMelds;
     }
 
-    Meld getLastOpenMeld(){
-        return openMelds.get(openMelds.size() - 1);
-    }
-
     List<Tile> getHandTiles(){
         return handTiles;
     }

@@ -63,7 +63,7 @@ public class CallActionMediator{
      * @param from この選択を行ったプレイヤーの自風
      * @param action 選択した行動
      */
-    private static record SignedCallAction(Wind from, CallAction action){}
+    private record SignedCallAction(Wind from, CallAction action){}
 
     /**
      * 各プレイヤーの選択を確認するまで待機し, 最終的に適用される行動をマップ形式で取得します。
@@ -119,6 +119,9 @@ public class CallActionMediator{
             for(int i = 0; i<winds.size(); i++){
                 var answer = completionService.take().get();
                 LOG.info("answer("+answer.from+") "+answer.action);
+                if(!choicesMap.get(answer.from).contains(answer.action)){
+                    throw new IllegalArgumentException("illegal action has been detected: choices:"+choicesMap.get(answer.from)+" the choice:"+answer.action);
+                }
                 highestPriorityMap.remove(answer.from());
                 if(answer.action().priority()!=CallAction.PASS_PRIORITY){
                     answerMap.entrySet().removeIf(entry->entry.getValue().priority()<answer.action.priority());
