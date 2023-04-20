@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static jp.rouh.mahjong.game.RoundResultType.*;
 
@@ -91,25 +90,196 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             }else if(!afterCall){
                 turnPlayer.draw(wall.takeTile());
             }
-            doTurn();
+            turnPhase();
             if(resultType!=null){
                 roundFinished();
                 return resultType;
             }
         }
-        doExhaustion();
+        exhaustiveDraw();
         roundFinished();
         return resultType;
     }
 
     /**
+     * ターン開始時の処理。
+     */
+    private void turnPhase(){
+        var turnPlayer = roundPlayers.get(turnWind);
+        var turnChoices = turnPlayer.getTurnActions(afterCall, afterQuad);
+        LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selecting turn action from "+turnChoices);
+        var turnAction = turnPlayer.selectTurnAction(turnChoices);
+        LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selected "+turnAction);
+        if(!turnChoices.contains(turnAction)){
+            throw new IllegalArgumentException("illegal action has been detected: choices:"+turnChoices+" the choice:"+turnAction);
+        }
+        switch(turnAction.type()){
+            case TSUMO -> turnWinning(turnWind);
+            case NINE_TILES -> {
+                turnPlayer.declareNineTiles();
+                abortiveDraw(DrawType.NINE_TILES_DECLARED);
+            }
+            case TURN_KAN -> {
+                var quadTile = turnAction.argument();
+                turnPlayer.declareKan(quadTile);
+                roundPlayers.values().forEach(RoundPlayer::quadDeclared);
+                boolean selfQuad = turnPlayer.isLastMeldSelfQuad();
+                var callActions = new CallActionMediator(turnWind.others())
+                        .withPlayers(this::getPlayerAt)
+                        .withChoices(wind->getPlayerAt(wind).getCallActionsForQuad(quadTile, selfQuad))
+                        .mediate();
+                if(!callActions.isEmpty()){
+                    callWinning(callActions.keySet(), quadTile, true);
+                    return;
+                }
+                if(selfQuad){
+                    wall.revealIndicatorImmediately();
+                }
+                afterCall = false;
+                afterQuad = true;
+            }
+            case READY_DISCARD -> {
+                var discardedTile = turnAction.argument();
+                turnPlayer.discardAndReady(discardedTile);
+                callPhase(discardedTile);
+            }
+            case DISCARD_ANY, DISCARD_DRAWN -> {
+                var discardedTile = turnAction.argument();
+                turnPlayer.discard(discardedTile);
+                callPhase(discardedTile);
+            }
+        }
+    }
+
+    /**
+     * 打牌時の処理。
+     * @param discarded 打牌
+     */
+    private void callPhase(Tile discarded){
+        var discarderWind = turnWind;
+        var discarder = getPlayerAt(turnWind);
+        LOG.debug("["+turnWind+"]"+discarder.getName()+" discarded "+discarded);
+        var actions = new CallActionMediator(discarderWind.others())
+                .withPlayers(this::getPlayerAt)
+                .withChoices(wind->getPlayerAt(wind).getCallActionsForDiscard(discarderWind, discarded))
+                .mediate();
+        actions.forEach((wind, action)->LOG.debug("["+wind+"] select call action "+action));
+        if(!actions.isEmpty()){
+            if(actions.values().stream().allMatch(action->action.type()==CallActionType.RON)){
+                callWinning(actions.keySet(), discarded, false);
+                return;
+            }
+            assert actions.size()==1;
+            var action = List.copyOf(actions.values()).get(0);
+            var callerWind = List.copyOf(actions.keySet()).get(0);
+            var caller = getPlayerAt(callerWind);
+            switch(action.type()){
+                case KAN -> caller.declareKan(discarded, discarderWind);
+                case PON -> caller.declarePon(discarded, action.arguments(), discarderWind);
+                case CHI -> caller.declareChi(discarded, action.arguments());
+                default -> throw new AssertionError();
+            }
+            roundPlayers.values().forEach(player->player.tileCalled(discarderWind));
+            roundPlayers.values().forEach(player->player.turnSettled(discarderWind, discarded));
+            afterCall = true;
+            afterQuad = action.type()==CallActionType.KAN;
+            turnWind = callerWind;
+            firstAround = false;
+        }else{
+            roundPlayers.values().forEach(player->player.turnSettled(discarderWind, discarded));
+            afterCall = false;
+            afterQuad = false;
+            turnWind = turnWind.next();
+            if(firstAround){
+                firstAroundDiscards.add(discarded);
+                if(firstAroundDiscards.size()==4){
+                    firstAround = false;
+                    if(firstAroundDiscards.get(0).isWind() && firstAroundDiscards.stream().distinct().count()==1){
+                        abortiveDraw(DrawType.FOUR_WINDS_DISCARDED);
+                        return;
+                    }
+                }
+            }
+        }
+        seatUpdated();
+        if(getReadyCount()==4){
+            abortiveDraw(DrawType.FOUR_PLAYERS_READIED);
+            return;
+        }
+        if(getTotalQuadCount()==4 && getQuadPlayerCount()>=2){
+            abortiveDraw(DrawType.FOUR_QUADS_BUILT);
+            return;
+        }
+        wall.revealIndicatorsIfPresent();
+    }
+
+    /**
+     * ツモ発生時の処理
+     * @param turnWind 和了者の自風
+     */
+    private void turnWinning(Wind turnWind){
+        var result = roundPlayers.get(turnWind).declareTsumo(afterQuad);
+        var score = result.getHandScore();
+        var scoreData = result.getHandScoreData();
+        var paymentTable = new PaymentTable();
+        paymentTable.apply(score, deposit + getReadyCount(), streak);
+        handScoreNotified(List.of(scoreData));
+        paymentNotified(paymentTable);
+        resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
+    }
+
+    /**
+     * ロン発生時の処理。
+     * @param winnerWinds ロン宣言者の自風のセット
+     * @param winningTile 和了牌
+     * @param quadGrab 槍槓かどうか
+     */
+    private void callWinning(Set<Wind> winnerWinds, Tile winningTile, boolean quadGrab){
+        if(winnerWinds.size()==3){
+            for(var winnerWind:winnerWinds){
+                declared(winnerWind, Declaration.RON);
+            }
+            roundDrawn(DrawType.THREE_PLAYERS_CLAIMED);
+            resultType = DRAW_ADVANTAGE_NON_DEALER;
+            return;
+        }
+        resultType = winnerWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
+        var payments = new PaymentTable();
+        var handScores = new ArrayList<HandScoreData>();
+        boolean secondary = false;
+        for(var side:new Side[]{Side.RIGHT, Side.ACROSS, Side.LEFT}){
+            if(winnerWinds.contains(side.of(turnWind))){
+                var winner = getPlayerAt(side.of(turnWind));
+                var result = winner.declareRon(winningTile, turnWind, quadGrab);
+                int totalDepositCount = secondary?0:deposit + getReadyCount();
+                int streakCount = secondary?0:streak;
+                payments.apply(result.getHandScore(), totalDepositCount, streakCount);
+                handScores.add(result.getHandScoreData());
+                secondary = true;
+            }
+        }
+        handScoreNotified(handScores);
+        paymentNotified(payments);
+    }
+
+    /**
+     * 途中流局時の処理
+     * @param drawType 流局の種類
+     */
+    private void abortiveDraw(DrawType drawType){
+        roundDrawn(drawType);
+        boolean dealerNineTiles = drawType==DrawType.NINE_TILES_DECLARED && turnWind==Wind.EAST;
+        resultType = dealerNineTiles? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
+    }
+
+    /**
      * 流局(荒牌平局)時の処理。
      */
-    private void doExhaustion(){
+    private void exhaustiveDraw(){
         roundDrawn(DrawType.EXHAUSTED);
-        var orphanRiverWinds = Stream.of(Wind.values())
-                .filter(wind->getPlayerAt(wind).isOrphanRiver()).toList();
+        var orphanRiverWinds = roundPlayers.values().stream().filter(RoundPlayer::isOrphanRiver).map(RoundPlayer::getSeatWind).toList();
         if(!orphanRiverWinds.isEmpty()){
+            //流し満貫
             var payments = new PaymentTable();
             var riverScores = new ArrayList<RiverScoreData>();
             boolean secondary = false;
@@ -126,177 +296,10 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
             resultType = orphanRiverWinds.contains(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
             return;
         }
-        var handReadyWinds = Stream.of(Wind.values())
-                .filter(wind->getPlayerAt(wind).isHandReady()).toList();
-        for(var handReadyWind:handReadyWinds){
-            getPlayerAt(handReadyWind).roundExhausted();
-        }
+        roundPlayers.values().forEach(RoundPlayer::roundExhausted);
+        var handReadyWinds = roundPlayers.values().stream().filter(RoundPlayer::isHandReady).map(RoundPlayer::getSeatWind).toList();
         paymentNotified(PaymentTable.ofDrawn(handReadyWinds));
         resultType = handReadyWinds.contains(Wind.EAST)? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
-    }
-
-    /**
-     * ターン開始時の処理。
-     */
-    private void doTurn(){
-        var turnPlayer = roundPlayers.get(turnWind);
-        var turnChoices = turnPlayer.getTurnChoices(afterCall, afterQuad);
-        LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selecting turn action from "+turnChoices);
-        var turnAction = turnPlayer.selectTurnAction(turnChoices);
-        LOG.debug("["+turnWind+"]"+turnPlayer.getName()+": selected "+turnAction);
-        if(!turnChoices.contains(turnAction)){
-            throw new IllegalArgumentException("illegal action has been detected: choices:"+turnChoices+" the choice:"+turnAction);
-        }
-        switch(turnAction.type()){
-            case TSUMO -> {
-                var result = turnPlayer.declareTsumo(afterQuad);
-                var score = result.getHandScore();
-                var scoreData = result.getHandScoreData();
-
-                var paymentTable = new PaymentTable();
-                paymentTable.apply(score, deposit + getReadyCount(), streak);
-                handScoreNotified(List.of(scoreData));
-                paymentNotified(paymentTable);
-                resultType = turnWind==Wind.EAST? DEALER_VICTORY:NON_DEALER_VICTORY;
-            }
-            case NINE_TILES -> {
-                turnPlayer.declareNineTiles();
-                roundDrawn(DrawType.NINE_TILES_DECLARED);
-                resultType = turnWind==Wind.EAST? DRAW_ADVANTAGE_DEALER:DRAW_ADVANTAGE_NON_DEALER;
-            }
-            case TURN_KAN -> {
-                var declaredTile = turnAction.argument();
-                var selfQuad = turnPlayer.declareKan(declaredTile);
-                var callActions = new CallActionMediator(turnWind.others())
-                        .withPlayers(this::getPlayerAt)
-                        .withChoices(wind->getPlayerAt(wind).getQuadCallChoices(declaredTile, selfQuad))
-                        .mediate();
-                if(!callActions.isEmpty()){
-                    doClaim(callActions, declaredTile, true);
-                    return;
-                }
-                if(selfQuad){
-                    wall.revealIndicatorImmediately();
-                }
-                afterCall = false;
-                afterQuad = true;
-            }
-            case READY_DISCARD -> {
-                var discardedTile = turnAction.argument();
-                turnPlayer.declareReady();
-                turnPlayer.discard(discardedTile);
-                seatUpdated();
-                riverTileAdded(turnWind, discardedTile, true);
-                doDiscard(discardedTile);
-            }
-            case DISCARD_ANY, DISCARD_DRAWN -> {
-                var discardedTile = turnAction.argument();
-                turnPlayer.discard(discardedTile);
-                riverTileAdded(turnWind, discardedTile, false);
-                doDiscard(discardedTile);
-            }
-        }
-    }
-
-    /**
-     * 打牌時の処理。
-     * @param discarded 打牌
-     */
-    private void doDiscard(Tile discarded){
-        var discarderWind = turnWind;
-        var discarder = getPlayerAt(turnWind);
-        LOG.debug("["+turnWind+"]"+discarder.getName()+" discarded "+discarded);
-        var actions = new CallActionMediator(discarderWind.others())
-                .withPlayers(this::getPlayerAt)
-                .withChoices(wind->getPlayerAt(wind).getCallChoices(discarderWind, discarded))
-                .mediate();
-        actions.forEach((wind, action)->LOG.debug("["+wind+"] select call action "+action));
-        if(!actions.isEmpty()){
-            if(actions.values().stream().allMatch(action->action.type()==CallActionType.RON)){
-                doClaim(actions, discarded, false);
-                return;
-            }
-            assert actions.size()==1;
-            var action = List.copyOf(actions.values()).get(0);
-            var callerWind = List.copyOf(actions.keySet()).get(0);
-            var caller = getPlayerAt(callerWind);
-            switch(action.type()){
-                case KAN -> caller.declareKan(discarded, discarderWind);
-                case PON -> caller.declarePon(discarded, action.arguments(), discarderWind);
-                case CHI -> caller.declareChi(discarded, action.arguments());
-                default -> throw new AssertionError();
-            }
-            discarder.discardTileClaimed();
-            roundPlayers.values().forEach(RoundPlayer::aroundInterrupted);
-            roundPlayers.values().forEach(player->player.discardTileSettled(discarderWind, discarded, callerWind));
-            afterCall = true;
-            afterQuad = action.type()==CallActionType.KAN;
-            turnWind = callerWind;
-            firstAround = false;
-        }else{
-            roundPlayers.values().forEach(player->player.discardTileSettled(discarderWind, discarded, null));
-            afterCall = false;
-            afterQuad = false;
-            turnWind = turnWind.next();
-            if(firstAround){
-                firstAroundDiscards.add(discarded);
-                if(firstAroundDiscards.size()==4){
-                    firstAround = false;
-                    if(firstAroundDiscards.get(0).isWind() && firstAroundDiscards.stream().distinct().count()==1){
-                        roundDrawn(DrawType.FOUR_WINDS_DISCARDED);
-                        resultType = DRAW_ADVANTAGE_NON_DEALER;
-                        return;
-                    }
-                }
-            }
-        }
-        if(getReadyCount()==4){
-            roundDrawn(DrawType.FOUR_PLAYERS_READIED);
-            resultType = DRAW_ADVANTAGE_NON_DEALER;
-            return;
-        }
-        if(getTotalQuadCount()==4 && getQuadPlayerCount()>=2){
-            roundDrawn(DrawType.FOUR_QUADS_BUILT);
-            resultType = DRAW_ADVANTAGE_NON_DEALER;
-            return;
-        }
-        wall.revealIndicatorsIfPresent();
-    }
-
-    /**
-     * ロン発生時の処理。
-     * @param ronActions ロン宣言のマップ
-     * @param winningTile 和了牌
-     * @param againstQuad 槍槓かどうか
-     */
-    private void doClaim(Map<Wind, CallAction> ronActions, Tile winningTile, boolean againstQuad){
-        if(ronActions.size()==3){
-            for(var wind:ronActions.keySet()){
-                declared(wind, Declaration.RON);
-            }
-            roundDrawn(DrawType.THREE_PLAYERS_CLAIMED);
-            resultType = DRAW_ADVANTAGE_NON_DEALER;
-            return;
-        }
-        resultType = ronActions.containsKey(Wind.EAST)? DEALER_VICTORY:NON_DEALER_VICTORY;
-        var payments = new PaymentTable();
-        var handScores = new ArrayList<HandScoreData>();
-        boolean secondary = false;
-        for(var side:new Side[]{Side.RIGHT, Side.ACROSS, Side.LEFT}){
-            if(ronActions.containsKey(side.of(turnWind))){
-                var winner = getPlayerAt(side.of(turnWind));
-                var result = againstQuad?
-                        winner.declareRonByQuad(winningTile, turnWind):
-                        winner.declareRon(winningTile, turnWind);
-                int totalDepositCount = secondary?0:deposit + getReadyCount();
-                int streakCount = secondary?0:streak;
-                payments.apply(result.getHandScore(), totalDepositCount, streakCount);
-                handScores.add(result.getHandScoreData());
-                secondary = true;
-            }
-        }
-        handScoreNotified(handScores);
-        paymentNotified(payments);
     }
 
     private void paymentNotified(PaymentTable table){

@@ -20,6 +20,9 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
 
     @Override
     public HandScore calculate(List<Tile> handTiles, List<Meld> openMelds, Tile winningTile, WinningSituation situation){
+        if(handTiles.size() + openMelds.size()*3 >13){
+            throw new IllegalArgumentException("invalid size of hand: "+handTiles+" meld: "+openMelds);
+        }
         LOG.debug("--start calculating score--");
         LOG.debug(handTiles + " " + openMelds + " " + winningTile);
         var feature = new HandFeature(handTiles, openMelds, winningTile, situation);

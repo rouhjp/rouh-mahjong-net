@@ -105,6 +105,22 @@ public record CallAction(CallActionType type, List<Tile> arguments){
     }
 
     /**
+     * チー宣言を表すオブジェクトを取得します。
+     * <p>あるチーに対する手牌中の残りの構成牌は一意に定まらないため
+     * 引数にて明示的に指定する必要があります。
+     * <p>指定された構成牌はソートされ保持されます。
+     * @param baseTiles 構成牌
+     * @throws IllegalArgumentException 構成牌の長さが不正の場合
+     * @return ポン宣言
+     */
+    public static CallAction ofChi(List<Tile> baseTiles){
+        if(baseTiles.size()!=2){
+            throw new IllegalArgumentException("invalid size of base tiles: "+baseTiles);
+        }
+        return ofChi(baseTiles.get(0), baseTiles.get(1));
+    }
+
+    /**
      * ポン宣言を表すオブジェクトを取得します。
      * <p>あるポンに対する手牌中の残りの構成牌は, 赤ドラを所持している場合
      * 一意に定まらないため, 引数にて明示的に指定する必要があります。
@@ -119,6 +135,22 @@ public record CallAction(CallActionType type, List<Tile> arguments){
         }else {
             return new CallAction(PON, List.of(t1, t2));
         }
+    }
+
+    /**
+     * ポン宣言を表すオブジェクトを取得します。
+     * <p>あるポンに対する手牌中の残りの構成牌は, 赤ドラを所持している場合
+     * 一意に定まらないため, 引数にて明示的に指定する必要があります。
+     * <p>指定された構成牌はソートされ保持されます。
+     * @param baseTiles 構成牌
+     * @throws IllegalArgumentException 構成牌の長さが不正の場合
+     * @return ポン宣言
+     */
+    public static CallAction ofPon(List<Tile> baseTiles){
+        if(baseTiles.size()!=2){
+            throw new IllegalArgumentException("invalid size of base tiles: "+baseTiles);
+        }
+        return ofPon(baseTiles.get(0), baseTiles.get(1));
     }
 
     /**
