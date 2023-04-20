@@ -421,7 +421,7 @@ class RoundPlayer extends ForwardingTableStrategy{
     }
 
     private void requireTurnPhase(){
-        if((handTiles.size() + openMelds.size()*3)!=14){
+        if((handTiles.size() + openMelds.size()*3 + (drawnTile==null?0:1))!=14){
             throw new IllegalStateException("invalid hand status: must be on turn");
         }
     }
