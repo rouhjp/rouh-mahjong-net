@@ -403,7 +403,7 @@ class RoundPlayer extends ForwardingTableStrategy{
     }
 
     private void remove(Tile tile){
-        if(handTiles.remove(tile)){
+        if(!handTiles.remove(tile)){
             throw new IllegalArgumentException("tile not found: removing "+tile+" from "+handTiles);
         }
     }
