@@ -4,6 +4,42 @@
             <pattern>[%d{HH:mm:ss} %class{0} %thread] %message %n</pattern>
         </encoder>
     </appender>
+    <appender name="FILE_NETWORK_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>network.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>network.%i.log</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>3</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>1MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>[%d{HH:mm:ss} %thread] %message %n</pattern>
+        </encoder>
+    </appender>
+    <appender name="FILE_GUI_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>gui.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>gui.%i.log</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>3</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>1MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>[%d{HH:mm:ss} %thread] %message %n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="jp.rouh.util.net" additivity="false">
+        <appender-ref ref="FILE_NETWORK_LOG"/>
+    </logger>
+    <logger name="jp.rouh.mahjong.app" additivity="false">
+        <appender-ref ref="FILE_GUI_LOG"/>
+    </logger>
+
     <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </root>

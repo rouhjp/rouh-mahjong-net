@@ -97,13 +97,13 @@ public class PreparedGame implements GameAccessor{
             int sum = 0;
             for(var wind:Wind.values()){
                 int score = gamePlayers.get(wind).getScore();
-                LOG.info(gamePlayers.get(wind).getName()+" "+score);
+                LOG.info("{} {}", gamePlayers.get(wind).getName(), score);
                 sum += score;
             }
             sum += deposit*1000;
-            LOG.info("deposit="+deposit*1000);
+            LOG.info("deposit={}", deposit*1000);
             if(sum!=100000){
-                LOG.error("invalid score sum: "+sum);
+                LOG.error("invalid score sum: {}", sum);
                 throw new IllegalStateException("invalid score sum");
             }
 

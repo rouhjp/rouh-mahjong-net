@@ -49,14 +49,14 @@ public class RoomServer extends BioMessageServer implements MessageServerListene
 
         @Override
         public void notifyName(String name){
-            LOG.info(name + " new name notified: "+name);
+            LOG.info("new name notified: {} -> {}", this.name, name);
             this.name = name;
             updated();
         }
 
         @Override
         public void notifyReady(boolean ready){
-            LOG.info(name + " ready notified: "+ready);
+            LOG.info(" ready notified: {} ready={}", name, ready);
             this.ready = ready;
             updated();
         }

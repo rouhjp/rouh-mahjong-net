@@ -89,7 +89,7 @@ public class CallActionMediator{
     public Map<Wind, CallAction> mediate(){
         if(playerMap.isEmpty() || choicesMap.isEmpty()) throw new IllegalStateException("parameter not initialized yet");
         for(var key:choicesMap.keySet()){
-            LOG.info("choices("+key+"): "+choicesMap.get(key));
+            LOG.info("choices({}): ", choicesMap.get(key));
         }
 
         var winds = playerMap.keySet();
@@ -118,7 +118,7 @@ public class CallActionMediator{
             var answerMap = new HashMap<Wind, CallAction>();
             for(int i = 0; i<winds.size(); i++){
                 var answer = completionService.take().get();
-                LOG.info("answer("+answer.from+") "+answer.action);
+                LOG.info("answer({}) {}", answer.from, answer.action);
                 if(!choicesMap.get(answer.from).contains(answer.action)){
                     throw new IllegalArgumentException("illegal action has been detected: choices:"+choicesMap.get(answer.from)+" the choice:"+answer.action);
                 }

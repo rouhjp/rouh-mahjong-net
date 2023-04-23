@@ -560,7 +560,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
     @Override
     public ActionInput waitForInput(List<ActionInput> choices){
         requireCallOnNonEDT();
-        LOG.info("waitForInput "+choices);
+        LOG.info("waitForInput {}", choices);
         var future = worker.submit(()->{
             SwingUtilities.invokeAndWait(()->{
                 for(int i = 0; i<choices.size(); i++){
@@ -596,7 +596,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
                 });
                 return input;
             }catch(InterruptedException | InvocationTargetException e){
-                LOG.debug("exception caught: "+e);
+                LOG.debug("exception caught ", e);
                 return null;
             }
         });
@@ -611,22 +611,22 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
     public void waitForAcknowledge(){
         requireCallOnNonEDT();
         try{
-            LOG.info("--acquired--" + Thread.currentThread().getName());
+            LOG.info("--acquired-- {}", Thread.currentThread().getName());
             acknowledgeWaiter.waitForArrival();
-            LOG.info("--released--" + Thread.currentThread().getName());
+            LOG.info("--released-- {}", Thread.currentThread().getName());
         }catch(InterruptedException e){
-            LOG.info("ack interrupted "+e.getMessage());
+            LOG.info("ack interrupted message={}", e.getMessage());
         }
     }
 
     @Override
     public void gameStarted(List<ProfileData> players){
-        LOG.info("gameStarted "+players);
+        LOG.info("gameStarted {}", players);
     }
 
     @Override
     public void gameFinished(List<GameScoreData> scores){
-        LOG.info("gameSettled "+scores);
+        LOG.info("gameSettled {}", scores);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->putGameResultWindow(scores));
@@ -647,7 +647,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void temporarySeatUpdated(Map<Side, PlayerTempData> players){
-        LOG.info("temporarySeatUpdated "+players);
+        LOG.info("temporarySeatUpdated {}", players);
         worker.submit(()->SwingUtilities.invokeLater(()->
                 players.forEach((side, data)->{
                     var dir = Direction.of(side);
@@ -668,7 +668,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void seatUpdated(Map<Side, PlayerData> players){
-        LOG.info("seatUpdated " + players);
+        LOG.info("seatUpdated {}", players);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->players.forEach((side, data)->{
@@ -699,7 +699,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void roundStarted(Wind wind, int count, int streak, int deposit, boolean last){
-        LOG.info("roundStarted "+wind+" count="+count+" streak="+streak+" deposit="+deposit+" last="+last);
+        LOG.info("roundStarted {} count={} streak={} deposit={} last={}", wind, count, streak, deposit, last);
         worker.submit(()->SwingUtilities.invokeLater(()->{
             putRoundSign(wind, count);
             putStreakSign(streak);
@@ -712,7 +712,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void roundDrawn(DrawType drawType){
-        LOG.info("roundDrawn "+drawType);
+        LOG.info("roundDrawn {}", drawType);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->putDrawnMessage(drawType));
@@ -729,7 +729,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void handScoreNotified(List<HandScoreData> scores){
-        LOG.info("roundSettled "+scores);
+        LOG.info("roundSettled {}", scores);
         worker.submit(()->{
             try{
                 for(var score: scores){
@@ -742,7 +742,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
                     repaint();
                 });
             }catch(InterruptedException | InvocationTargetException e){
-                LOG.debug("interrupted "+e.getMessage());
+                LOG.debug("interrupted message={}", e.getMessage());
                 throw new RuntimeException(e);
             }
         });
@@ -750,7 +750,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void riverScoreNotified(List<RiverScoreData> scores){
-        LOG.info("roundSettledByRiver "+scores);
+        LOG.info("roundSettledByRiver {}", scores);
         worker.submit(()->{
            try{
                for(var score:scores){
@@ -763,7 +763,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
                    repaint();
                });
            }catch(InterruptedException | InvocationTargetException e){
-               LOG.debug("interrupted " + e.getMessage());
+               LOG.debug("interrupted message={}", e.getMessage());
                throw new RuntimeException(e);
            }
         });
@@ -771,7 +771,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void paymentNotified(Map<Side, PaymentData> payments){
-        LOG.info("paymentSettled "+payments);
+        LOG.info("paymentSettled {}", payments);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
@@ -807,7 +807,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void diceRolled(Side side, int dice1, int dice2){
-        LOG.info("diceRolled "+side+" dice1="+dice1+" dice2="+dice2);
+        LOG.info("diceRolled {} dice1={} dice2={}", side, dice1, dice2);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
@@ -823,13 +823,13 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void declared(Side side, Declaration declaration){
-        LOG.info("declared "+side+" "+declaration);
+        LOG.info("declared {} {}", side, declaration);
         worker.submit(()->SwingUtilities.invokeLater(()->showPlayerMessage(Direction.of(side), declaration, 2000)));
     }
 
     @Override
     public void readyBoneAdded(Side side){
-        LOG.info("readyBoneAdded "+side);
+        LOG.info("readyBoneAdded {}", side);
         worker.submit(()->SwingUtilities.invokeLater(()->putReadyBone(Direction.of(side))));
     }
 
@@ -857,7 +857,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void wallTileTaken(Side side, int column, int floor){
-        LOG.info("wallTileTaken " + side + " column=" + column + " floor=" + floor);
+        LOG.info("wallTileTaken {} column={} floor={}", side, column, floor);
         worker.submit(()->{
             try{
                 TimeUnit.MILLISECONDS.sleep(40);
@@ -873,7 +873,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void wallTileRevealed(Side side, int column, Tile tile){
-        LOG.info("wallTileRevealed "+side+" column="+column+" "+tile);
+        LOG.info("wallTileRevealed {} column={} {}", side, column, tile);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
@@ -888,7 +888,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void turnStarted(Side side){
-        LOG.info("turnStarted "+side);
+        LOG.info("turnStarted {}", side);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
@@ -929,7 +929,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void handUpdated(Side side, int size, boolean wide){
-        LOG.info("handUpdated "+side+" size="+size+" wide="+wide);
+        LOG.info("handUpdated {} size={} wide={}", side, size, wide);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
@@ -946,7 +946,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void handUpdated(List<Tile> allTiles, boolean wide){
-        LOG.info("handUpdated "+allTiles+" wide="+wide);
+        LOG.info("handUpdated {}, wode={}", allTiles, wide);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
@@ -963,7 +963,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void handRevealed(Side side, List<Tile> allTiles, boolean wide){
-        LOG.info("handRevealed "+side+" "+allTiles+" wide="+wide);
+        LOG.info("handRevealed {} {} wide={}", side, allTiles, wide);
         worker.submit(()->
             SwingUtilities.invokeLater(()->{
                 clearHandTiles(Direction.of(side));
@@ -999,7 +999,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void riverTileAdded(Side side, Tile tile, boolean tilt){
-        LOG.info("riverTileAdded "+side+" "+tile+" tilt="+tilt);
+        LOG.info("riverTileAdded {} {} tilt={}", side, tile, tilt);
         worker.submit(()->{
            try{
                SwingUtilities.invokeAndWait(()->appendRiverTile(Direction.of(side), tile, tilt));
@@ -1011,13 +1011,13 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void riverTileTaken(Side side){
-        LOG.info("riverTileTaken "+side);
+        LOG.info("riverTileTaken {}", side);
         worker.submit(()->SwingUtilities.invokeLater(()->removeLastRiverTile(Direction.of(side))));
     }
 
     @Override
     public void tiltMeldAdded(Side side, Side tilt, List<Tile> tiles){
-        LOG.info("tiltMeldAdded "+side+" "+tilt+" "+tiles);
+        LOG.info("tiltMeldAdded {} {} {}", side, tilt, tiles);
         worker.submit(()->SwingUtilities.invokeLater(()->{
             var dir = Direction.of(side);
             switch(tilt){
@@ -1031,7 +1031,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
     @Override
     public void selfQuadAdded(Side side, List<Tile> tiles){
         synchronized(this){
-            LOG.info("selfQuadAdded " + side + " " + tiles);
+            LOG.info("selfQuadAdded {} {}", side, tiles);
             worker.submit(()->SwingUtilities.invokeLater(()->appendSelfQuad(Direction.of(side), tiles)));
         }
     }
@@ -1039,7 +1039,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
     @Override
     public void meldTileAdded(Side side, int index, Tile tile){
         synchronized(this){
-            LOG.info("meldTileAdded " + side + " index=" + index + " " + tile);
+            LOG.info("meldTileAdded {} index={} {}", side, index, tile);
             worker.submit(()->SwingUtilities.invokeLater(()->addTileToMeld(Direction.of(side), index, tile)));
         }
     }

@@ -77,7 +77,8 @@ public class RemoteConnections{
                     }
                 }
             }catch(Exception e){
-                LOG.error("exception caught while resolving received message: " + e.getMessage() + " message=" + message, e);
+                LOG.error("exception caught while resolving received message: message={}", message);
+                LOG.error("error: ", e);
             }
         };
     }
@@ -113,7 +114,8 @@ public class RemoteConnections{
                 }
                 return method.invoke(proxy, args);
             }catch(Exception e){
-                LOG.error("exception caught while invoking remote interface using proxy: "+method.getName(), e);
+                LOG.error("exception caught while invoking remote interface using proxy: method={}", method);
+                LOG.error("error: ", e);
                 throw e;
             }
         }
@@ -125,7 +127,7 @@ public class RemoteConnections{
                 if(response.getRequestId().equals(currentRequestId.get())){
                     blockingDeque.addLast(response.getValue());
                 }else{
-                    LOG.info("response has ignored for id mismatch: "+message);
+                    LOG.info("response has ignored for id mismatch: {}", message);
                 }
             }
         }
