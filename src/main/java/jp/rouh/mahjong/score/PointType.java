@@ -113,7 +113,7 @@ public enum PointType{
     /**
      * 門前加符
      */
-    SELF_MADE("門前加符", 10),
+    CONCEALED_RON("門前加符", 10),
 
     /**
      * 平和加符
@@ -141,6 +141,15 @@ public enum PointType{
      */
     public int getPoint(){
         return point;
+    }
+
+    /**
+     * 符が0かどうか検査します。
+     * @return true 符が0の場合
+     *         false 符が付く場合
+     */
+    public boolean isNoPoint(){
+        return point==0;
     }
 
     /**

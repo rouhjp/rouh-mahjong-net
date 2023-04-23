@@ -164,6 +164,38 @@ public class HandScore implements Comparable<HandScore>{
     }
 
     /**
+     * 支払ベースの点数を取得します。
+     * <p>ツモ和了などで支払の対象者が複数存在する場合は,
+     * 点数を支払い対象者分に割ったのち, それらを足し合わせた点数となります。
+     * <p>この時, 100点未満の端数が発生した場合切り上げとなるため,
+     * 当初の点数と支払い点数の合計は異なる場合があります。
+     * <p>例えば子が1300点を和了した場合, 400-700となり, 最終的な支払の合計は1500点となります。
+     * <p>このメソッドでは, 最終的な支払の合計を取得します。
+     * @return 支払ベース点数
+     */
+    public int getPaymentScore(){
+        return divide().stream().mapToInt(handScore->{
+            int score = handScore.getScore();
+            int responsibleCount = (handScore.getCompleterSide()!=Side.SELF?1:0)
+                    + (handScore.getSupplierSide()!=Side.SELF?1:0);
+            if (responsibleCount==2){
+                return ceil(score/2)*2;
+            }
+            if (responsibleCount==1){
+                return score;
+            }
+            if (isDealer()){
+                return ceil(score/3)*3;
+            }
+            return ceil(score/2) + ceil(score/4)*2;
+        }).sum();
+    }
+
+    private static int ceil(int score){
+        return (int)Math.ceil(score/100d)*100;
+    }
+
+    /**
      * 飜数を取得します。
      * @return 飜数
      */

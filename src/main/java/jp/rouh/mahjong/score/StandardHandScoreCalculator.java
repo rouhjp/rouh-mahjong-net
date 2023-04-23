@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static java.util.function.Predicate.not;
+
 /**
  * 標準点数計算クラス。
  *
@@ -125,11 +127,26 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
         pointTypes.add(hand.getWait().getWaitPointType());
         pointTypes.add(hand.getHead().getHeadPoint(situation.getSeatWind(), situation.getRoundWind()));
         pointTypes.addAll(hand.getMelds().stream().map(Meld::getMeldPointType).toList());
-        boolean concealedNoPoint = pointTypes.isEmpty() && feature.getCallCount()==0;
-        boolean calledNoPoint = pointTypes.isEmpty() && feature.getCallCount()>0;
-        if(situation.isTsumo() && !concealedNoPoint) pointTypes.add(PointType.TSUMO);
-        if(feature.getCallCount()==0 && !situation.isTsumo()) pointTypes.add(PointType.SELF_MADE);
-        if(calledNoPoint) pointTypes.add(PointType.CALLED_NO_POINT);
+        pointTypes.removeIf(PointType::isNoPoint);
+        boolean concealed = feature.getCallCount()==0;
+        boolean tsumo = situation.isTsumo();
+        boolean noPoint = pointTypes.isEmpty();
+        if(concealed && noPoint && tsumo){
+            //平和自摸20符固定
+            return List.of(PointType.BASE);
+        }
+        if(!concealed && noPoint){
+            //喰い平和30符固定
+            return List.of(PointType.BASE, PointType.CALLED_NO_POINT);
+        }
+        if(tsumo){
+            //自摸符
+            pointTypes.add(PointType.TSUMO);
+        }
+        if(concealed && !tsumo){
+            //門前加符
+            pointTypes.add(PointType.CONCEALED_RON);
+        }
         pointTypes.add(PointType.BASE);
         return pointTypes.stream().sorted().toList();
     }
