@@ -36,7 +36,7 @@ public enum TurnActionType {
      * 打牌します。
      * <p>どの牌を打牌するか指定する必要があります。
      */
-    DISCARD_ANY,
+    DISCARD,
 
     /**
      * ツモ切り打牌します。

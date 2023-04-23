@@ -143,7 +143,7 @@ public final class RoomMessageConverters{
                         case TURN_KAN -> TurnAction.ofKan(argument);
                         case READY_DISCARD -> TurnAction.ofReadyAndDiscard(argument);
                         case DISCARD_DRAWN -> TurnAction.ofDiscardDrawn(argument);
-                        case DISCARD_ANY -> TurnAction.ofDiscard(argument);
+                        case DISCARD -> TurnAction.ofDiscard(argument);
                     };
                 })
                 .build();

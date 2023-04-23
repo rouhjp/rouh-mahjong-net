@@ -143,7 +143,7 @@ class Round implements TableMasterAdapter, RoundAccessor, WallObserver{
                 turnPlayer.discardAndReady(discardedTile);
                 callPhase(discardedTile);
             }
-            case DISCARD_ANY, DISCARD_DRAWN -> {
+            case DISCARD, DISCARD_DRAWN -> {
                 var discardedTile = turnAction.argument();
                 turnPlayer.discard(discardedTile);
                 callPhase(discardedTile);

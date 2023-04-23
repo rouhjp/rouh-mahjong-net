@@ -83,12 +83,11 @@ public record TurnAction(TurnActionType type, Tile argument) {
      * @return 打牌
      */
     public static TurnAction ofDiscard(Tile t) {
-        return new TurnAction(DISCARD_ANY, t);
+        return new TurnAction(DISCARD, t);
     }
 
     /**
      * ツモ切り打牌を表すオブジェクトを取得します。
-     * @param t 自摸牌
      * @return ツモ切り打牌
      */
     public static TurnAction ofDiscardDrawn(Tile t){

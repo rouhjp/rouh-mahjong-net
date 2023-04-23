@@ -28,7 +28,7 @@ public class TurnActionSelector{
      * @param choices ターン内行動のリスト
      */
     public TurnActionSelector(List<TurnAction> choices){
-        this.discardActions = choices.stream().filter(c->c.type()==DISCARD_ANY).toList();
+        this.discardActions = choices.stream().filter(c->c.type()==DISCARD).toList();
         this.readyActions = choices.stream().filter(c->c.type()==READY_DISCARD).toList();
         this.kanActions = choices.stream().filter(c->c.type()==TURN_KAN).toList();
         this.tsumoActionNullable = choices.stream().filter(c->c.type()==TSUMO).findAny().orElse(null);
