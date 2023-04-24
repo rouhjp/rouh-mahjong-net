@@ -5,6 +5,7 @@ import jp.rouh.mahjong.tile.Wind;
 
 import java.util.List;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.function.Predicate.not;
 
@@ -176,8 +177,8 @@ public class HandScore implements Comparable<HandScore>{
     public int getPaymentScore(){
         return divide().stream().mapToInt(handScore->{
             int score = handScore.getScore();
-            int responsibleCount = (handScore.getCompleterSide()!=Side.SELF?1:0)
-                    + (handScore.getSupplierSide()!=Side.SELF?1:0);
+            int responsibleCount = (int)Stream.of(handScore.getCompleterSide(), handScore.getSupplierSide())
+                    .filter(side->side!=Side.SELF).distinct().count();
             if (responsibleCount==2){
                 return ceil(score/2)*2;
             }
