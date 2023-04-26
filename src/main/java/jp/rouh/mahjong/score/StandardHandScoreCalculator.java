@@ -6,8 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static java.util.function.Predicate.not;
-
 /**
  * 標準点数計算クラス。
  *
@@ -29,6 +27,19 @@ public final class StandardHandScoreCalculator implements HandScoreCalculator{
         LOG.debug(handTiles + " " + openMelds + " " + winningTile);
         var feature = new HandFeature(handTiles, openMelds, winningTile, situation);
         var limitHandTypes = LimitHandType.testAll(feature, situation);
+        if(limitHandTypes.contains(LimitHandType.BLESSING_OF_HEAVEN)){
+            //親の初手14枚は全て配牌扱いのため、全牌がツモの場合の和了を考える必要がある
+            //このため国士無双は十三面待ち、九蓮宝燈は純正、四槓子は単騎待ちが適用される
+            if(limitHandTypes.remove(LimitHandType.THIRTEEN_ORPHANS)){
+                limitHandTypes.add(LimitHandType.THIRTEEN_ORPHANS_13_WAIT);
+            }
+            if(limitHandTypes.remove(LimitHandType.FOUR_CONCEALED_TRIPLES)){
+                limitHandTypes.add(LimitHandType.FOUR_CONCEALED_TRIPLES_1_WAIT);
+            }
+            if(limitHandTypes.remove(LimitHandType.NINE_GATES)){
+                limitHandTypes.add(LimitHandType.NINE_GATES_9_WAIT);
+            }
+        }
         if(!limitHandTypes.isEmpty()){
             var completerSides = limitHandTypes.stream().map(handType->((LimitHandType)handType).getCompleterSide(openMelds)).toList();
             return HandScore.ofHandLimit(limitHandTypes, situation.getSeatWind(), situation.getSupplierSide(), completerSides);
