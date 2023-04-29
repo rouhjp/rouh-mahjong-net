@@ -70,7 +70,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         handTiles.add(tile);
         handTiles.sort(Comparator.naturalOrder());
         winningTiles = HandTiles.winningTilesOf(handTiles);
-        notifier.handUpdated(seatWind, handTiles, false);
+        notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
     }
 
     /**
@@ -86,7 +86,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         }
         handTiles.addAll(tiles);
         handTiles.sort(Comparator.naturalOrder());
-        notifier.handUpdated(seatWind, handTiles, false);
+        notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
     }
 
     /**
@@ -141,7 +141,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         }
         river.add(tile);
         discardLockedTiles = null;
-        notifier.handUpdated(seatWind, handTiles, false);
+        notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
         if(riverLock){
             handLocked();
         }
@@ -160,7 +160,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         discardLockedTiles = HandTiles.waitingTargetsOf(baseTiles);
         notifier.declared(seatWind, Declaration.CHI);
         notifier.tiltMeldAdded(seatWind, Side.LEFT, openMelds.getLast().getTilesFormed());
-        notifier.handUpdated(seatWind, handTiles, false);
+        notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
         notifier.riverTileTaken(Side.LEFT.of(seatWind));
     }
 
@@ -177,7 +177,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         discardLockedTiles = HandTiles.waitingTargetsOf(baseTiles);
         notifier.declared(seatWind, Declaration.PON);
         notifier.tiltMeldAdded(seatWind, discarderWind.from(seatWind), openMelds.getLast().getTilesFormed());
-        notifier.handUpdated(seatWind, handTiles, false);
+        notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
         notifier.riverTileTaken(discarderWind);
     }
 
@@ -193,7 +193,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         openMelds.add(Meld.ofCallQuad(baseTiles, calledTile, discarderWind.from(seatWind)));
         notifier.declared(seatWind, Declaration.KAN);
         notifier.tiltMeldAdded(seatWind, discarderWind.from(seatWind), openMelds.getLast().getTilesFormed());
-        notifier.handUpdated(seatWind, handTiles, false);
+        notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
         notifier.riverTileTaken(discarderWind);
     }
 
@@ -213,7 +213,7 @@ class RoundPlayer extends ForwardingTableStrategy{
             openMelds.add(Meld.ofSelfQuad(quadTiles));
             notifier.declared(seatWind, Declaration.KAN);
             notifier.selfQuadAdded(seatWind, openMelds.getLast().getTilesFormed());
-            notifier.handUpdated(seatWind, handTiles, false);
+            notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
             return;
         }
         //加槓
@@ -227,7 +227,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         openMelds.add(index, Meld.ofAddQuad(triple, selectedTile));
         notifier.declared(seatWind, Declaration.KAN);
         notifier.meldTileAdded(seatWind, index, selectedTile);
-        notifier.handUpdated(seatWind, handTiles, false);
+        notifier.handUpdated(seatWind, List.copyOf(handTiles), false);
     }
 
     /**
@@ -357,7 +357,7 @@ class RoundPlayer extends ForwardingTableStrategy{
         var situation = getWinningSituation(false, quadGrab, supplierWind.from(seatWind));
         var score = calculator.calculate(handTiles, openMelds, claimedTile, situation);
         notifier.declared(seatWind, Declaration.RON);
-        notifier.handRevealed(seatWind, handTiles, false);
+        notifier.handRevealed(seatWind, List.copyOf(handTiles), false);
         return new WinningResult(score, handTiles, openMelds, claimedTile, situation);
     }
 
@@ -495,7 +495,7 @@ class RoundPlayer extends ForwardingTableStrategy{
      */
     void roundExhausted(){
         if(isHandReady()){
-            notifier.handRevealed(seatWind, handTiles, false);
+            notifier.handRevealed(seatWind, List.copyOf(handTiles), false);
         }
     }
 
