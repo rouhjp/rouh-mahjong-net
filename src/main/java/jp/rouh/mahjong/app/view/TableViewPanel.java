@@ -946,7 +946,7 @@ public class TableViewPanel extends TablePanel implements TableObserver, TableVi
 
     @Override
     public void handUpdated(List<Tile> allTiles, boolean wide){
-        LOG.info("handUpdated {}, wode={}", allTiles, wide);
+        LOG.info("handUpdated {}, wide={}", allTiles, wide);
         worker.submit(()->{
             try{
                 SwingUtilities.invokeAndWait(()->{
