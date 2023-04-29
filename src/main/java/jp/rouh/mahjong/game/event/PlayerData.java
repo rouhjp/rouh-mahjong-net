@@ -53,4 +53,9 @@ public class PlayerData{
     public void setRank(int rank){
         this.rank = rank;
     }
+
+    @Override
+    public String toString(){
+        return "(["+seatWind+"]"+rank+" "+name+" "+score+")";
+    }
 }
