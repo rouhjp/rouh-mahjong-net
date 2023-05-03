@@ -21,14 +21,29 @@ public enum PointType{
     SEVEN_PAIR_BASE("七対子固定符", 25),
 
     /**
-     * 雀頭
+     * 雀頭(数牌)
      */
-    HEAD("雀頭", 0),
+    HEAD_SUIT("雀頭(数牌)", 0),
 
     /**
-     * 雀頭(飜牌)
+     * 雀頭(客風牌)
      */
-    VALUABLE_HEAD("雀頭(飜牌)", 2),
+    HEAD_OTHER_WIND("雀頭(客風牌)", 0),
+
+    /**
+     *
+     */
+    HEAD_DRAGON("雀頭(三元牌)", 2),
+
+    /**
+     *
+     */
+    HEAD_SEAT_WIND("雀頭(自風牌)", 2),
+
+    /**
+     *
+     */
+    HEAD_ROUND_WIND("雀頭(場風牌)", 2),
 
     /**
      * 雀頭(連風牌)
@@ -159,20 +174,23 @@ public enum PointType{
      */
     static PointType ofHead(Head head, Wind roundWind, Wind seatWind){
         if(head.isDragon()){
-            return PointType.VALUABLE_HEAD;
+            return HEAD_DRAGON;
         }
         if(head.isWind()){
             boolean seatWindHead = head.getFirst().equalsIgnoreRed(seatWind.toTile());
             boolean roundWindHead = head.getFirst().equalsIgnoreRed(roundWind.toTile());
             if(seatWindHead && roundWindHead){
-                return PointType.DOUBLE_VALUABLE_HEAD;
+                return DOUBLE_VALUABLE_HEAD;
             }
-            if(seatWindHead || roundWindHead){
-                return PointType.VALUABLE_HEAD;
+            if(seatWindHead){
+                return HEAD_SEAT_WIND;
             }
-            return PointType.HEAD;
+            if(roundWindHead){
+                return HEAD_ROUND_WIND;
+            }
+            return HEAD_OTHER_WIND;
         }
-        return PointType.HEAD;
+        return HEAD_SUIT;
     }
 
     /**
