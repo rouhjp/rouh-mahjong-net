@@ -440,4 +440,17 @@ public enum Tile implements Comparable<Tile> {
     public boolean isPrisedRed() {
         return REDS.contains(this);
     }
+
+    /**
+     * 指定の牌番号から牌を取得します。
+     * <p>牌番号は萬子筒子索子風牌三元牌の順に割り当てられた0~33の値です。
+     * @param tileNumber 牌番号
+     * @return 牌
+     */
+    static Tile valueOf(int tileNumber){
+        if(tileNumber>=34){
+            throw new IllegalArgumentException("invalid tile number: " + tileNumber);
+        }
+        return SEQUENCE[tileNumber];
+    }
 }

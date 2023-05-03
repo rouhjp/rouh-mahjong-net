@@ -277,4 +277,30 @@ public final class Tiles{
         if(tile.hasPrevious()) return Optional.of(tile.previous());
         return Optional.empty();
     }
+
+    /**
+     * 指定の牌番号から牌を取得します。
+     * <p>牌番号は萬子筒子索子風牌三元牌の順に割り当てられた0~33の値です。
+     * @param tileNumber 牌番号
+     * @return 牌
+     */
+    public static Tile valueOf(int tileNumber){
+        return Tile.valueOf(tileNumber);
+    }
+
+    /**
+     * ドラに対応するドラ表示牌にあたる牌を取得します。
+     * @param prisedTile ドラ牌
+     * @return ドラ表示牌
+     */
+    public static Tile toIndicator(Tile prisedTile){
+        return switch(prisedTile){
+            case M1 -> Tile.M9;
+            case P1 -> Tile.P9;
+            case S1 -> Tile.S9;
+            case DW -> Tile.DR;
+            case WE -> Tile.WN;
+            default -> Tile.valueOf(prisedTile.tileNumber() - 1);
+        };
+    }
 }
