@@ -247,6 +247,15 @@ public class HandScore implements Comparable<HandScore>{
     }
 
     /**
+     * 得点区分を表す文字列を取得します。
+     * <p>得点区分がない場合は空の文字列を取得します。
+     * @return 得点区分
+     */
+    public String getLimitExpression(){
+        return limit.getName();
+    }
+
+    /**
      * 得点を表す文字列を取得します。
      * @return 得点を表す文字列
      */
