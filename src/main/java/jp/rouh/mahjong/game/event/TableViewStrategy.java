@@ -115,7 +115,7 @@ public class TableViewStrategy extends ForwardingTableObserver implements TableS
                                 return player.getReadyActionOf(selected);
                             }
                             case DISCARD -> {
-                                if(input.getIndex()==(tiles.size() - 1)){
+                                if(player.canDiscardDrawn() && input.getIndex()==(tiles.size() - 1)){
                                     return player.getDiscardDrawnAction();
                                 }
                                 return player.getDiscardActionOf(selected);
