@@ -1,0 +1,6 @@
+/.idea/
+/.gradle/
+/secret.properties
+/*.log
+/logs/*
+!/logs/.gitkeep
