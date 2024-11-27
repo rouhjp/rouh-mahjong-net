@@ -21,12 +21,23 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
 
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.7'
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.7'
-    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.4.7'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.12'
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.4.14'
 }
 
 test {
     useJUnitPlatform()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
 }
 
 launch4j{
@@ -39,20 +50,39 @@ launch4j{
     jvmOptions = ['-Dfile.encoding=UTF8']
 }
 
-task generateJRE(dependsOn: ["shadowJar"]){
-    doFirst {
+tasks.register('createMinJre') {
+    dependsOn("launch4j")
+    doLast {
+        def jarFile = file("$buildDir/libs/rouh-mahjong-net-1.0-SNAPSHOT-all.jar")
+        def outputDir = file("$buildDir/product/jre-min")
+        def jdkPath = file("$projectDir/jdk-17")
+        def jdeps = new File(jdkPath, "bin/jdeps").absolutePath
+        def jlink = new File(jdkPath, "bin/jlink").absolutePath
+        if (!jarFile.exists()) {
+            throw new GradleException("JAR file not found: ${jarFile}")
+        }
+        def moduleInfo = new ByteArrayOutputStream()
         exec {
-            workingDir = project.projectDir
-            commandLine = ['cmd', '/C', 'generate-jre.bat']
+            commandLine jdeps, '--print-module-deps', "--ignore-missing-deps", jarFile
+            standardOutput = moduleInfo
+        }
+        def modules = moduleInfo.toString().trim()
+        // println "Modules required: ${modules}"
+        exec {
+            commandLine jlink,
+                    '--module-path', new File(jdkPath, "jmods").absolutePath,
+                    '--add-modules', modules,
+                    '--output', outputDir,
+                    '--compress', '2'
         }
     }
 }
 
-task createProductZIP(type: Zip, dependsOn:["launch4j", "generateJRE"]){
+tasks.register('createZip', Zip) {
+    dependsOn("createMinJre")
+    dependsOn("launch4j")
     archiveFileName = 'rouh-mahjong.zip'
     from 'build/product'
 }
 
-
 tasks.withType(AbstractCompile)*.options*.encoding = tasks.withType(GroovyCompile)*.groovyOptions*.encoding = 'UTF-8'
-

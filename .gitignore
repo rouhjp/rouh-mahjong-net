@@ -2,7 +2,7 @@
 /.cache/
 /.idea/
 /.gradle/
+/jdk-17/
 /secret.properties
-/*.log
 /logs/*
 !/logs/.gitkeep
